@@ -33,25 +33,25 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewMode>(ViewMode.HOME);
-  const [articles, setArticles] = useState<Article[]>(INITIAL_ARTICLES);
-  const [sponsorships, setSponsorships] = useState<Sponsorship[]>(INITIAL_SPONSORSHIPS);
-  const [brands, setBrands] = useState<Brand[]>(INITIAL_BRANDS);
-  const [users, setUsers] = useState<User[]>(INITIAL_USERS);
-  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>(INITIAL_SOCIAL_ACCOUNTS);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [sponsorships, setSponsorships] = useState<Sponsorship[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
   const [socialPosts, setSocialPosts] = useState<SocialPost[]>([]);
-  const [categories, setCategories] = useState<CategoryConfig[]>(INITIAL_CATEGORIES);
-  const [roles, setRoles] = useState<Role[]>(INITIAL_ROLES);
+  const [categories, setCategories] = useState<CategoryConfig[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [workLogs, setWorkLogs] = useState<WorkLog[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(DEFAULT_SITE_CONFIG);
-  const [adSlots, setAdSlots] = useState<AdSlotConfig[]>(INITIAL_AD_SLOTS);
+  const [adSlots, setAdSlots] = useState<AdSlotConfig[]>([]);
   
   // AI Settings
   const [aiSystemPrompt, setAiSystemPrompt] = useState<string>(DEFAULT_AI_PROMPT);
 
-  const [isLoading, setIsLoading] = useState(false); // Start with false to avoid black screen while Firebase loads
+  const [isLoading, setIsLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [welcomeUserName, setWelcomeUserName] = useState('');
