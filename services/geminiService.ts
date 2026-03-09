@@ -1,9 +1,18 @@
 import { GoogleGenAI, GenerateContentParameters, GenerateContentResponse } from "@google/genai";
 import { Source } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let aiInstance: GoogleGenAI | null = null;
+
+const getAI = () => {
+  if (!aiInstance) {
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+};
+
 const FAST_MODEL = 'gemini-3-flash-preview';
-const POWERFUL_MODEL = 'gemini-3-pro-preview';
+const POWERFUL_MODEL = 'gemini-3.1-pro-preview';
 
 const cleanAndParseJSON = (text: any, defaultValue: any) => {
   try {
@@ -37,6 +46,7 @@ const generateContentWithRetry = async (
 ): Promise<GenerateContentResponse> => {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
+      const ai = getAI();
       return await ai.models.generateContent(request);
     } catch (error: any) {
       if (signal?.aborted) {
