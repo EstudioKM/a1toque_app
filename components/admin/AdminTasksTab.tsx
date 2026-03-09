@@ -33,14 +33,21 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userFilter, setUserFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({
-    start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-    end: format(new Date(), 'yyyy-MM-dd')
+    start: '',
+    end: ''
   });
-  const [activeTab, setActiveTab] = useState<'overview' | 'management'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'management'>('management');
   const [userAlertMessage, setUserAlertMessage] = useState('');
   const [isAddingAlert, setIsAddingAlert] = useState(false);
+  const [modalTaskFilter, setModalTaskFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [modalTaskSort, setModalTaskSort] = useState<'date-desc' | 'date-asc' | 'time-desc' | 'time-asc'>('date-desc');
 
-  const setQuickRange = (range: 'thisMonth' | 'lastMonth' | 'last7Days' | 'today') => {
+  const setQuickRange = (range: 'all' | 'thisMonth' | 'lastMonth' | 'last7Days' | 'today') => {
+    if (range === 'all') {
+      setDateRange({ start: '', end: '' });
+      return;
+    }
+
     const now = new Date();
     let start: Date;
     let end: Date = now;
@@ -70,17 +77,6 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
     });
   };
 
-  const openDatePicker = (id: string) => {
-    const input = document.getElementById(id) as HTMLInputElement;
-    if (input) {
-      try {
-        input.showPicker();
-      } catch (e) {
-        input.focus();
-      }
-    }
-  };
-
   const userStats = useMemo(() => {
     return users.map(user => {
       const userTasks = tasks.filter(t => t.assignedUserIds.includes(user.id));
@@ -103,14 +99,22 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
   }, [tasks, filter]);
 
   const analytics = useMemo(() => {
-    const start = new Date(dateRange.start);
-    const end = new Date(dateRange.end);
-    const days = eachDayOfInterval({ start, end });
+    const dates = tasks.map(t => new Date(t.date).getTime()).filter(t => !isNaN(t));
+    const minTaskDate = dates.length > 0 ? new Date(Math.min(...dates)) : new Date();
+    const maxTaskDate = dates.length > 0 ? new Date(Math.max(...dates, new Date().getTime())) : new Date();
+
+    const start = dateRange.start ? new Date(dateRange.start) : minTaskDate;
+    const end = dateRange.end ? new Date(dateRange.end) : maxTaskDate;
+    
+    const safeStart = start > end ? end : start;
+    const safeEnd = end < start ? start : end;
+
+    const days = eachDayOfInterval({ start: safeStart, end: safeEnd });
 
     // Filter tasks by date range and user
     const rangeTasks = tasks.filter(t => {
       const tDate = new Date(t.date);
-      const inDateRange = tDate >= start && tDate <= end;
+      const inDateRange = tDate >= safeStart && tDate <= safeEnd;
       const matchesUser = userFilter === 'all' || t.assignedUserIds.includes(userFilter);
       return inDateRange && matchesUser;
     });
@@ -200,89 +204,96 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
   return (
     <div className="space-y-8">
       {/* Control Center Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-white/[0.02] border border-white/5 p-8 rounded-[40px]">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-2 h-8 bg-neon rounded-full" />
-            <h2 className="text-4xl font-oswald font-black italic uppercase text-white tracking-tighter">Centro de Control</h2>
-          </div>
-          <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.3em] pl-5">Productividad del equipo y auditoría de tiempos</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 bg-black/40 p-2 rounded-2xl border border-white/5">
-              <div 
-                className="flex items-center gap-2 px-3 cursor-pointer hover:bg-white/5 rounded-xl py-1 transition-colors"
-                onClick={() => openDatePicker('date-start')}
-              >
-                <Calendar size={14} className="text-gray-500" />
-                <input 
-                  id="date-start"
-                  type="date" 
-                  value={dateRange.start}
-                  onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                  className="bg-transparent text-[10px] font-black text-white uppercase outline-none cursor-pointer"
-                />
-              </div>
-              <div className="w-px h-4 bg-white/10" />
-              <div 
-                className="flex items-center gap-2 px-3 cursor-pointer hover:bg-white/5 rounded-xl py-1 transition-colors"
-                onClick={() => openDatePicker('date-end')}
-              >
-                <input 
-                  id="date-end"
-                  type="date" 
-                  value={dateRange.end}
-                  onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                  className="bg-transparent text-[10px] font-black text-white uppercase outline-none cursor-pointer"
-                />
-              </div>
+      <div className="flex flex-col gap-6 bg-white/[0.02] border border-white/5 p-8 rounded-[40px]">
+        {/* Top Row: Title, Tabs and Primary Action */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-2 h-8 bg-neon rounded-full" />
+              <h2 className="text-4xl font-oswald font-black italic uppercase text-white tracking-tighter">Centro de Control</h2>
             </div>
-            <div className="flex gap-2 px-2">
-              <button onClick={() => setQuickRange('today')} className="text-[8px] font-black text-gray-600 hover:text-neon uppercase tracking-widest transition-colors">Hoy</button>
-              <button onClick={() => setQuickRange('last7Days')} className="text-[8px] font-black text-gray-600 hover:text-neon uppercase tracking-widest transition-colors">7 Días</button>
-              <button onClick={() => setQuickRange('thisMonth')} className="text-[8px] font-black text-gray-600 hover:text-neon uppercase tracking-widest transition-colors">Este Mes</button>
-              <button onClick={() => setQuickRange('lastMonth')} className="text-[8px] font-black text-gray-600 hover:text-neon uppercase tracking-widest transition-colors">Mes Pasado</button>
+            <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.3em] pl-5">Productividad del equipo y auditoría de tiempos</p>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Tabs */}
+            <div className="bg-black/40 p-1.5 rounded-2xl flex gap-1 border border-white/5">
+              <button 
+                onClick={() => setActiveTab('overview')}
+                className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase italic flex items-center gap-2 transition-all ${activeTab === 'overview' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+              >
+                <BarChart3 size={14} /> ANALÍTICA
+              </button>
+              <button 
+                onClick={() => setActiveTab('management')}
+                className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase italic flex items-center gap-2 transition-all ${activeTab === 'management' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+              >
+                <Users size={14} /> GESTIÓN
+              </button>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 bg-black/40 p-2 rounded-2xl border border-white/5">
-            <Users size={14} className="text-gray-500 ml-2" />
-            <select 
-              value={userFilter}
-              onChange={e => setUserFilter(e.target.value)}
-              className="bg-transparent text-[10px] font-black text-white uppercase outline-none cursor-pointer pr-4"
-            >
-              <option value="all" className="bg-[#0D0D0D]">Todos los usuarios</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id} className="bg-[#0D0D0D]">{u.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="bg-white/5 p-1 rounded-2xl flex gap-1 border border-white/5">
             <button 
-              onClick={() => setActiveTab('overview')}
-              className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase italic flex items-center gap-2 transition-all ${activeTab === 'overview' ? 'bg-neon text-black' : 'text-gray-500 hover:text-white'}`}
+              onClick={() => setIsCreating(true)}
+              className="flex items-center justify-center gap-2 px-8 py-4 bg-neon text-black text-xs font-black uppercase italic tracking-widest rounded-2xl hover:scale-105 transition shadow-[0_0_20px_rgba(0,255,157,0.3)]"
             >
-              <BarChart3 size={14} /> ANALÍTICA
-            </button>
-            <button 
-              onClick={() => setActiveTab('management')}
-              className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase italic flex items-center gap-2 transition-all ${activeTab === 'management' ? 'bg-neon text-black' : 'text-gray-500 hover:text-white'}`}
-            >
-              <Users size={14} /> GESTIÓN
+              <Plus size={18} /> NUEVA TAREA
             </button>
           </div>
-
-          <button 
-            onClick={() => setIsCreating(true)}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-neon text-black text-[10px] font-black uppercase italic tracking-widest rounded-2xl hover:scale-105 transition shadow-lg shadow-neon/20"
-          >
-            <Plus size={16} /> NUEVA TAREA
-          </button>
         </div>
+
+        {activeTab === 'overview' && (
+          <>
+            <div className="w-full h-px bg-white/5" />
+
+            {/* Bottom Row: Filters */}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex items-center">
+                    <Calendar size={14} className="absolute left-3 text-gray-500 pointer-events-none" />
+                    <input 
+                      type="date" 
+                      value={dateRange.start}
+                      onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                      className="bg-black/40 border border-white/5 rounded-xl py-2 pl-9 pr-3 text-[10px] font-black text-white uppercase outline-none cursor-pointer w-[130px] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer hover:border-white/20 transition-colors"
+                    />
+                  </div>
+                  <span className="text-gray-600 text-[10px] font-black">-</span>
+                  <div className="relative flex items-center">
+                    <Calendar size={14} className="absolute left-3 text-gray-500 pointer-events-none" />
+                    <input 
+                      type="date" 
+                      value={dateRange.end}
+                      onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                      className="bg-black/40 border border-white/5 rounded-xl py-2 pl-9 pr-3 text-[10px] font-black text-white uppercase outline-none cursor-pointer w-[130px] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer hover:border-white/20 transition-colors"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setQuickRange('all')} className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest transition-colors ${!dateRange.start && !dateRange.end ? 'bg-neon/20 text-neon' : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-white'}`}>Todos</button>
+                  <button onClick={() => setQuickRange('today')} className="px-2 py-1 rounded-md text-[9px] font-black bg-white/5 text-gray-500 hover:bg-white/10 hover:text-white uppercase tracking-widest transition-colors">Hoy</button>
+                  <button onClick={() => setQuickRange('last7Days')} className="px-2 py-1 rounded-md text-[9px] font-black bg-white/5 text-gray-500 hover:bg-white/10 hover:text-white uppercase tracking-widest transition-colors">7 Días</button>
+                  <button onClick={() => setQuickRange('thisMonth')} className="px-2 py-1 rounded-md text-[9px] font-black bg-white/5 text-gray-500 hover:bg-white/10 hover:text-white uppercase tracking-widest transition-colors">Este Mes</button>
+                  <button onClick={() => setQuickRange('lastMonth')} className="px-2 py-1 rounded-md text-[9px] font-black bg-white/5 text-gray-500 hover:bg-white/10 hover:text-white uppercase tracking-widest transition-colors">Mes Pasado</button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-black/40 p-3 rounded-2xl border border-white/5">
+                <Users size={14} className="text-gray-500 ml-2" />
+                <select 
+                  value={userFilter}
+                  onChange={e => setUserFilter(e.target.value)}
+                  className="bg-transparent text-[10px] font-black text-white uppercase outline-none cursor-pointer pr-4"
+                >
+                  <option value="all" className="bg-[#0D0D0D]">Todos los usuarios</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.id} className="bg-[#0D0D0D]">{u.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {activeTab === 'overview' && (
@@ -469,51 +480,56 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
       )}
 
       {activeTab === 'management' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Compact User List */}
-          <div className="lg:col-span-3 space-y-3">
-            <div className="flex items-center justify-between px-2 mb-4">
-              <h3 className="text-white font-oswald font-black italic uppercase text-xs flex items-center gap-2">
-                <Users size={14} className="text-neon" /> Equipo
-              </h3>
-            </div>
-            <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-2 custom-scrollbar">
-              {userStats.map(user => (
-                <button
-                  key={user.id}
-                  onClick={() => {
-                    setSelectedUserId(user.id);
-                    setUserAlertMessage('');
-                    setIsAddingAlert(false);
-                  }}
-                  className={`w-full text-left p-3 rounded-2xl border transition-all group relative ${selectedUserId === user.id ? 'bg-neon/10 border-neon/30' : 'bg-white/[0.03] border-white/5 hover:border-white/10'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} 
-                      alt={user.name} 
-                      className="w-10 h-10 rounded-xl object-cover border border-white/10" 
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-black uppercase italic text-[11px] truncate">{user.name}</p>
-                      <p className="text-[9px] font-bold text-gray-500 uppercase">{user.totalHours.toFixed(1)}h • {user.pendingTasks} pendientes</p>
-                    </div>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between px-2 mb-4">
+            <h3 className="text-white font-oswald font-black italic uppercase text-sm flex items-center gap-2">
+              <Users size={16} className="text-neon" /> Equipo
+            </h3>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {userStats.map(user => (
+              <button
+                key={user.id}
+                onClick={() => {
+                  setSelectedUserId(user.id);
+                  setUserAlertMessage('');
+                  setIsAddingAlert(false);
+                }}
+                className="w-full text-left p-5 rounded-3xl bg-white/[0.02] border border-white/5 hover:border-neon/30 hover:bg-neon/5 transition-all group relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 w-24 h-24 bg-neon/5 blur-2xl rounded-full -mr-12 -mt-12 group-hover:bg-neon/10 transition-colors" />
+                <div className="flex items-center gap-4 relative z-10">
+                  <img 
+                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} 
+                    alt={user.name} 
+                    className="w-14 h-14 rounded-2xl object-cover border-2 border-white/10 group-hover:border-neon/30 transition-colors" 
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-oswald font-black uppercase italic text-lg truncate group-hover:text-neon transition-colors">{user.name}</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">{user.totalHours.toFixed(1)}h • {user.pendingTasks} pendientes</p>
                   </div>
-                </button>
-              ))}
-            </div>
+                </div>
+              </button>
+            ))}
           </div>
 
-          {/* Integrated User & Task View */}
-          <div className="lg:col-span-9">
-            <AnimatePresence mode="wait">
-              {selectedUserId ? (
+          {/* User Details Modal */}
+          <AnimatePresence>
+            {selectedUserId && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
                 <motion.div 
-                  key={selectedUserId}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-6"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setSelectedUserId(null)}
+                  className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                />
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  className="relative w-full max-w-6xl max-h-[90vh] bg-[#0A0A0A] border border-white/10 rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
                 >
                   {(() => {
                     const user = userStats.find(u => u.id === selectedUserId);
@@ -521,50 +537,51 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                     
                     const recentActivity = tasks
                       .filter(t => t.assignedUserIds.includes(user.id) && t.status === 'completed')
-                      .sort((a, b) => b.date.localeCompare(a.date))
-                      .slice(0, 3);
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .slice(0, 5);
 
                     return (
-                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        {/* User Profile & Alert Management */}
-                        <div className="lg:col-span-5 space-y-6">
-                          <div className="bg-white/[0.03] border border-white/10 p-6 rounded-[32px] relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-neon/5 blur-3xl rounded-full -mr-16 -mt-16" />
+                      <>
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-white/5 bg-white/[0.02]">
+                          <div className="flex items-center gap-4">
+                            <img 
+                              src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} 
+                              alt={user.name} 
+                              className="w-12 h-12 rounded-xl object-cover border border-neon/20" 
+                            />
+                            <div>
+                              <h3 className="text-2xl font-oswald font-black italic uppercase text-white tracking-tight leading-none">{user.name}</h3>
+                              <span className="text-[10px] font-black text-neon uppercase tracking-widest">{user.email}</span>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setSelectedUserId(null)}
+                            className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
+                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                             
-                            <div className="flex items-center gap-4 mb-8 relative z-10">
-                              <div className="relative">
-                                <img 
-                                  src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} 
-                                  alt={user.name} 
-                                  className="w-20 h-20 rounded-3xl object-cover border-2 border-neon/20 shadow-2xl shadow-neon/10" 
-                                />
-                                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-neon rounded-full border-4 border-[#0D0D0D] flex items-center justify-center">
-                                  <div className="w-2 h-2 bg-black rounded-full animate-pulse" />
-                                </div>
+                            {/* Left Column: Stats */}
+                            <div className="lg:col-span-4 grid grid-cols-2 gap-4">
+                              <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[160px]">
+                                <p className="text-5xl font-oswald font-black italic text-white mb-2">{user.totalHours.toFixed(1)}</p>
+                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Horas Totales</p>
                               </div>
-                              <div>
-                                <h3 className="text-2xl font-oswald font-black italic uppercase text-white tracking-tight leading-none mb-2">{user.name}</h3>
-                                <div className="flex items-center gap-2">
-                                  <span className="px-2 py-0.5 bg-neon/10 border border-neon/20 rounded-lg text-[8px] font-black text-neon uppercase tracking-widest">
-                                    {user.email}
-                                  </span>
-                                </div>
+                              <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[160px]">
+                                <p className="text-5xl font-oswald font-black italic text-white mb-2">{user.completedTasks}</p>
+                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Tareas Listas</p>
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 mb-8 relative z-10">
-                              <div className="bg-black/40 p-4 rounded-2xl border border-white/5 text-center group hover:border-neon/20 transition-all">
-                                <p className="text-3xl font-oswald font-black italic text-white group-hover:text-neon transition-colors">{user.totalHours.toFixed(1)}</p>
-                                <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Horas Totales</p>
-                              </div>
-                              <div className="bg-black/40 p-4 rounded-2xl border border-white/5 text-center group hover:border-neon/20 transition-all">
-                                <p className="text-3xl font-oswald font-black italic text-white group-hover:text-neon transition-colors">{user.completedTasks}</p>
-                                <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Tareas Listas</p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-4 relative z-10">
-                              <div className="flex items-center justify-between mb-2">
+                            {/* Right Column: Alerts */}
+                            <div className="lg:col-span-8 bg-white/[0.02] border border-white/5 p-6 rounded-3xl flex flex-col">
+                              <div className="flex items-center justify-between mb-4">
                                 <h4 className="text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-2">
                                   <BellRing size={14} className="text-neon" /> Alertas del Sistema
                                 </h4>
@@ -582,15 +599,15 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
                                     exit={{ opacity: 0, height: 0 }}
-                                    className="overflow-hidden"
+                                    className="overflow-hidden shrink-0"
                                   >
-                                    <div className="bg-black/60 p-4 rounded-2xl border border-neon/30 mb-4">
+                                    <div className="bg-black/40 p-4 rounded-2xl border border-neon/30 mb-4">
                                       <textarea 
                                         value={userAlertMessage}
                                         onChange={(e) => setUserAlertMessage(e.target.value)}
-                                        placeholder="Escribe un mensaje importante para el usuario..."
+                                        placeholder="Escribe un mensaje importante..."
                                         className="w-full bg-transparent border-none text-xs text-white outline-none placeholder:text-gray-700 resize-none mb-3"
-                                        rows={3}
+                                        rows={2}
                                       />
                                       <div className="flex justify-end">
                                         <button 
@@ -612,7 +629,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                           }}
                                           className="bg-neon text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform"
                                         >
-                                          <Save size={14} /> Publicar Alerta
+                                          <Save size={14} /> Publicar
                                         </button>
                                       </div>
                                     </div>
@@ -620,10 +637,10 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                 )}
                               </AnimatePresence>
 
-                              <div className="space-y-3">
+                              <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-[140px]">
                                 {user.alertMessages && user.alertMessages.length > 0 ? (
-                                  user.alertMessages.map((alert, idx) => (
-                                    <div key={alert.id} className="bg-black/40 p-4 rounded-2xl border border-white/5 group relative">
+                                  user.alertMessages.map((alert) => (
+                                    <div key={alert.id} className="bg-black/40 p-3 rounded-2xl border border-white/5 group relative">
                                       <div className="flex items-start justify-between gap-4">
                                         <p className="text-xs text-gray-300 leading-relaxed italic pr-8">"{alert.message}"</p>
                                         <div className="flex flex-col items-end gap-2 shrink-0">
@@ -655,7 +672,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                     </div>
                                   ))
                                 ) : (
-                                  <div className="py-8 text-center border border-dashed border-white/5 rounded-2xl bg-black/20">
+                                  <div className="h-full flex items-center justify-center border border-dashed border-white/5 rounded-2xl bg-black/20">
                                     <p className="text-[9px] text-gray-700 uppercase font-black tracking-widest">Sin alertas activas</p>
                                   </div>
                                 )}
@@ -663,107 +680,134 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                             </div>
                           </div>
 
-                          {/* Activity & Notifications Grid */}
-                          <div className="grid grid-cols-1 gap-4">
-                            <div className="bg-white/[0.03] border border-white/10 p-6 rounded-[32px]">
-                              <h4 className="text-[10px] font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Activity size={14} className="text-neon" /> Historial Reciente
+                          {/* Tasks Table (Full Width) */}
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between px-2">
+                              <h4 className="text-[11px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                <List size={16} className="text-neon" /> Tareas Asignadas
                               </h4>
-                              <div className="space-y-3">
-                                {recentActivity.length > 0 ? recentActivity.map(task => (
-                                  <div key={task.id} className="flex items-center gap-3 p-3 bg-black/20 rounded-xl border border-white/5 group hover:border-white/10 transition-all">
-                                    <div className="w-8 h-8 bg-neon/10 rounded-lg flex items-center justify-center shrink-0">
-                                      <CheckSquare size={14} className="text-neon" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="text-[10px] font-black text-white uppercase truncate">{task.title}</p>
-                                      <p className="text-[8px] text-gray-500 uppercase">{new Date(task.date).toLocaleDateString()}</p>
-                                    </div>
-                                    <div className="text-[8px] font-black text-neon uppercase tracking-widest">{task.hours}h</div>
-                                  </div>
-                                )) : (
-                                  <p className="text-[9px] text-gray-600 uppercase italic text-center py-4">Sin actividad reciente</p>
-                                )}
+                              <div className="flex items-center gap-4">
+                                <select
+                                  value={modalTaskFilter}
+                                  onChange={(e) => setModalTaskFilter(e.target.value as any)}
+                                  className="bg-black border border-white/10 rounded-xl px-3 py-2 text-[10px] font-black text-white uppercase tracking-widest outline-none focus:border-neon cursor-pointer"
+                                >
+                                  <option value="all">Todas</option>
+                                  <option value="pending">Pendientes</option>
+                                  <option value="completed">Completadas</option>
+                                </select>
+                                <select
+                                  value={modalTaskSort}
+                                  onChange={(e) => setModalTaskSort(e.target.value as any)}
+                                  className="bg-black border border-white/10 rounded-xl px-3 py-2 text-[10px] font-black text-white uppercase tracking-widest outline-none focus:border-neon cursor-pointer"
+                                >
+                                  <option value="date-desc">Más recientes</option>
+                                  <option value="date-asc">Más antiguas</option>
+                                  <option value="time-desc">Mayor tiempo</option>
+                                  <option value="time-asc">Menor tiempo</option>
+                                </select>
+                                <button 
+                                  onClick={() => {
+                                    setAssignedUserIds([user.id]);
+                                    setIsCreating(true);
+                                    setSelectedUserId(null); // Close modal to show creation form
+                                  }}
+                                  className="bg-neon/10 text-neon text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border border-neon/20 hover:bg-neon hover:text-black transition-all"
+                                >
+                                  + Asignar Tarea
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                  <thead>
+                                    <tr className="border-b border-white/5 bg-black/40">
+                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest">Tarea</th>
+                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest">Fecha</th>
+                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest">Tiempo</th>
+                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest">Estado</th>
+                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest text-right">Acciones</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-white/5">
+                                    {(() => {
+                                      let filteredTasks = user.tasks;
+                                      if (modalTaskFilter !== 'all') {
+                                        filteredTasks = filteredTasks.filter(t => t.status === modalTaskFilter);
+                                      }
+                                      
+                                      filteredTasks.sort((a, b) => {
+                                        if (modalTaskSort === 'date-desc') return new Date(b.date).getTime() - new Date(a.date).getTime();
+                                        if (modalTaskSort === 'date-asc') return new Date(a.date).getTime() - new Date(b.date).getTime();
+                                        if (modalTaskSort === 'time-desc') return b.hours - a.hours;
+                                        if (modalTaskSort === 'time-asc') return a.hours - b.hours;
+                                        return 0;
+                                      });
+
+                                      if (filteredTasks.length === 0) {
+                                        return (
+                                          <tr>
+                                            <td colSpan={5} className="p-8 text-center">
+                                              <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">Sin tareas asignadas</p>
+                                            </td>
+                                          </tr>
+                                        );
+                                      }
+
+                                      return filteredTasks.map(task => {
+                                        const taskTime = getTaskTime(task.id);
+                                        return (
+                                          <tr key={task.id} className="hover:bg-white/[0.02] transition-colors group">
+                                            <td className="p-4">
+                                              <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${task.status === 'completed' ? 'bg-neon/10 text-neon' : 'bg-white/5 text-gray-700'}`}>
+                                                  {task.status === 'completed' ? <CheckSquare size={14} /> : <Square size={14} />}
+                                                </div>
+                                                <p className={`text-xs font-oswald font-black italic uppercase tracking-tight ${task.status === 'completed' ? 'text-gray-500 line-through' : 'text-white'}`}>
+                                                  {task.title}
+                                                </p>
+                                              </div>
+                                            </td>
+                                            <td className="p-4">
+                                              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{new Date(task.date).toLocaleDateString()}</p>
+                                            </td>
+                                            <td className="p-4">
+                                              <p className="text-[10px] text-neon uppercase font-black tracking-widest flex items-center gap-1">
+                                                <Timer size={12} /> {taskTime.h}h {taskTime.m}m
+                                              </p>
+                                            </td>
+                                            <td className="p-4">
+                                              <span className={`text-[8px] font-black px-2 py-1 rounded-md uppercase tracking-widest border ${task.status === 'completed' ? 'bg-neon/5 border-neon/20 text-neon' : 'bg-white/5 border-white/10 text-gray-500'}`}>
+                                                {task.status === 'completed' ? 'Completado' : 'Pendiente'}
+                                              </span>
+                                            </td>
+                                            <td className="p-4 text-right">
+                                              <button 
+                                                onClick={() => onDeleteTask(task.id)}
+                                                className="p-2 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 inline-flex"
+                                              >
+                                                <Trash2 size={14} />
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        );
+                                      });
+                                    })()}
+                                  </tbody>
+                                </table>
                               </div>
                             </div>
                           </div>
                         </div>
-
-                        {/* Task Management */}
-                        <div className="lg:col-span-7 space-y-4">
-                          <div className="flex items-center justify-between px-2">
-                            <h4 className="text-[11px] font-black text-white uppercase tracking-widest flex items-center gap-2">
-                              <List size={16} className="text-neon" /> Tareas Asignadas
-                            </h4>
-                            <button 
-                              onClick={() => {
-                                setAssignedUserIds([user.id]);
-                                setIsCreating(true);
-                              }}
-                              className="bg-neon/10 text-neon text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border border-neon/20 hover:bg-neon hover:text-black transition-all"
-                            >
-                              + Asignar Tarea
-                            </button>
-                          </div>
-                          
-                          <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-2 custom-scrollbar">
-                            {user.tasks.length === 0 ? (
-                              <div className="py-16 text-center border-2 border-dashed border-white/5 rounded-[40px] bg-black/20">
-                                <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">Sin tareas asignadas</p>
-                              </div>
-                            ) : (
-                              user.tasks.map(task => {
-                                const taskTime = getTaskTime(task.id);
-                                return (
-                                  <div key={task.id} className="bg-white/[0.03] p-4 rounded-2xl border border-white/5 flex items-center justify-between group hover:border-white/10 transition-all">
-                                    <div className="flex items-center gap-4">
-                                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${task.status === 'completed' ? 'bg-neon/10 text-neon' : 'bg-white/5 text-gray-700'}`}>
-                                        {task.status === 'completed' ? <CheckSquare size={18} /> : <Square size={18} />}
-                                      </div>
-                                      <div>
-                                        <p className={`text-sm font-oswald font-black italic uppercase tracking-tight ${task.status === 'completed' ? 'text-gray-500 line-through' : 'text-white'}`}>
-                                          {task.title}
-                                        </p>
-                                        <div className="flex items-center gap-3 mt-0.5">
-                                          <p className="text-[8px] text-gray-600 uppercase font-black tracking-widest">{new Date(task.createdAt).toLocaleDateString()}</p>
-                                          <p className="text-[8px] text-neon uppercase font-black tracking-widest flex items-center gap-1">
-                                            <Timer size={10} /> {taskTime.h}h {taskTime.m}m
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border ${task.status === 'completed' ? 'bg-neon/5 border-neon/20 text-neon' : 'bg-white/5 border-white/10 text-gray-500'}`}>
-                                        {task.status}
-                                      </span>
-                                      <button 
-                                        onClick={() => onDeleteTask(task.id)}
-                                        className="p-2 text-red-500/30 hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                      >
-                                        <Trash2 size={14} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      </>
                     );
                   })()}
                 </motion.div>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center bg-white/[0.02] rounded-[40px] border border-dashed border-white/10 p-12 text-center">
-                  <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
-                    <Users size={40} className="text-gray-800" />
-                  </div>
-                  <h3 className="text-xl font-oswald font-black italic uppercase text-gray-600 tracking-widest">Selecciona un colaborador</h3>
-                  <p className="text-gray-700 text-[9px] mt-2 max-w-xs uppercase font-black tracking-[0.2em] leading-relaxed">Para gestionar sus tareas, ver su actividad y enviar alertas personalizadas</p>
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
+              </div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -796,7 +840,6 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                         type="date" 
                         value={date} 
                         onChange={e => setDate(e.target.value)}
-                        onClick={() => openDatePicker('task-date')}
                         className="w-full bg-black border border-white/10 rounded-2xl p-5 text-white font-black focus:border-neon outline-none cursor-pointer"
                       />
                     </div>

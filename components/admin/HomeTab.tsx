@@ -113,7 +113,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             
             <button 
               onClick={onOpenTasks}
-              className="flex items-center gap-2 bg-neon text-black px-6 py-3 rounded-2xl hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest shadow-xl shadow-neon/10"
+              className="hidden"
             >
               <Timer size={16} /> Nueva Tarea
             </button>
@@ -137,22 +137,33 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               </div>
               
               {pendingTasks.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {pendingTasks.map(task => (
-                    <div key={task.id} className="flex flex-col p-6 bg-white/[0.03] rounded-3xl border border-white/5 group hover:border-neon/20 transition-all cursor-pointer" onClick={onOpenTasks}>
-                      <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-neon/10 transition-colors">
-                        <Timer size={20} className="text-gray-400 group-hover:text-neon" />
-                      </div>
-                      <p className="text-sm font-black text-white uppercase mb-2 group-hover:text-neon transition-colors">{task.title}</p>
-                      <p className="text-[10px] text-gray-500 uppercase leading-relaxed line-clamp-2 mb-4">{task.description || 'Sin descripción'}</p>
-                      <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
-                        <span className="text-[9px] text-gray-600 uppercase font-bold">{task.account}</span>
-                        <div className="px-2 py-1 bg-white/5 rounded-lg text-[8px] font-black text-gray-500 uppercase tracking-widest group-hover:bg-neon/10 group-hover:text-neon transition-all">
-                          Pendiente
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-[10px] text-gray-500 uppercase bg-white/[0.03]">
+                      <tr>
+                        <th className="px-6 py-4">Fecha</th>
+                        <th className="px-6 py-4">Tarea</th>
+                        <th className="px-6 py-4">Cuenta</th>
+                        <th className="px-6 py-4 text-right">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {pendingTasks.map(task => (
+                        <tr key={task.id} className="hover:bg-white/5 transition-colors cursor-pointer group" onClick={onOpenTasks}>
+                          <td className="px-6 py-4 text-gray-400 text-xs font-mono">
+                            {new Date(task.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                          </td>
+                          <td className="px-6 py-4 text-white font-bold group-hover:text-neon transition-colors">{task.title}</td>
+                          <td className="px-6 py-4 text-gray-400">{task.account}</td>
+                          <td className="px-6 py-4 text-right">
+                            <span className="px-2 py-1 bg-white/5 rounded-lg text-[8px] font-black text-gray-500 uppercase tracking-widest group-hover:bg-neon/10 group-hover:text-neon transition-all">
+                              Pendiente
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 <div className="py-12 text-center bg-white/[0.01] rounded-[40px] border border-dashed border-white/5">
@@ -186,13 +197,13 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                   ) : (
                     <div className="divide-y divide-white/5">
                       {notifications.map(notif => (
-                        <div key={notif.id} className="p-4 hover:bg-white/5 transition-colors group">
+                        <div key={notif.id} className={`p-4 hover:bg-white/5 transition-colors group ${notif.type === 'alert' ? 'bg-red-500/5 border-l-4 border-red-500' : ''}`}>
                           <div className="flex gap-4 items-start">
-                            <div className={`mt-1 p-2 rounded-xl shrink-0 ${notif.type === 'chat' ? 'bg-blue-500/10 text-blue-400' : notif.type === 'alert' ? 'bg-red-500/10 text-red-400' : 'bg-neon/10 text-neon'}`}>
+                            <div className={`mt-1 p-2 rounded-xl shrink-0 ${notif.type === 'chat' ? 'bg-blue-500/10 text-blue-400' : notif.type === 'alert' ? 'bg-red-500/20 text-red-400' : 'bg-neon/10 text-neon'}`}>
                               {notif.type === 'chat' ? <MessageSquare size={16} /> : notif.type === 'alert' ? <Bell size={16} /> : <CheckSquare size={16} />}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[11px] font-black text-white uppercase tracking-tight mb-1 group-hover:text-neon transition-colors">{notif.title}</p>
+                              <p className={`text-[11px] font-black uppercase tracking-tight mb-1 ${notif.type === 'alert' ? 'text-red-400' : 'text-white'} group-hover:text-neon transition-colors`}>{notif.title}</p>
                               <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed mb-2">{notif.description}</p>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1 text-[8px] font-bold text-gray-600 uppercase">

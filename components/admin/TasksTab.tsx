@@ -43,6 +43,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({
   const [account, setAccount] = useState('');
   const [detail, setDetail] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const dateInputRef = React.useRef<HTMLInputElement>(null);
 
   const pendingTasks = useMemo(() => {
     return tasks
@@ -120,7 +121,10 @@ export const TasksTab: React.FC<TasksTabProps> = ({
 
   const handleLogTime = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!detail || !account) return;
+    if (!title || !account || !date) {
+      alert('Por favor, completa todos los campos obligatorios (Nombre, Cuenta, Fecha).');
+      return;
+    }
 
     const totalHours = hours + (minutes / 60);
 
@@ -276,13 +280,24 @@ export const TasksTab: React.FC<TasksTabProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Fecha de Actividad</label>
-                        <div className="relative">
-                          <Calendar size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                        <div className="relative cursor-pointer" onClick={() => {
+                          try {
+                            dateInputRef.current?.showPicker();
+                          } catch (e) {
+                            // Ignore error if showPicker is unsupported or already open
+                          }
+                        }}>
                           <input 
+                            ref={dateInputRef}
                             type="date" 
                             value={date} 
                             onChange={e => setDate(e.target.value)}
-                            className="w-full bg-black border border-white/10 rounded-xl p-3 pl-12 text-white text-sm focus:border-neon outline-none transition-all"
+                            onClick={(e) => {
+                              try {
+                                (e.target as HTMLInputElement).showPicker();
+                              } catch (err) {}
+                            }}
+                            className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-sm focus:border-neon outline-none transition-all cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                           />
                         </div>
                       </div>
@@ -404,7 +419,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({
                   >
                     <div className="w-20 shrink-0 text-center">
                       <span className="text-xs font-black text-gray-500 uppercase tracking-widest group-hover:text-neon transition-colors">
-                        {new Date(task.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
+                        {new Date(task.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' }).toUpperCase()}
                       </span>
                     </div>
                     <div className={`flex-1 bg-[#0a0a0a] border p-4 md:p-5 rounded-2xl group-hover:border-white/30 group-hover:bg-[#111] transition-all flex flex-col md:flex-row md:items-center justify-between relative overflow-hidden cursor-pointer shadow-lg ${initialTargetId === task.id ? 'border-neon ring-1 ring-neon shadow-[0_0_30px_rgba(0,255,157,0.1)]' : 'border-white/10'}`}>
