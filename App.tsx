@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { ViewMode, Article, Sponsorship, Category, User, Brand, SponsorshipType, SocialAccount, SocialPost, CategoryConfig, Role, SiteConfig, AdSlotConfig, INITIAL_AD_SLOTS, WorkLog, Task, ChatMessage } from './types';
-import { INITIAL_ARTICLES, INITIAL_SPONSORSHIPS, INITIAL_USERS, DEFAULT_AI_PROMPT, INITIAL_BRANDS, INITIAL_SOCIAL_ACCOUNTS, INITIAL_CATEGORIES, INITIAL_ROLES } from './constants';
+import { INITIAL_SPONSORSHIPS, INITIAL_USERS, DEFAULT_AI_PROMPT, INITIAL_BRANDS, INITIAL_SOCIAL_ACCOUNTS, INITIAL_CATEGORIES, INITIAL_ROLES } from './constants';
 import { Header } from './components/Header';
 import { ArticleCard } from './components/ArticleCard';
 import { ArticleModal } from './components/ArticleModal'; 
@@ -119,10 +119,7 @@ const App: React.FC = () => {
         }
 
         if (articlesSnapshot.empty) {
-          const batch = writeBatch(db);
-          INITIAL_ARTICLES.forEach(item => batch.set(doc(db, "articles", item.id), item));
-          await batch.commit();
-          setArticles(INITIAL_ARTICLES.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+          setArticles([]);
         } else {
           const list = articlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
           setArticles(list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -214,7 +211,7 @@ const App: React.FC = () => {
 
       } catch (error) {
         console.error("Error fetching data:", error);
-        setArticles(INITIAL_ARTICLES);
+        setArticles([]);
         setSponsorships(INITIAL_SPONSORSHIPS);
         setBrands(INITIAL_BRANDS);
         setUsers(INITIAL_USERS);
@@ -310,13 +307,31 @@ const App: React.FC = () => {
     setView(ViewMode.HOME);
   };
 
+  const removeUndefinedFields = (obj: any): any => {
+    if (Array.isArray(obj)) {
+      return obj.map(item => removeUndefinedFields(item));
+    }
+    if (obj !== null && typeof obj === 'object') {
+      const newObj: any = {};
+      Object.keys(obj).forEach(key => {
+        if (obj[key] !== undefined) {
+          newObj[key] = removeUndefinedFields(obj[key]);
+        }
+      });
+      return newObj;
+    }
+    return obj;
+  };
+
   const addArticle = async (article: Omit<Article, 'id'>) => {
-    const docRef = await addDoc(collection(db, 'articles'), article);
-    setArticles([{ ...article, id: docRef.id }, ...articles]);
+    const cleanArticle = removeUndefinedFields(article);
+    const docRef = await addDoc(collection(db, 'articles'), cleanArticle);
+    setArticles([{ ...cleanArticle, id: docRef.id } as Article, ...articles]);
   };
   const updateArticle = async (article: Article) => {
-    await setDoc(doc(db, 'articles', article.id), article, { merge: true });
-    setArticles(articles.map(a => a.id === article.id ? article : a));
+    const cleanArticle = removeUndefinedFields(article);
+    await setDoc(doc(db, 'articles', article.id), cleanArticle, { merge: true });
+    setArticles(articles.map(a => a.id === article.id ? cleanArticle as Article : a));
   };
   const deleteArticle = async (id: string) => {
     await deleteDoc(doc(db, 'articles', id));
@@ -328,13 +343,14 @@ const App: React.FC = () => {
   };
   
   const addSponsorship = async (sponsorship: Omit<Sponsorship, 'id' | 'impressions' | 'clicks'>) => {
-    const newSponsorship = { ...sponsorship, impressions: 0, clicks: 0 };
+    const newSponsorship = removeUndefinedFields({ ...sponsorship, impressions: 0, clicks: 0 });
     const docRef = await addDoc(collection(db, 'sponsorships'), newSponsorship);
     setSponsorships([...sponsorships, { ...newSponsorship, id: docRef.id }]);
   };
   const updateSponsorship = async (sponsorship: Sponsorship) => {
-    await setDoc(doc(db, 'sponsorships', sponsorship.id), sponsorship, { merge: true });
-    setSponsorships(sponsorships.map(s => s.id === sponsorship.id ? sponsorship : s));
+    const cleanSponsorship = removeUndefinedFields(sponsorship);
+    await setDoc(doc(db, 'sponsorships', sponsorship.id), cleanSponsorship, { merge: true });
+    setSponsorships(sponsorships.map(s => s.id === sponsorship.id ? cleanSponsorship : s));
   };
   const deleteSponsorship = async (id: string) => {
     await deleteDoc(doc(db, 'sponsorships', id));
@@ -373,12 +389,14 @@ const App: React.FC = () => {
   }, []);
   
   const addBrand = async (brand: Omit<Brand, 'id'>) => {
-    const docRef = await addDoc(collection(db, 'brands'), brand);
-    setBrands([...brands, { ...brand, id: docRef.id }]);
+    const cleanBrand = removeUndefinedFields(brand);
+    const docRef = await addDoc(collection(db, 'brands'), cleanBrand);
+    setBrands([...brands, { ...cleanBrand, id: docRef.id }]);
   };
   const updateBrand = async (brand: Brand) => {
-    await setDoc(doc(db, 'brands', brand.id), brand, { merge: true });
-    setBrands(brands.map(b => b.id === brand.id ? brand : b));
+    const cleanBrand = removeUndefinedFields(brand);
+    await setDoc(doc(db, 'brands', brand.id), cleanBrand, { merge: true });
+    setBrands(brands.map(b => b.id === brand.id ? cleanBrand : b));
   };
   const deleteBrand = async (id: string) => {
     await deleteDoc(doc(db, 'brands', id));
@@ -386,19 +404,20 @@ const App: React.FC = () => {
   };
 
   const addUser = async (user: Omit<User, 'id'>) => {
-    const docRef = await addDoc(collection(db, 'users'), user);
-    setUsers([...users, { ...user, id: docRef.id }]);
+    const cleanUser = removeUndefinedFields(user);
+    const docRef = await addDoc(collection(db, 'users'), cleanUser);
+    setUsers([...users, { ...cleanUser, id: docRef.id }]);
     return docRef;
   };
   const updateUser = async (user: User) => {
-    const userToUpdate = { ...user };
+    const userToUpdate = removeUndefinedFields({ ...user });
     if (!user.password) {
       delete userToUpdate.password;
     }
     await setDoc(doc(db, 'users', user.id), userToUpdate, { merge: true });
-    setUsers(users.map(u => u.id === user.id ? user : u));
+    setUsers(users.map(u => u.id === user.id ? removeUndefinedFields(user) : u));
     if (currentUser?.id === user.id) {
-        setCurrentUser(user);
+        setCurrentUser(removeUndefinedFields(user));
     }
   };
   const deleteUser = async (id: string) => {
@@ -407,12 +426,14 @@ const App: React.FC = () => {
   };
 
   const addSocialAccount = async (account: Omit<SocialAccount, 'id'>) => {
-    const docRef = await addDoc(collection(db, 'social_accounts'), account);
-    setSocialAccounts([...socialAccounts, { ...account, id: docRef.id }]);
+    const cleanAccount = removeUndefinedFields(account);
+    const docRef = await addDoc(collection(db, 'social_accounts'), cleanAccount);
+    setSocialAccounts([...socialAccounts, { ...cleanAccount, id: docRef.id }]);
   };
   const updateSocialAccount = async (account: SocialAccount) => {
-      await setDoc(doc(db, 'social_accounts', account.id), account, { merge: true });
-      setSocialAccounts(socialAccounts.map(a => a.id === account.id ? account : a));
+      const cleanAccount = removeUndefinedFields(account);
+      await setDoc(doc(db, 'social_accounts', account.id), cleanAccount, { merge: true });
+      setSocialAccounts(socialAccounts.map(a => a.id === account.id ? cleanAccount : a));
   };
   const deleteSocialAccount = async (id: string) => {
       await deleteDoc(doc(db, 'social_accounts', id));
@@ -420,14 +441,16 @@ const App: React.FC = () => {
   };
 
   const addSocialPost = async (post: Omit<SocialPost, 'id'>) => {
-    const docRef = await addDoc(collection(db, 'social_posts'), post);
-    const newPost = { ...post, id: docRef.id };
+    const cleanPost = removeUndefinedFields(post);
+    const docRef = await addDoc(collection(db, 'social_posts'), cleanPost);
+    const newPost = { ...cleanPost, id: docRef.id };
     setSocialPosts(prev => [newPost, ...prev].sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()));
     return newPost;
   };
   const updateSocialPost = async (post: SocialPost) => {
-    await setDoc(doc(db, 'social_posts', post.id), post, { merge: true });
-    setSocialPosts(socialPosts.map(p => p.id === post.id ? post : p).sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()));
+    const cleanPost = removeUndefinedFields(post);
+    await setDoc(doc(db, 'social_posts', post.id), cleanPost, { merge: true });
+    setSocialPosts(socialPosts.map(p => p.id === post.id ? cleanPost : p).sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()));
   };
   const deleteSocialPost = async (id: string) => {
     await deleteDoc(doc(db, 'social_posts', id));
@@ -435,13 +458,14 @@ const App: React.FC = () => {
   };
   
   const addCategory = async (category: Omit<CategoryConfig, 'id' | 'order'>) => {
-    const newCategory = { ...category, order: categories.length };
+    const newCategory = removeUndefinedFields({ ...category, order: categories.length });
     const docRef = await addDoc(collection(db, 'categories'), newCategory);
     setCategories([...categories, { ...newCategory, id: docRef.id }]);
   };
   const updateCategory = async (category: CategoryConfig) => {
-    await setDoc(doc(db, 'categories', category.id), category, { merge: true });
-    setCategories(categories.map(c => c.id === category.id ? category : c).sort((a,b) => (a.order ?? 0) - (b.order ?? 0)));
+    const cleanCategory = removeUndefinedFields(category);
+    await setDoc(doc(db, 'categories', category.id), cleanCategory, { merge: true });
+    setCategories(categories.map(c => c.id === category.id ? cleanCategory : c).sort((a,b) => (a.order ?? 0) - (b.order ?? 0)));
   };
   const onUpdateCategoriesOrder = async (reorderedCategories: CategoryConfig[]) => {
     const batch = writeBatch(db);
@@ -459,12 +483,14 @@ const App: React.FC = () => {
   };
 
   const addRole = async (role: Omit<Role, 'id'>) => {
-    const docRef = await addDoc(collection(db, 'roles'), role);
-    setRoles([...roles, { ...role, id: docRef.id }]);
+    const cleanRole = removeUndefinedFields(role);
+    const docRef = await addDoc(collection(db, 'roles'), cleanRole);
+    setRoles([...roles, { ...cleanRole, id: docRef.id }]);
   };
   const updateRole = async (role: Role) => {
-    await setDoc(doc(db, 'roles', role.id), role, { merge: true });
-    setRoles(roles.map(c => c.id === role.id ? role : c));
+    const cleanRole = removeUndefinedFields(role);
+    await setDoc(doc(db, 'roles', role.id), cleanRole, { merge: true });
+    setRoles(roles.map(c => c.id === role.id ? cleanRole : c));
   };
   const deleteRole = async (id: string) => {
     await deleteDoc(doc(db, 'roles', id));
@@ -472,35 +498,41 @@ const App: React.FC = () => {
   };
 
   const updateSiteConfig = async (config: SiteConfig) => {
-    await setDoc(doc(db, 'config', 'site'), config);
-    setSiteConfig(config);
+    const cleanConfig = removeUndefinedFields(config);
+    await setDoc(doc(db, 'config', 'site'), cleanConfig);
+    setSiteConfig(cleanConfig);
   };
   
   const updateAdSlot = async (slot: AdSlotConfig) => {
-    await setDoc(doc(db, 'ad_slots', slot.id), slot, { merge: true });
-    setAdSlots(prev => prev.map(s => s.id === slot.id ? slot : s));
+    const cleanSlot = removeUndefinedFields(slot);
+    await setDoc(doc(db, 'ad_slots', slot.id), cleanSlot, { merge: true });
+    setAdSlots(prev => prev.map(s => s.id === slot.id ? cleanSlot : s));
   };
 
   const addWorkLog = async (log: Omit<WorkLog, 'id'>) => {
-    const docRef = await addDoc(collection(db, 'work_logs'), log);
-    setWorkLogs(prev => [{ ...log, id: docRef.id }, ...prev]);
+    const cleanLog = removeUndefinedFields(log);
+    const docRef = await addDoc(collection(db, 'work_logs'), cleanLog);
+    setWorkLogs(prev => [{ ...cleanLog, id: docRef.id }, ...prev]);
   };
   const deleteWorkLog = async (id: string) => {
     await deleteDoc(doc(db, 'work_logs', id));
     setWorkLogs(prev => prev.filter(l => l.id !== id));
   };
   const updateWorkLog = async (log: WorkLog) => {
-    await setDoc(doc(db, 'work_logs', log.id), log, { merge: true });
-    setWorkLogs(prev => prev.map(l => l.id === log.id ? log : l));
+    const cleanLog = removeUndefinedFields(log);
+    await setDoc(doc(db, 'work_logs', log.id), cleanLog, { merge: true });
+    setWorkLogs(prev => prev.map(l => l.id === log.id ? cleanLog : l));
   };
 
   const addTask = async (task: Omit<Task, 'id'>) => {
-    const docRef = await addDoc(collection(db, 'tasks'), task);
-    setTasks(prev => [{ ...task, id: docRef.id }, ...prev]);
+    const cleanTask = removeUndefinedFields(task);
+    const docRef = await addDoc(collection(db, 'tasks'), cleanTask);
+    setTasks(prev => [{ ...cleanTask, id: docRef.id }, ...prev]);
   };
   const updateTask = async (task: Task) => {
-    await setDoc(doc(db, 'tasks', task.id), task, { merge: true });
-    setTasks(prev => prev.map(t => t.id === task.id ? task : t));
+    const cleanTask = removeUndefinedFields(task);
+    await setDoc(doc(db, 'tasks', task.id), cleanTask, { merge: true });
+    setTasks(prev => prev.map(t => t.id === task.id ? cleanTask : t));
   };
   const deleteTask = async (id: string) => {
     await deleteDoc(doc(db, 'tasks', id));
@@ -508,8 +540,9 @@ const App: React.FC = () => {
   };
 
   const addChatMessage = async (msg: Omit<ChatMessage, 'id'>) => {
-    const docRef = await addDoc(collection(db, 'chat_messages'), msg);
-    setChatMessages(prev => [...prev, { ...msg, id: docRef.id }]);
+    const cleanMsg = removeUndefinedFields(msg);
+    const docRef = await addDoc(collection(db, 'chat_messages'), cleanMsg);
+    setChatMessages(prev => [...prev, { ...cleanMsg, id: docRef.id }]);
   };
 
   const markChatAsRead = async (senderId: string) => {

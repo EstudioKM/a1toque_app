@@ -125,59 +125,34 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {pendingTasks.length > 0 ? pendingTasks.map(task => (
-                  <div key={task.id} className="flex flex-col p-6 bg-white/[0.03] rounded-3xl border border-white/5 group hover:border-neon/20 transition-all cursor-pointer" onClick={onOpenTasks}>
-                    <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-neon/10 transition-colors">
-                      <Timer size={20} className="text-gray-400 group-hover:text-neon" />
-                    </div>
-                    <p className="text-sm font-black text-white uppercase mb-2 group-hover:text-neon transition-colors">{task.title}</p>
-                    <p className="text-[10px] text-gray-500 uppercase leading-relaxed line-clamp-2 mb-4">{task.description || 'Sin descripción'}</p>
-                    <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
-                      <span className="text-[9px] text-gray-600 uppercase font-bold">{task.account}</span>
-                      <div className="px-2 py-1 bg-white/5 rounded-lg text-[8px] font-black text-gray-500 uppercase tracking-widest group-hover:bg-neon/10 group-hover:text-neon transition-all">
-                        Pendiente
+              
+              {pendingTasks.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {pendingTasks.map(task => (
+                    <div key={task.id} className="flex flex-col p-6 bg-white/[0.03] rounded-3xl border border-white/5 group hover:border-neon/20 transition-all cursor-pointer" onClick={onOpenTasks}>
+                      <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-neon/10 transition-colors">
+                        <Timer size={20} className="text-gray-400 group-hover:text-neon" />
+                      </div>
+                      <p className="text-sm font-black text-white uppercase mb-2 group-hover:text-neon transition-colors">{task.title}</p>
+                      <p className="text-[10px] text-gray-500 uppercase leading-relaxed line-clamp-2 mb-4">{task.description || 'Sin descripción'}</p>
+                      <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+                        <span className="text-[9px] text-gray-600 uppercase font-bold">{task.account}</span>
+                        <div className="px-2 py-1 bg-white/5 rounded-lg text-[8px] font-black text-gray-500 uppercase tracking-widest group-hover:bg-neon/10 group-hover:text-neon transition-all">
+                          Pendiente
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-24 text-center bg-white/[0.01] rounded-[40px] border border-dashed border-white/5">
+                  <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckSquare size={32} className="text-gray-800" />
                   </div>
-                )) : (
-                  <div className="col-span-full py-12 text-center border border-dashed border-white/5 rounded-[32px] bg-black/20">
-                    <p className="text-[10px] text-neon uppercase font-black tracking-[0.3em]">¡Todo al día!</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Latest Activity - SECONDARY */}
-            <div className="space-y-6">
-              <h3 className="text-[12px] font-black text-white uppercase tracking-[0.2em] flex items-center gap-3">
-                <Activity size={16} className="text-neon" /> Última Actividad
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {recentActivity.length > 0 ? recentActivity.map(task => (
-                  <div key={task.id} className="flex items-center gap-4 p-5 bg-black/40 rounded-[32px] border border-white/5 group hover:border-white/10 transition-all">
-                    <div className="w-12 h-12 bg-neon/10 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-neon/20 transition-colors">
-                      <CheckSquare size={20} className="text-neon" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-white uppercase truncate">{task.title}</p>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[9px] text-gray-500 uppercase flex items-center gap-1">
-                          <Clock size={10} /> {new Date(task.date).toLocaleDateString()}
-                        </span>
-                        <span className="text-[9px] text-neon font-black uppercase tracking-widest bg-neon/5 px-2 py-0.5 rounded-md">
-                          {task.hours}h
-                        </span>
-                      </div>
-                    </div>
-                    <ChevronRight size={16} className="text-gray-700 group-hover:text-neon transition-colors" />
-                  </div>
-                )) : (
-                  <div className="col-span-full py-12 text-center border border-dashed border-white/5 rounded-[32px] bg-black/20">
-                    <p className="text-[10px] text-gray-700 uppercase font-black tracking-[0.3em]">Sin actividad reciente</p>
-                  </div>
-                )}
-              </div>
+                  <h4 className="text-gray-500 font-oswald font-black italic uppercase text-2xl tracking-widest">Todo al día</h4>
+                  <p className="text-gray-700 text-[10px] font-black uppercase tracking-widest mt-2">No tienes tareas pendientes en este momento</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
