@@ -457,7 +457,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                                         const acc = socialAccounts.find(a => a.id === id);
                                         return acc ? (
                                             <div key={id} className="flex items-center gap-2 px-3 py-1.5 bg-black/50 rounded-lg border border-white/5">
-                                                <img src={acc.profileImageUrl} className="w-4 h-4 rounded-full" />
+                                                {acc.profileImageUrl && <img src={acc.profileImageUrl} className="w-4 h-4 rounded-full" />}
                                                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{acc.name}</span>
                                             </div>
                                         ) : null;
@@ -545,7 +545,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                                 {availableSocialAccounts.map(account => (
                                     <button key={account.id} onClick={() => setSelectedAccounts(p => p.includes(account.id) ? p.filter(id => id !== account.id) : [...p, account.id])} className={`p-4 rounded-[20px] border-2 transition-all duration-300 flex items-center gap-4 ${selectedAccounts.includes(account.id) ? 'bg-neon/10 border-neon shadow-[0_0_20px_rgba(0,255,157,0.1)]' : 'bg-white/[0.02] border-transparent hover:border-white/10'}`}>
                                         <div className="relative">
-                                            <img src={account.profileImageUrl} alt={account.name} className="w-10 h-10 rounded-full border border-white/10" />
+                                            {account.profileImageUrl ? <img src={account.profileImageUrl} alt={account.name} className="w-10 h-10 rounded-full border border-white/10" /> : <div className="w-10 h-10 rounded-full border border-white/10 bg-neutral-800" />}
                                             {selectedAccounts.includes(account.id) && <div className="absolute -top-1 -right-1 bg-neon text-black rounded-full p-0.5"><Check size={10} strokeWidth={4} /></div>}
                                         </div>
                                         <div className="min-w-0 text-left">
@@ -562,7 +562,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-48 overflow-y-auto custom-scrollbar pr-2">
                                 {brands.map(brand => (
                                     <button key={brand.id} onClick={() => setSelectedSponsors(p => p.includes(brand.id) ? p.filter(id => id !== brand.id) : [...p, brand.id])} className={`p-3 rounded-[20px] border-2 transition-all duration-300 flex flex-col items-center text-center gap-2 relative ${selectedSponsors.includes(brand.id) ? 'bg-neon/10 border-neon' : 'bg-white/[0.02] border-transparent hover:border-white/10'}`}>
-                                        <img src={brand.logoUrl} alt={brand.name} className="h-10 w-10 object-contain p-1 filter grayscale brightness-200 group-hover:grayscale-0 transition-all" />
+                                        {brand.logoUrl ? <img src={brand.logoUrl} alt={brand.name} className="h-10 w-10 object-contain p-1 filter grayscale brightness-200 group-hover:grayscale-0 transition-all" /> : <div className="h-10 w-10 bg-neutral-800 rounded-full" />}
                                         <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest truncate w-full">{brand.name}</span>
                                         {selectedSponsors.includes(brand.id) && (<div className="absolute top-1 right-1 w-4 h-4 bg-neon rounded-full flex items-center justify-center text-black"><Check size={10} strokeWidth={3} /></div>)}
                                     </button>

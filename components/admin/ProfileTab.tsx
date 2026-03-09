@@ -73,7 +73,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ currentUser, onUpdateUse
       <div className="bg-white/5 p-8 rounded-xl border border-white/10 max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-1 flex flex-col items-center text-center">
             <div className="relative group mb-4">
-                <img src={formData.avatar} alt={formData.name} className="w-32 h-32 object-cover rounded-full" />
+                {formData.avatar ? <img src={formData.avatar} alt={formData.name} className="w-32 h-32 object-cover rounded-full" /> : <div className="w-32 h-32 rounded-full bg-neutral-800" />}
                 <button onClick={() => avatarInputRef.current?.click()} className="absolute inset-0 bg-black/70 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
                     {isUploading ? <Loader2 className="animate-spin"/> : <UploadCloud size={32} />}
                 </button>

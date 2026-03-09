@@ -195,7 +195,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({
 
                         <div className="flex items-center gap-2">
                              <div className="w-5 h-5 rounded-full border border-white/10 overflow-hidden bg-neutral-800">
-                                <img src={author?.avatar} className="w-full h-full object-cover" alt="" />
+                                {author?.avatar && <img src={author.avatar} className="w-full h-full object-cover" alt="" />}
                             </div>
                             <span className="text-gray-500 text-[9px] font-black uppercase tracking-widest truncate">{author?.name || 'Redacción'}</span>
                         </div>

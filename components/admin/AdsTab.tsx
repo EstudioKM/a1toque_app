@@ -27,12 +27,12 @@ const SponsorshipCard: React.FC<{
         <div className="bg-black/40 p-3 rounded-xl flex items-center justify-between border border-white/5 hover:border-neon/20 transition-all gap-4 group">
             <div className="flex items-center gap-4 flex-1 min-w-0">
                 <div className="w-16 h-12 rounded-lg overflow-hidden border border-white/10 bg-neutral-900 flex-shrink-0">
-                    <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    {s.imageUrl && <img src={s.imageUrl} alt={s.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />}
                 </div>
                 <div className="min-w-0">
                     <h3 className="text-white font-bold text-xs uppercase truncate mb-1" title={s.name}>{s.name}</h3>
                     <div className="flex items-center gap-2">
-                        {brand && <img src={brand.logoUrl} className="w-3 h-3 object-contain opacity-50" alt="" />}
+                        {brand?.logoUrl && <img src={brand.logoUrl} className="w-3 h-3 object-contain opacity-50" alt="" />}
                         <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest truncate">{brand?.name || 'Marca Desconocida'}</span>
                     </div>
                 </div>
@@ -220,7 +220,7 @@ export const AdsTab: React.FC<AdsTabProps> = (props) => {
                 {brands.map(brand => (
                     <div key={brand.id} className="bg-white/[0.03] p-5 rounded-2xl flex items-center gap-5 relative group border border-white/5 hover:border-white/20 transition-all">
                         <div className="h-14 w-14 flex items-center justify-center bg-black rounded-xl overflow-hidden border border-white/10 flex-shrink-0 group-hover:border-neon/30 transition-colors">
-                            <img src={brand.logoUrl} alt={brand.name} className="max-h-full max-w-full object-contain p-2" />
+                            {brand.logoUrl && <img src={brand.logoUrl} alt={brand.name} className="max-h-full max-w-full object-contain p-2" />}
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="text-sm text-white font-bold uppercase truncate tracking-tight">{brand.name}</p>

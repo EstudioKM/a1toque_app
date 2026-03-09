@@ -97,7 +97,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
               }}
               className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all relative ${selectedUserId === user.id ? 'bg-neon text-black shadow-lg scale-105' : 'hover:bg-white/5 text-gray-400 hover:text-white'}`}
             >
-              <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full object-cover border border-white/10" />
+              {user.avatar ? <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full object-cover border border-white/10" /> : <div className="w-10 h-10 rounded-full border border-white/10 bg-neutral-800" />}
               <div className="text-left truncate flex-1">
                 <p className="text-xs font-black uppercase truncate tracking-tight">{user.name}</p>
                 <p className={`text-[9px] font-bold uppercase tracking-widest ${selectedUserId === user.id ? 'text-black/60' : 'text-gray-600'}`}>
@@ -118,7 +118,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
           <>
             <div className="p-6 border-b border-white/10 flex items-center justify-between bg-black/20 backdrop-blur-xl">
               <div className="flex items-center gap-4">
-                <img src={users.find(u => u.id === selectedUserId)?.avatar} className="w-10 h-10 rounded-full object-cover border border-white/10" />
+                {users.find(u => u.id === selectedUserId)?.avatar ? <img src={users.find(u => u.id === selectedUserId)?.avatar} className="w-10 h-10 rounded-full object-cover border border-white/10" /> : <div className="w-10 h-10 rounded-full border border-white/10 bg-neutral-800" />}
                 <div>
                   <h4 className="text-white font-black uppercase text-sm tracking-tight">{users.find(u => u.id === selectedUserId)?.name}</h4>
                   <p className="text-[9px] text-neon font-black uppercase tracking-widest">En línea</p>
