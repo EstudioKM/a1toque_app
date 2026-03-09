@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Task, User, WorkLog, SocialAccount } from '../../types';
 import { CheckSquare, Square, Clock, AlertCircle, Sparkles, Plus, Timer, Building, Save, X, List, TrendingUp, Calendar, ChevronRight, Trash2, FileText, Send } from 'lucide-react';
 import { Role } from '../../types';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface TasksTabProps {
   tasks: Task[];

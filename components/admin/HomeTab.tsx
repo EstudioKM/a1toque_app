@@ -1,6 +1,6 @@
 import React from 'react';
 import { Task, User, Role, SiteConfig } from '../../types';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { FileText, Send, Timer, BellRing, Activity, CheckSquare, Clock, ChevronRight } from 'lucide-react';
 
 interface HomeTabProps {

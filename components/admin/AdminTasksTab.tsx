@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Task, User, WorkLog, SocialAccount } from '../../types';
 import { Plus, Trash2, Users, CheckSquare, Square, Clock, X, LayoutDashboard, List, ChevronRight, TrendingUp, Timer, Calendar, Save, AlertCircle, BarChart3, PieChart as PieChartIcon, Filter, Download, Building, MessageCircle, Activity, BellRing } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area 
