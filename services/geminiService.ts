@@ -5,7 +5,11 @@ let aiInstance: GoogleGenAI | null = null;
 
 const getAI = () => {
   if (!aiInstance) {
-    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+    const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.warn("GoogleGenAI: API Key is missing. AI features will be disabled.");
+      return null;
+    }
     aiInstance = new GoogleGenAI({ apiKey });
   }
   return aiInstance;
@@ -47,6 +51,7 @@ const generateContentWithRetry = async (
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const ai = getAI();
+      if (!ai) throw new Error("GoogleGenAI: API Key not set");
       return await ai.models.generateContent(request);
     } catch (error: any) {
       if (signal?.aborted) {
