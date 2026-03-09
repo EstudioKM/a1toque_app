@@ -51,7 +51,7 @@ const App: React.FC = () => {
   // AI Settings
   const [aiSystemPrompt, setAiSystemPrompt] = useState<string>(DEFAULT_AI_PROMPT);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Start with false to avoid black screen while Firebase loads
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [welcomeUserName, setWelcomeUserName] = useState('');
