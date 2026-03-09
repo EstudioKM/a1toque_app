@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatArgentinaDate, formatArgentinaTimestamp, parseArgentinaDate } from '../../services/dateUtils';
 
 interface AdminTasksTabProps {
   tasks: Task[];
@@ -99,12 +100,12 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
   }, [tasks, filter]);
 
   const analytics = useMemo(() => {
-    const dates = tasks.map(t => new Date(t.date).getTime()).filter(t => !isNaN(t));
+    const dates = tasks.map(t => parseArgentinaDate(t.date).getTime()).filter(t => !isNaN(t));
     const minTaskDate = dates.length > 0 ? new Date(Math.min(...dates)) : new Date();
     const maxTaskDate = dates.length > 0 ? new Date(Math.max(...dates, new Date().getTime())) : new Date();
 
-    const start = dateRange.start ? new Date(dateRange.start) : minTaskDate;
-    const end = dateRange.end ? new Date(dateRange.end) : maxTaskDate;
+    const start = dateRange.start ? parseArgentinaDate(dateRange.start) : minTaskDate;
+    const end = dateRange.end ? parseArgentinaDate(dateRange.end) : maxTaskDate;
     
     const safeStart = start > end ? end : start;
     const safeEnd = end < start ? start : end;
@@ -113,7 +114,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
 
     // Filter tasks by date range and user
     const rangeTasks = tasks.filter(t => {
-      const tDate = new Date(t.date);
+      const tDate = parseArgentinaDate(t.date);
       const inDateRange = tDate >= safeStart && tDate <= safeEnd;
       const matchesUser = userFilter === 'all' || t.assignedUserIds.includes(userFilter);
       return inDateRange && matchesUser;
@@ -121,7 +122,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
 
     // Hours per day
     const dailyData = days.map(day => {
-      const dayTasks = rangeTasks.filter(t => isSameDay(new Date(t.date), day));
+      const dayTasks = rangeTasks.filter(t => isSameDay(parseArgentinaDate(t.date), day));
       const hours = dayTasks.reduce((acc, t) => acc + (t.hours || 0), 0);
       return {
         date: format(day, 'dd/MM'),
@@ -318,7 +319,13 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Tareas Completadas</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-5xl font-oswald font-black italic text-white">
-                  {tasks.filter(t => t.status === 'completed' && new Date(t.date) >= new Date(dateRange.start) && new Date(t.date) <= new Date(dateRange.end)).length}
+                  {tasks.filter(t => {
+                    if (t.status !== 'completed') return false;
+                    const tDate = parseArgentinaDate(t.date);
+                    const start = dateRange.start ? parseArgentinaDate(dateRange.start) : new Date(0);
+                    const end = dateRange.end ? parseArgentinaDate(dateRange.end) : new Date(8640000000000000);
+                    return tDate >= start && tDate <= end;
+                  }).length}
                 </span>
                 <span className="text-xs font-bold text-gray-600 uppercase">finalizadas</span>
               </div>
@@ -537,7 +544,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                     
                     const recentActivity = tasks
                       .filter(t => t.assignedUserIds.includes(user.id) && t.status === 'completed')
-                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .sort((a, b) => parseArgentinaDate(b.date).getTime() - parseArgentinaDate(a.date).getTime())
                       .slice(0, 5);
 
                     return (
@@ -666,7 +673,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                       </div>
                                       {alert.seenAt && (
                                         <p className="text-[8px] text-gray-600 mt-2 uppercase font-bold">
-                                          Visto el: {new Date(alert.seenAt).toLocaleString()}
+                                          Visto el: {formatArgentinaTimestamp(alert.seenAt, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                       )}
                                     </div>
@@ -739,8 +746,8 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                       }
                                       
                                       filteredTasks.sort((a, b) => {
-                                        if (modalTaskSort === 'date-desc') return new Date(b.date).getTime() - new Date(a.date).getTime();
-                                        if (modalTaskSort === 'date-asc') return new Date(a.date).getTime() - new Date(b.date).getTime();
+                                        if (modalTaskSort === 'date-desc') return parseArgentinaDate(b.date).getTime() - parseArgentinaDate(a.date).getTime();
+                                        if (modalTaskSort === 'date-asc') return parseArgentinaDate(a.date).getTime() - parseArgentinaDate(b.date).getTime();
                                         if (modalTaskSort === 'time-desc') return b.hours - a.hours;
                                         if (modalTaskSort === 'time-asc') return a.hours - b.hours;
                                         return 0;
@@ -771,7 +778,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                               </div>
                                             </td>
                                             <td className="p-4">
-                                              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{new Date(task.date).toLocaleDateString()}</p>
+                                              <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{formatArgentinaDate(task.date)}</p>
                                             </td>
                                             <td className="p-4">
                                               <p className="text-[10px] text-neon uppercase font-black tracking-widest flex items-center gap-1">
@@ -818,38 +825,43 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-[#0D0D0D] p-10 rounded-[40px] border border-neon/30 shadow-2xl shadow-neon/10 relative overflow-hidden max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+              className="bg-[#0D0D0D] p-8 rounded-3xl border border-neon/30 shadow-2xl shadow-neon/10 relative overflow-hidden max-w-3xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-neon/20" />
-              <div className="flex justify-between items-center mb-10">
-                <h3 className="text-2xl font-oswald font-black italic uppercase text-neon flex items-center gap-3">
-                  <Plus size={24} /> Nueva Asignación de Tarea
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-xl font-oswald font-black italic uppercase text-neon flex items-center gap-3">
+                  <Plus size={20} /> Nueva Asignación de Tarea
                 </h3>
                 <button onClick={() => setIsCreating(false)} className="text-gray-500 hover:text-white transition-colors">
-                  <X size={24} />
+                  <X size={20} />
                 </button>
               </div>
               
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div className="lg:col-span-8 space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Fecha</label>
-                      <input 
-                        id="task-date"
-                        type="date" 
-                        value={date} 
-                        onChange={e => setDate(e.target.value)}
-                        className="w-full bg-black border border-white/10 rounded-2xl p-5 text-white font-black focus:border-neon outline-none cursor-pointer"
-                      />
+              <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-7 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Fecha</label>
+                      <div className="relative w-full bg-black border border-white/10 rounded-xl focus-within:border-neon transition-colors">
+                        <input 
+                          id="task-date"
+                          type="date" 
+                          value={date} 
+                          onChange={e => setDate(e.target.value)}
+                          className="w-full bg-transparent p-3 text-white text-sm font-black outline-none cursor-pointer relative z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:top-0 [&::-webkit-calendar-picker-indicator]:left-0"
+                        />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 z-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Cuenta / Proyecto</label>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Cuenta / Proyecto</label>
                       <select 
                         value={account} 
                         onChange={e => setAccount(e.target.value)}
                         required
-                        className="w-full bg-black border border-white/10 rounded-2xl p-5 text-white font-black uppercase italic focus:border-neon outline-none appearance-none cursor-pointer"
+                        className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-sm font-black uppercase italic focus:border-neon outline-none appearance-none cursor-pointer"
                       >
                         <option value="" disabled>Seleccionar Cuenta...</option>
                         {socialAccounts.map(acc => (
@@ -860,31 +872,31 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Título de la Tarea</label>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Título de la Tarea</label>
                     <input 
                       type="text" 
                       value={title} 
                       onChange={e => setTitle(e.target.value || '')}
                       placeholder="Ej: Cobertura entrenamiento Unión"
-                      className="w-full bg-black border border-white/10 rounded-2xl p-5 text-white font-black uppercase italic text-lg focus:border-neon outline-none placeholder:text-gray-800"
+                      className="w-full bg-black border border-white/10 rounded-xl p-3 text-white font-black uppercase italic text-base focus:border-neon outline-none placeholder:text-gray-800"
                     />
                   </div>
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Descripción / Instrucciones</label>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Descripción / Instrucciones</label>
                     <textarea 
-                      rows={4}
+                      rows={3}
                       value={description} 
                       onChange={e => setDescription(e.target.value || '')}
                       placeholder="Detalla lo que hay que hacer..."
-                      className="w-full bg-black border border-white/10 rounded-2xl p-5 text-gray-300 text-sm focus:border-neon outline-none resize-none"
+                      className="w-full bg-black border border-white/10 rounded-xl p-3 text-gray-300 text-xs focus:border-neon outline-none resize-none"
                     />
                   </div>
                 </div>
 
-                <div className="lg:col-span-4 space-y-8">
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Tiempo Estimado (Opcional)</label>
+                <div className="lg:col-span-5 space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Tiempo Estimado (Opcional)</label>
                     <div className="flex gap-2">
                       <div className="flex-1 relative">
                         <input 
@@ -893,15 +905,15 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                           placeholder="Hs"
                           value={hours} 
                           onChange={e => setHours(parseInt(e.target.value) || 0)}
-                          className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-sm focus:border-neon outline-none pr-10"
+                          className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-sm focus:border-neon outline-none pr-8"
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-600">Hs</span>
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-gray-600">Hs</span>
                       </div>
                       <div className="flex-1">
                         <select 
                           value={minutes} 
                           onChange={e => setMinutes(parseInt(e.target.value))}
-                          className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white text-sm focus:border-neon outline-none appearance-none"
+                          className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-sm focus:border-neon outline-none appearance-none cursor-pointer"
                         >
                           <option value={0}>0m</option>
                           <option value={15}>15m</option>
@@ -912,29 +924,29 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Asignar a Usuarios</label>
-                    <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Asignar a Usuarios</label>
+                    <div className="grid grid-cols-2 gap-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
                       {users.map(user => (
                         <button
                           key={user.id}
                           type="button"
                           onClick={() => toggleUserSelection(user.id)}
-                          className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${assignedUserIds.includes(user.id) ? 'bg-neon/10 border-neon text-neon' : 'bg-black border-white/5 text-gray-600 hover:border-white/20'}`}
+                          className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${assignedUserIds.includes(user.id) ? 'bg-neon/10 border-neon text-neon' : 'bg-black border-white/5 text-gray-600 hover:border-white/20'}`}
                         >
                           <img 
                             src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} 
                             alt={user.name} 
-                            className={`w-8 h-8 rounded-xl object-cover border ${assignedUserIds.includes(user.id) ? 'border-neon' : 'border-white/10'}`} 
+                            className={`w-6 h-6 rounded-lg object-cover border ${assignedUserIds.includes(user.id) ? 'border-neon' : 'border-white/10'}`} 
                           />
-                          <span className="text-[9px] font-black uppercase truncate tracking-tighter">{user.name.split(' ')[0]}</span>
+                          <span className="text-[8px] font-black uppercase truncate tracking-tighter">{user.name.split(' ')[0]}</span>
                         </button>
                       ))}
                     </div>
                   </div>
                   
-                  <button type="submit" className="w-full py-6 bg-neon text-black font-black uppercase italic text-xs tracking-widest rounded-3xl hover:scale-[1.02] active:scale-95 transition shadow-2xl shadow-neon/20 flex items-center justify-center gap-3">
-                    <Save size={18} /> CREAR Y ASIGNAR
+                  <button type="submit" className="w-full py-4 bg-neon text-black font-black uppercase italic text-xs tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition shadow-lg shadow-neon/20 flex items-center justify-center gap-2 mt-4">
+                    <Save size={16} /> CREAR Y ASIGNAR
                   </button>
                 </div>
               </form>

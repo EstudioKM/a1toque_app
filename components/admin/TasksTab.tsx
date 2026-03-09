@@ -3,6 +3,7 @@ import { Task, User, WorkLog, SocialAccount } from '../../types';
 import { CheckSquare, Square, Clock, AlertCircle, Sparkles, Plus, Timer, Building, Save, X, List, TrendingUp, Calendar, ChevronRight, Trash2, FileText, Send } from 'lucide-react';
 import { Role } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { formatArgentinaDate } from '../../services/dateUtils';
 
 interface TasksTabProps {
   tasks: Task[];
@@ -92,7 +93,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({
         setIsGeneralLogging(true);
         setIsQuickCompleting(true);
         setEditingLogId(null);
-        setHours(0); setMinutes(0); setAccount(task.account || ''); setDetail(task.description);
+        setHours(0); setMinutes(0); setAccount(task.account || ''); setDetail(task.description); setTitle(task.title); setDate(task.date || new Date().toISOString().split('T')[0]);
       }
     } else {
       onUpdateTask({
@@ -121,8 +122,17 @@ export const TasksTab: React.FC<TasksTabProps> = ({
 
   const handleLogTime = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !account || !date) {
-      alert('Por favor, completa todos los campos obligatorios (Nombre, Cuenta, Fecha).');
+    
+    // Validation: for new tasks we need account and some text. 
+    // For existing tasks we just need a date (which has a default).
+    const isNewTask = !loggingTimeTaskId;
+    if (isNewTask && (!account || (!title && !detail))) {
+      alert('Por favor, completa los campos obligatorios (Cuenta y Título/Descripción).');
+      return;
+    }
+
+    if (!date) {
+      alert('Por favor, selecciona una fecha.');
       return;
     }
 
@@ -135,10 +145,10 @@ export const TasksTab: React.FC<TasksTabProps> = ({
         onUpdateTask({
           ...task,
           title: title || task.title,
-          date,
-          account,
+          date: date || task.date,
+          account: account || task.account,
           hours: totalHours,
-          description: detail,
+          description: detail || task.description,
           status: completeTaskOnSave ? 'completed' : 'pending'
         });
       }
@@ -419,7 +429,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({
                   >
                     <div className="w-20 shrink-0 text-center">
                       <span className="text-xs font-black text-gray-500 uppercase tracking-widest group-hover:text-neon transition-colors">
-                        {new Date(task.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' }).toUpperCase()}
+                        {formatArgentinaDate(task.date)}
                       </span>
                     </div>
                     <div className={`flex-1 bg-[#0a0a0a] border p-4 md:p-5 rounded-2xl group-hover:border-white/30 group-hover:bg-[#111] transition-all flex flex-col md:flex-row md:items-center justify-between relative overflow-hidden cursor-pointer shadow-lg ${initialTargetId === task.id ? 'border-neon ring-1 ring-neon shadow-[0_0_30px_rgba(0,255,157,0.1)]' : 'border-white/10'}`}>
@@ -481,7 +491,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({
                 <div key={activity.id} className="flex items-center gap-4 group">
                   <div className="w-20 shrink-0 text-center">
                     <span className="text-xs font-black text-gray-500 uppercase tracking-widest group-hover:text-neon transition-colors">
-                      {new Date(activity.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}
+                      {formatArgentinaDate(activity.date)}
                     </span>
                   </div>
                   <div className="flex-1 bg-[#0a0a0a] border border-white/10 p-4 md:p-5 rounded-2xl group-hover:border-white/30 group-hover:bg-[#111] transition-all flex flex-col md:flex-row md:items-center justify-between relative overflow-hidden cursor-pointer shadow-lg" onClick={() => handleEditTask(activity)}>

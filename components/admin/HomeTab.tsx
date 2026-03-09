@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Task, User, Role, SiteConfig, ChatMessage } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { FileText, Send, Timer, BellRing, Activity, CheckSquare, Clock, ChevronRight, MessageSquare, Bell } from 'lucide-react';
+import { formatFullDate, formatArgentinaTime, parseArgentinaDate } from '../../services/dateUtils';
 
 interface HomeTabProps {
   currentUser: User;
@@ -28,7 +29,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 }) => {
   const userTasks = tasks
     .filter(t => t.assignedUserIds.includes(currentUser.id))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => parseArgentinaDate(b.date).getTime() - parseArgentinaDate(a.date).getTime());
 
   const recentActivity = userTasks
     .filter(t => t.status === 'completed')
@@ -151,7 +152,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                       {pendingTasks.map(task => (
                         <tr key={task.id} className="hover:bg-white/5 transition-colors cursor-pointer group" onClick={onOpenTasks}>
                           <td className="px-6 py-4 text-gray-400 text-xs font-mono">
-                            {new Date(task.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                            {formatFullDate(task.date)}
                           </td>
                           <td className="px-6 py-4 text-white font-bold group-hover:text-neon transition-colors">{task.title}</td>
                           <td className="px-6 py-4 text-gray-400">{task.account}</td>
@@ -207,7 +208,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                               <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed mb-2">{notif.description}</p>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1 text-[8px] font-bold text-gray-600 uppercase">
-                                  <Clock size={10} /> {new Date(notif.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  <Clock size={10} /> {formatArgentinaTime(notif.time)}
                                 </div>
                                 {notif.type === 'alert' ? (
                                   <button 

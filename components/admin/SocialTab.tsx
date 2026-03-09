@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { SocialPost, User, SocialAccount } from '../../types';
+import { formatArgentinaTimestamp } from '../../services/dateUtils';
 import { Plus, Edit3, Trash2, ExternalLink, Calendar, User as UserIcon, AlertCircle, X, Send, CheckCircle2, Clock } from 'lucide-react';
 import { OptimizedImage } from '../OptimizedImage';
 
@@ -108,7 +109,7 @@ export const SocialTab: React.FC<SocialTabProps> = ({
                       </div>
                       <span className="text-gray-700 text-[10px]">•</span>
                       <div className="text-gray-500 text-[8px] font-black uppercase tracking-widest truncate">
-                        {author?.name.split(' ')[0] || 'Sistema'} • {new Date(post.postedAt).toLocaleDateString('es-AR')}
+                        {author?.name.split(' ')[0] || 'Sistema'} • {formatArgentinaTimestamp(post.postedAt, { day: '2-digit', month: 'short' })}
                       </div>
                    </div>
 
