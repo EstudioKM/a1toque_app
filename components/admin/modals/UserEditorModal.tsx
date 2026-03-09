@@ -44,11 +44,11 @@ export const UserEditorModal: React.FC<UserEditorModalProps> = ({ user, roles, s
       <div className="bg-[#111] border border-white/10 rounded-2xl p-6 max-w-lg w-full">
         <h3 className="text-lg font-oswald font-black italic text-neon mb-4">{user ? 'Editar Usuario' : 'Nuevo Usuario'}</h3>
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
-          <input type="text" placeholder="Nombre" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" />
-          <input type="email" placeholder="Email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" />
-          <input type="password" placeholder="Contraseña (dejar en blanco para no cambiar)" onChange={e => setFormData(p => ({ ...p, password: e.target.value }))} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" />
-          <input type="text" placeholder="URL del Avatar" value={formData.avatar} onChange={e => setFormData(p => ({ ...p, avatar: e.target.value }))} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" />
-          <select value={formData.roleId} onChange={e => setFormData(p => ({ ...p, roleId: e.target.value }))} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none">
+          <input type="text" placeholder="Nombre" value={formData.name || ''} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" />
+          <input type="email" placeholder="Email" value={formData.email || ''} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" />
+          <input type="password" placeholder="Contraseña (dejar en blanco para no cambiar)" value={formData.password || ''} onChange={e => setFormData(p => ({ ...p, password: e.target.value }))} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" />
+          <input type="text" placeholder="URL del Avatar" value={formData.avatar || ''} onChange={e => setFormData(p => ({ ...p, avatar: e.target.value }))} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" />
+          <select value={formData.roleId || 'user'} onChange={e => setFormData(p => ({ ...p, roleId: e.target.value }))} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none">
             {roles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
           </select>
           <div>

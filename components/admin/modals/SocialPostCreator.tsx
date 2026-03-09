@@ -451,7 +451,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                         </div>
                         <div className="space-y-4 flex flex-col h-full">
                             <h4 className="text-[10px] font-black text-neon uppercase tracking-[0.3em]">Copy del Posteo</h4>
-                            <textarea value={copy} onChange={e => setCopy(e.target.value)} rows={15} className="flex-1 w-full bg-black/50 border border-white/10 rounded-3xl p-6 text-base text-gray-300 focus:text-white focus:border-neon outline-none leading-relaxed custom-scrollbar shadow-inner"/>
+                            <textarea value={copy || ''} onChange={e => setCopy(e.target.value)} rows={15} className="flex-1 w-full bg-black/50 border border-white/10 rounded-3xl p-6 text-base text-gray-300 focus:text-white focus:border-neon outline-none leading-relaxed custom-scrollbar shadow-inner"/>
                             <div className="p-4 bg-white/[0.02] rounded-2xl border border-white/5">
                                 <h5 className="text-[8px] font-black text-gray-600 uppercase tracking-widest mb-3">Redes de Destino</h5>
                                 <div className="flex flex-wrap gap-2">
@@ -502,7 +502,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                             </div>
                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex items-end justify-center p-12 pointer-events-none">
                                 <textarea 
-                                    value={shortTitle} 
+                                    value={shortTitle || ''} 
                                     onChange={e => setShortTitle(e.target.value)} 
                                     maxLength={50} 
                                     rows={2}
@@ -523,7 +523,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                             <div>
                                 <h4 className="text-[10px] font-black text-neon uppercase tracking-[0.3em] mb-4">Generar con IA</h4>
                                 <div className="flex gap-3">
-                                    <input type="text" value={generationQuery} onChange={e => setGenerationQuery(e.target.value)} placeholder="¿Sobre qué quieres postear?" className="flex-1 bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-sm text-white focus:border-neon outline-none" />
+                                    <input type="text" value={generationQuery || ''} onChange={e => setGenerationQuery(e.target.value)} placeholder="¿Sobre qué quieres postear?" className="flex-1 bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-sm text-white focus:border-neon outline-none" />
                                     <button onClick={handleGenerateFromTopic} disabled={isGenerating || !generationQuery} className="px-6 bg-white/5 text-white hover:bg-neon hover:text-black rounded-xl transition-all disabled:opacity-30">
                                         {isGenerating ? <Loader2 size={18} className="animate-spin"/> : <Sparkles size={18}/>}
                                     </button>
@@ -534,7 +534,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                         <div>
                             <h4 className="text-[10px] font-black text-neon uppercase tracking-[0.3em] mb-4">Copy del Post</h4>
                             <div className="relative">
-                                <textarea value={copy} onChange={e => setCopy(e.target.value)} rows={article ? 8 : 6} className="w-full bg-black/50 border border-white/10 rounded-[32px] p-6 text-sm text-gray-300 focus:text-white focus:border-neon outline-none leading-relaxed" placeholder="Escribe el cuerpo del post..."/>
+                                <textarea value={copy || ''} onChange={e => setCopy(e.target.value)} rows={article ? 8 : 6} className="w-full bg-black/50 border border-white/10 rounded-[32px] p-6 text-sm text-gray-300 focus:text-white focus:border-neon outline-none leading-relaxed" placeholder="Escribe el cuerpo del post..."/>
                                 <button onClick={handleImproveCopy} disabled={isImproving || !copy} className="absolute bottom-6 right-6 px-4 py-2 bg-black/80 text-neon text-[9px] font-black uppercase tracking-widest rounded-xl border border-neon/20 hover:bg-neon hover:text-black transition-all disabled:opacity-30 flex items-center gap-2">
                                     {isImproving ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} MEJORAR CON IA
                                 </button>

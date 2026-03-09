@@ -142,7 +142,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block pl-1">Nombre de la Plataforma</label>
                         <input 
                             type="text" 
-                            value={localSiteConfig.siteName}
+                            value={localSiteConfig.siteName || ''}
                             onChange={e => setLocalSiteConfig({...localSiteConfig, siteName: e.target.value})}
                             className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-neon outline-none"
                         />
@@ -151,7 +151,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block pl-1">Resumen Footer</label>
                         <textarea 
                             rows={3}
-                            value={localSiteConfig.footerText}
+                            value={localSiteConfig.footerText || ''}
                             onChange={e => setLocalSiteConfig({...localSiteConfig, footerText: e.target.value})}
                             className="w-full bg-black border border-white/10 rounded-2xl p-4 text-gray-300 text-sm focus:border-neon outline-none"
                         />
@@ -378,7 +378,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
                           <span className={`px-2 py-0.5 text-[7px] font-black rounded-sm uppercase flex-shrink-0 ${category.type === 'club' ? 'bg-red-500/10 text-red-400' : 'bg-blue-500/10 text-blue-400'}`}>{category.type}</span>
                           <input 
                               type="text"
-                              value={category.name}
+                              value={category.name || ''}
                               onChange={(e) => {
                                   const cat = categories.find(c => c.id === category.id);
                                   if(cat) onUpdateCategory({...cat, name: e.target.value});

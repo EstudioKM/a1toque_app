@@ -69,19 +69,19 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
                     <input 
                         type="text" 
                         placeholder="Nombre (ej. Unión A1Toque)" 
-                        value={formData.name} 
+                        value={formData.name || ''} 
                         onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} 
                         className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:border-neon outline-none" 
                     />
                     <input 
                         type="text" 
                         placeholder="@handle" 
-                        value={formData.handle} 
+                        value={formData.handle || ''} 
                         onChange={e => setFormData(p => ({ ...p, handle: e.target.value }))} 
                         className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-blue-400 font-bold focus:border-neon outline-none" 
                     />
                     <select 
-                        value={formData.platform} 
+                        value={formData.platform || 'instagram'} 
                         onChange={e => setFormData(p => ({ ...p, platform: e.target.value as SocialPlatform }))} 
                         className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:border-neon outline-none appearance-none cursor-pointer"
                     >
@@ -104,7 +104,7 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
                         <input 
                             type="text" 
                             placeholder="URL de la imagen..." 
-                            value={formData.profileImageUrl} 
+                            value={formData.profileImageUrl || ''} 
                             onChange={e => setFormData(p => ({ ...p, profileImageUrl: e.target.value }))} 
                             className="flex-1 bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-[10px] text-gray-400 focus:border-neon outline-none" 
                         />
@@ -126,7 +126,7 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
                     </div>
                     <textarea 
                         placeholder="Ej: Actúa como el hincha más apasionado de Rosario Central. Usa modismos rosarinos y enfócate en el orgullo de Arroyito..." 
-                        value={formData.systemPrompt} 
+                        value={formData.systemPrompt || ''} 
                         onChange={e => setFormData(p => ({...p, systemPrompt: e.target.value}))} 
                         rows={6} 
                         className="w-full bg-black border border-white/10 rounded-3xl p-6 text-sm text-gray-300 font-mono focus:border-neon outline-none shadow-inner leading-relaxed" 
@@ -141,7 +141,7 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
                     </div>
                     <textarea 
                         placeholder="Ej: No uses más de 20 palabras. Termina siempre con #VamosTate. Usa emojis de león 🦁. Evita las exclamaciones excesivas..." 
-                        value={formData.copyPrompt} 
+                        value={formData.copyPrompt || ''} 
                         onChange={e => setFormData(p => ({...p, copyPrompt: e.target.value}))} 
                         rows={6} 
                         className="w-full bg-black border border-white/10 rounded-3xl p-6 text-sm text-gray-300 font-mono focus:border-neon outline-none shadow-inner leading-relaxed" 

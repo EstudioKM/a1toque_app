@@ -122,7 +122,7 @@ export const SponsorshipEditorModal: React.FC<SponsorshipEditorModalProps> = ({ 
              
             <input 
               type="text" 
-              value={formData.imageUrl} 
+              value={formData.imageUrl || ''} 
               onChange={e => setFormData({ ...formData, imageUrl: e.target.value })} 
               className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-[10px] text-blue-400 focus:border-neon outline-none" 
               placeholder="O pega una URL de imagen" 
@@ -135,7 +135,7 @@ export const SponsorshipEditorModal: React.FC<SponsorshipEditorModalProps> = ({ 
             <input 
               type="text" 
               placeholder="Nombre de la Campaña (ej. Lanzamiento Verano)" 
-              value={formData.name} 
+              value={formData.name || ''} 
               onChange={e => setFormData({ ...formData, name: e.target.value })} 
               className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-sm text-white font-bold focus:border-neon outline-none" 
             />
@@ -145,7 +145,7 @@ export const SponsorshipEditorModal: React.FC<SponsorshipEditorModalProps> = ({ 
               <input 
                 type="text" 
                 placeholder="URL de Destino (https://...)" 
-                value={formData.link} 
+                value={formData.link || ''} 
                 onChange={e => setFormData({ ...formData, link: e.target.value })} 
                 className="w-full bg-black/50 border border-white/10 rounded-xl p-4 pl-10 text-sm text-white focus:border-neon outline-none" 
               />
@@ -154,7 +154,7 @@ export const SponsorshipEditorModal: React.FC<SponsorshipEditorModalProps> = ({ 
             <div className="relative">
               <Building size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
               <select 
-                value={formData.brandId} 
+                value={formData.brandId || ''} 
                 onChange={e => setFormData({ ...formData, brandId: e.target.value })} 
                 className="w-full bg-black/50 border border-white/10 rounded-xl p-4 pl-10 text-sm text-white focus:border-neon outline-none appearance-none"
               >
@@ -166,7 +166,7 @@ export const SponsorshipEditorModal: React.FC<SponsorshipEditorModalProps> = ({ 
             <div className="relative">
                 <Layers size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
                 <select 
-                    value={formData.type} 
+                    value={formData.type || SponsorshipType.ROTATING} 
                     onChange={e => setFormData({ ...formData, type: e.target.value as SponsorshipType })} 
                     className="w-full bg-black/50 border border-white/10 rounded-xl p-4 pl-10 text-sm text-white focus:border-neon outline-none appearance-none"
                 >
@@ -177,7 +177,7 @@ export const SponsorshipEditorModal: React.FC<SponsorshipEditorModalProps> = ({ 
             <div className="relative">
               <LayoutGrid size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
               <select 
-                value={formData.position} 
+                value={formData.position || ''} 
                 onChange={e => setFormData({ ...formData, position: e.target.value as any })} 
                 className={`w-full bg-black/50 border-2 rounded-xl p-4 pl-10 text-sm font-bold focus:border-neon outline-none appearance-none ${!formData.position ? 'text-red-400 border-red-500/50' : 'text-white border-white/10'}`}
               >

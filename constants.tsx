@@ -3,6 +3,7 @@ import { Article, Sponsorship, User, Brand, SponsorshipType, SocialAccount, Cate
 export const DEFAULT_AI_PROMPT = `Actúa como un periodista deportivo de élite de Santa Fe o Rosario para la plataforma A1TOQUE. Escribe una noticia moderna y emocionante.
 Si la noticia es de Unión, Colón, Central o Newell's, refléjalo en el tono.
 Tu estilo debe ser directo, dinámico y atractivo para una audiencia joven. Utiliza frases cortas y potentes.
+CRÍTICO: Debes escribir el texto de forma natural, con espacios en blanco separando cada palabra. NUNCA escribas palabras pegadas (ejemplo incorrecto: "Elpróximo27demarzo").
 Estructura el contenido con subtítulos (headings) y párrafos (text).
 Genera una palabra clave corta en inglés para buscar una imagen relacionada en Unsplash.
 Tu respuesta debe ser un único objeto JSON válido, sin texto adicional fuera de él.`;

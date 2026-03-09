@@ -222,7 +222,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                   <label className="text-[10px] font-black text-neon uppercase tracking-[0.4em] block pl-1">TITULAR PRINCIPAL *</label>
                   <input 
                     type="text" 
-                    value={metaData.title} 
+                    value={metaData.title || ''} 
                     onChange={e => setMetaData(p => ({ ...p, title: e.target.value }))} 
                     className={`w-full bg-white/[0.03] border-2 rounded-2xl p-6 text-2xl md:text-4xl font-oswald font-bold text-white focus:border-neon focus:bg-black outline-none transition-all placeholder:text-gray-700 ${!metaData.title?.trim() && errors.length > 0 ? 'border-red-500/50' : 'border-white/10'}`} 
                     placeholder="Escribe el título aquí..." 
@@ -232,7 +232,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                 <div className="space-y-4">
                   <label className="text-[10px] font-black text-neon uppercase tracking-[0.4em] block pl-1">BAJADA / RESUMEN *</label>
                   <textarea 
-                    value={metaData.excerpt} 
+                    value={metaData.excerpt || ''} 
                     onChange={e => setMetaData(p => ({ ...p, excerpt: e.target.value }))} 
                     rows={3} 
                     className={`w-full bg-white/[0.03] border-2 rounded-2xl p-6 text-lg text-gray-300 focus:border-neon focus:bg-black outline-none leading-relaxed transition-all placeholder:text-gray-700 ${!metaData.excerpt?.trim() && errors.length > 0 ? 'border-red-500/50' : 'border-white/10'}`} 
@@ -259,7 +259,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                         
                         {block.type === 'text' && (
                           <textarea 
-                            value={block.content} 
+                            value={block.content || ''} 
                             onChange={e => handleUpdateBlock(block.id, { content: e.target.value })} 
                             rows={4} 
                             className="w-full bg-transparent p-0 text-gray-300 focus:text-white outline-none leading-relaxed text-lg placeholder:text-gray-800" 
@@ -270,7 +270,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                         {block.type === 'heading' && (
                           <input 
                             type="text" 
-                            value={block.content} 
+                            value={block.content || ''} 
                             onChange={e => handleUpdateBlock(block.id, { content: e.target.value })} 
                             className="w-full bg-transparent p-0 text-white font-oswald font-black text-2xl md:text-3xl uppercase italic outline-none placeholder:text-gray-800" 
                             placeholder="SUBTÍTULO..." 
@@ -280,7 +280,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                         {block.type === 'quote' && (
                           <div className="border-l-4 border-neon pl-6 py-2 bg-neon/5 rounded-r-xl">
                             <textarea 
-                              value={block.content} 
+                              value={block.content || ''} 
                               onChange={e => handleUpdateBlock(block.id, { content: e.target.value })} 
                               rows={2} 
                               className="w-full bg-transparent p-0 text-white font-oswald italic text-xl outline-none placeholder:text-gray-800" 
@@ -288,7 +288,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                             />
                             <input 
                               type="text" 
-                              value={block.caption} 
+                              value={block.caption || ''} 
                               onChange={e => handleUpdateBlock(block.id, { caption: e.target.value })} 
                               className="w-full bg-transparent p-0 text-neon text-[10px] font-black uppercase tracking-widest mt-2 outline-none placeholder:text-neon/30" 
                               placeholder="— Autor de la cita" 
@@ -300,7 +300,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                           <div className="space-y-4">
                             <input 
                               type="text" 
-                              value={block.content} 
+                              value={block.content || ''} 
                               onChange={e => handleUpdateBlock(block.id, { content: e.target.value })} 
                               className="w-full bg-black/60 p-4 rounded-xl text-blue-400 text-xs border border-white/5 outline-none" 
                               placeholder="Pegar URL de la imagen..." 
@@ -319,7 +319,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                           <div className="bg-red-500/5 p-4 rounded-xl border border-red-500/20">
                             <input 
                               type="text" 
-                              value={block.content} 
+                              value={block.content || ''} 
                               onChange={e => handleUpdateBlock(block.id, { content: e.target.value })} 
                               className="w-full bg-black/60 p-4 rounded-xl text-red-400 text-xs outline-none border border-red-500/10" 
                               placeholder="Pegar URL de video de YouTube..." 
@@ -331,7 +331,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                           <div className="bg-pink-500/5 p-4 rounded-xl border border-pink-500/20">
                             <input 
                               type="text" 
-                              value={block.content} 
+                              value={block.content || ''} 
                               onChange={e => handleUpdateBlock(block.id, { content: e.target.value })} 
                               className="w-full bg-black/60 p-4 rounded-xl text-pink-400 text-xs outline-none border border-pink-500/10" 
                               placeholder="Pegar URL de post de Instagram..." 
@@ -419,7 +419,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                   <div className="relative">
                     <input 
                         type="text" 
-                        value={metaData.imageUrl} 
+                        value={metaData.imageUrl || ''} 
                         onChange={e => setMetaData(p => ({ ...p, imageUrl: e.target.value }))} 
                         onBlur={handleUrlProcessing} 
                         disabled={isProcessingUrl} 
@@ -437,7 +437,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] block">CATEGORÍA *</label>
                       <div className="relative group">
                           <select 
-                            value={metaData.category} 
+                            value={metaData.category || ''} 
                             onChange={e => setMetaData(p => ({ ...p, category: e.target.value as string }))} 
                             className={`w-full bg-black/50 border-2 rounded-xl p-4 text-xs font-bold text-white focus:border-neon outline-none appearance-none cursor-pointer hover:border-white/40 transition-colors ${!metaData.category && errors.length > 0 ? 'border-red-500/50' : 'border-white/20'}`}
                           >
@@ -452,7 +452,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] block">AUTOR RESPONSABLE *</label>
                       <div className="relative group">
                           <select 
-                            value={metaData.author} 
+                            value={metaData.author || ''} 
                             onChange={e => setMetaData(p => ({ ...p, author: e.target.value }))} 
                             className={`w-full bg-black/50 border-2 rounded-xl p-4 text-xs font-bold text-white focus:border-neon outline-none appearance-none cursor-pointer hover:border-white/40 transition-colors ${!metaData.author && errors.length > 0 ? 'border-red-500/50' : 'border-white/20'}`}
                           >

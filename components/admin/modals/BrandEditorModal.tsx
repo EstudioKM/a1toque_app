@@ -63,11 +63,11 @@ export const BrandEditorModal: React.FC<BrandEditorModalProps> = ({ brand, onClo
         <div className="space-y-4">
           <div>
             <label className="text-xs font-bold text-gray-400 mb-2 block">Nombre de la Marca</label>
-            <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" />
+            <input type="text" value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" />
           </div>
           <div>
             <label className="text-xs font-bold text-gray-400 mb-2 block">Handle Social (ej. @marca)</label>
-            <input type="text" value={formData.socialHandle} onChange={e => setFormData({ ...formData, socialHandle: e.target.value })} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" placeholder="@handle" />
+            <input type="text" value={formData.socialHandle || ''} onChange={e => setFormData({ ...formData, socialHandle: e.target.value })} className="w-full bg-black border border-white/10 rounded-lg p-2 text-sm text-white focus:border-neon outline-none" placeholder="@handle" />
           </div>
           <div>
             <label className="text-xs font-bold text-gray-400 mb-2 block">Logo</label>
@@ -80,7 +80,7 @@ export const BrandEditorModal: React.FC<BrandEditorModalProps> = ({ brand, onClo
                   <UploadCloud size={14} /> Subir Archivo
                 </button>
                 <input type="file" ref={logoInputRef} onChange={handleFileUpload} hidden accept="image/png, image/jpeg, image/webp, image/svg+xml" />
-                <input type="text" value={formData.logoUrl} onChange={e => setFormData({ ...formData, logoUrl: e.target.value })} className="w-full bg-black border border-white/10 rounded-lg p-2 text-xs text-blue-400 focus:border-neon outline-none" placeholder="O pega una URL" />
+                <input type="text" value={formData.logoUrl || ''} onChange={e => setFormData({ ...formData, logoUrl: e.target.value })} className="w-full bg-black border border-white/10 rounded-lg p-2 text-xs text-blue-400 focus:border-neon outline-none" placeholder="O pega una URL" />
               </div>
             </div>
           </div>

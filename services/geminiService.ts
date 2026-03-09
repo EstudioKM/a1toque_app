@@ -79,6 +79,7 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
           3. Busca múltiples fuentes para validar los datos clave (fechas, nombres, resultados).
           
           REGLAS DE ESTILO: ${systemInstruction}.
+          CRÍTICO: Debes escribir el texto de forma natural, con espacios en blanco separando cada palabra. NUNCA escribas palabras pegadas (ejemplo incorrecto: "Elpróximo27demarzo").
           
           CONSULTA DE BÚSQUEDA: ${searchQuery}.
           
@@ -89,16 +90,19 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
             "category": "Categoría adecuada", 
             "imageUrl": "Palabra clave para imagen", 
             "blocks": [
-              {"type": "heading", "content": "Subtítulo"},
-              {"type": "text", "content": "Párrafo de contenido..."},
-              {"type": "quote", "content": "Cita relevante", "caption": "Autor de la cita"}
+              {"type": "heading", "content": "Subtítulo con espacios normales"},
+              {"type": "text", "content": "Párrafo de contenido con espacios normales entre cada palabra..."},
+              {"type": "quote", "content": "Cita relevante con espacios", "caption": "Autor de la cita"}
             ] 
           }`;
 
         const response = await generateContentWithRetry({
             model: POWERFUL_MODEL,
             contents: prompt,
-            config: { tools: [{ googleSearch: {} }], temperature: 0.2 } // Menor temperatura para mayor precisión
+            config: { 
+              tools: [{ googleSearch: {} }],
+              responseMimeType: "application/json"
+            }
         }, signal);
         
         const draft = cleanAndParseJSON(response.text, null);
@@ -115,11 +119,16 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
 
 export const generateNewsFromUrl = async (url: string, systemInstruction: string, signal?: AbortSignal) => {
     try {
-        const prompt = `Reversiona esta noticia: ${url}. Estilo: ${systemInstruction}. Salida: JSON { title, excerpt, category, imageUrl, blocks }`;
+        const prompt = `Reversiona esta noticia: ${url}. Estilo: ${systemInstruction}. 
+        CRÍTICO: Escribe el texto de forma natural, con espacios en blanco separando cada palabra. NUNCA escribas palabras pegadas.
+        Salida: JSON { title, excerpt, category, imageUrl, blocks }`;
         const response = await generateContentWithRetry({
             model: POWERFUL_MODEL,
             contents: prompt,
-            config: { tools: [{ googleSearch: {} }] }
+            config: { 
+              tools: [{ googleSearch: {} }],
+              responseMimeType: "application/json"
+            }
         }, signal);
         const draft = cleanAndParseJSON(response.text, null);
         if (draft) draft.sources = [{ uri: url, title: 'Original' }];
@@ -128,20 +137,41 @@ export const generateNewsFromUrl = async (url: string, systemInstruction: string
 };
 
 export const generateSocialMediaContent = async (title: string, excerpt: string, systemInstruction: string, copyInstruction: string) => {
-  const prompt = `CCommunity Manager experto. Crea posteo para: "${title}". Resumen: "${excerpt}". Instrucciones: ${systemInstruction}. Reglas de copy: ${copyInstruction}. JSON: { shortTitle, copy }`;
-  const res = await generateContentWithRetry({ model: FAST_MODEL, contents: prompt });
+  const prompt = `Community Manager experto. Crea posteo para: "${title}". Resumen: "${excerpt}". Instrucciones: ${systemInstruction}. Reglas de copy: ${copyInstruction}. 
+  CRÍTICO: Escribe con espacios normales entre las palabras.
+  JSON: { shortTitle, copy }`;
+  const res = await generateContentWithRetry({ 
+    model: FAST_MODEL, 
+    contents: prompt,
+    config: { responseMimeType: "application/json" }
+  });
   return cleanAndParseJSON(res.text, { shortTitle: "A1TOQUE", copy: "Posteo generado." });
 };
 
 export const generateSocialMediaContentFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string) => {
-  const prompt = `CCommunity Manager experto. Post sobre: "${topic}". Reglas: ${systemInstruction}. Copy: ${copyInstruction}. JSON: { shortTitle, copy }`;
-  const res = await generateContentWithRetry({ model: FAST_MODEL, contents: prompt, config: { tools: [{ googleSearch: {} }] } });
+  const prompt = `Community Manager experto. Post sobre: "${topic}". Reglas: ${systemInstruction}. Copy: ${copyInstruction}. 
+  CRÍTICO: Escribe con espacios normales entre las palabras.
+  JSON: { shortTitle, copy }`;
+  const res = await generateContentWithRetry({ 
+    model: FAST_MODEL, 
+    contents: prompt, 
+    config: { 
+      tools: [{ googleSearch: {} }],
+      responseMimeType: "application/json"
+    } 
+  });
   return cleanAndParseJSON(res.text, { shortTitle: "A1TOQUE", copy: "Posteo generado." });
 };
 
 export const improveSocialMediaCopy = async (currentCopy: string, systemInstruction: string, copyInstruction: string) => {
-  const prompt = `Mejora este copy: "${currentCopy}". Estilo: ${systemInstruction}. Reglas: ${copyInstruction}. JSON: { copy }`;
-  const res = await generateContentWithRetry({ model: FAST_MODEL, contents: prompt });
+  const prompt = `Mejora este copy: "${currentCopy}". Estilo: ${systemInstruction}. Reglas: ${copyInstruction}. 
+  CRÍTICO: Escribe con espacios normales entre las palabras.
+  JSON: { copy }`;
+  const res = await generateContentWithRetry({ 
+    model: FAST_MODEL, 
+    contents: prompt,
+    config: { responseMimeType: "application/json" }
+  });
   return cleanAndParseJSON(res.text, { copy: currentCopy });
 };
 

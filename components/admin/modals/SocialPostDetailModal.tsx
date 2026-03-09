@@ -28,7 +28,7 @@ export const SocialPostDetailModal: React.FC<SocialPostDetailModalProps> = ({ po
             </div>
             <div>
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Copy</label>
-              <textarea readOnly value={post.copy} rows={8} className="w-full bg-black border border-white/10 rounded-lg p-3 text-sm text-gray-300 mt-1 custom-scrollbar" />
+              <textarea readOnly value={post.copy || ''} rows={8} className="w-full bg-black border border-white/10 rounded-lg p-3 text-sm text-gray-300 mt-1 custom-scrollbar" />
             </div>
             <div>
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Publicado en</label>
