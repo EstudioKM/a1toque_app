@@ -600,7 +600,8 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                             const newAlert = {
                                               id: Math.random().toString(36).substr(2, 9),
                                               message: userAlertMessage,
-                                              seen: false
+                                              seen: false,
+                                              createdAt: new Date().toISOString()
                                             };
                                             onUpdateUser({ 
                                               ...user, 

@@ -27,6 +27,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const notifications = useMemo(() => {
     const unreadChats = chatMessages.filter(m => m.receiverId === currentUser.id && !m.isRead);
     const newTasks = tasks.filter(t => t.assignedUserIds.includes(currentUser.id) && t.status === 'pending' && !(t.viewedByUserIds || []).includes(currentUser.id));
+    const activeAlerts = (currentUser.alertMessages || []).filter(a => !a.seen);
     
     const items = [
       ...unreadChats.map(m => {
@@ -49,6 +50,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         time: t.createdAt,
         tab: 'tasks',
         targetId: t.id
+      })),
+      ...activeAlerts.map(a => ({
+        id: a.id,
+        type: 'alert' as const,
+        title: 'Notificación Personal',
+        description: a.message,
+        time: a.createdAt || new Date().toISOString(),
+        tab: 'home',
+        targetId: a.id
       }))
     ];
     
@@ -107,8 +117,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   }}
                   className="w-full text-left p-4 hover:bg-white/5 border-b border-white/5 transition-colors flex gap-3 items-start group"
                 >
-                  <div className={`mt-1 p-2 rounded-lg ${notif.type === 'chat' ? 'bg-blue-500/10 text-blue-400' : 'bg-neon/10 text-neon'}`}>
-                    {notif.type === 'chat' ? <MessageSquare size={14} /> : <CheckSquare size={14} />}
+                  <div className={`mt-1 p-2 rounded-lg ${notif.type === 'chat' ? 'bg-blue-500/10 text-blue-400' : notif.type === 'alert' ? 'bg-red-500/10 text-red-400' : 'bg-neon/10 text-neon'}`}>
+                    {notif.type === 'chat' ? <MessageSquare size={14} /> : notif.type === 'alert' ? <Bell size={14} /> : <CheckSquare size={14} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-black text-white uppercase tracking-tight mb-0.5 group-hover:text-neon transition-colors">{notif.title}</p>

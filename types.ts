@@ -158,6 +158,7 @@ export interface UserAlert {
   message: string;
   seen: boolean;
   seenAt?: string;
+  createdAt?: string;
 }
 
 export interface User {

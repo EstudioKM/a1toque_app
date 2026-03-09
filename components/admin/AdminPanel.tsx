@@ -290,8 +290,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               currentUserRole={props.currentUserRole}
               siteConfig={props.siteConfig}
               tasks={props.tasks}
+              chatMessages={props.chatMessages}
+              users={props.users}
               onOpenTasks={() => setActiveTab('tasks')}
               onUpdateUser={props.onUpdateUser}
+              onOpenAdminTab={(tab) => setActiveTab(tab as AdminTab)}
             />
           )}
           {activeTab === 'news' && <NewsTab {...props} onOpenEditor={handleOpenArticleEditor} onOpenSocialCreator={handleOpenSocialCreator} onViewArticle={props.onViewArticle} />}

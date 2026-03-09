@@ -1,15 +1,18 @@
-import React from 'react';
-import { Task, User, Role, SiteConfig } from '../../types';
+import React, { useMemo } from 'react';
+import { Task, User, Role, SiteConfig, ChatMessage } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, Send, Timer, BellRing, Activity, CheckSquare, Clock, ChevronRight } from 'lucide-react';
+import { FileText, Send, Timer, BellRing, Activity, CheckSquare, Clock, ChevronRight, MessageSquare, Bell } from 'lucide-react';
 
 interface HomeTabProps {
   currentUser: User;
   currentUserRole: Role;
   siteConfig: SiteConfig;
   tasks: Task[];
+  chatMessages: ChatMessage[];
+  users: User[];
   onOpenTasks: () => void;
   onUpdateUser: (user: User) => void;
+  onOpenAdminTab: (tab: string, targetId?: string) => void;
 }
 
 export const HomeTab: React.FC<HomeTabProps> = ({
@@ -17,8 +20,11 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   currentUserRole,
   siteConfig,
   tasks,
+  chatMessages,
+  users,
   onOpenTasks,
-  onUpdateUser
+  onUpdateUser,
+  onOpenAdminTab
 }) => {
   const userTasks = tasks
     .filter(t => t.assignedUserIds.includes(currentUser.id))
@@ -34,6 +40,50 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 
   const activeAlerts = (currentUser.alertMessages || []).filter(a => !a.seen);
 
+  const notifications = useMemo(() => {
+    const unreadChats = chatMessages.filter(m => m.receiverId === currentUser.id && !m.isRead);
+    const newTasks = tasks.filter(t => t.assignedUserIds.includes(currentUser.id) && t.status === 'pending' && !(t.viewedByUserIds || []).includes(currentUser.id));
+    
+    const items = [
+      ...unreadChats.map(m => {
+        const sender = users.find(u => u.id === m.senderId);
+        return {
+          id: m.id,
+          type: 'chat' as const,
+          title: sender ? `Mensaje de ${sender.name}` : 'Nuevo mensaje',
+          description: m.text,
+          time: m.timestamp,
+          tab: 'chat',
+          targetId: m.senderId
+        };
+      }),
+      ...newTasks.map(t => ({
+        id: t.id,
+        type: 'task' as const,
+        title: 'Nueva Tarea Asignada',
+        description: t.title,
+        time: t.createdAt,
+        tab: 'tasks',
+        targetId: t.id
+      })),
+      ...activeAlerts.map(a => ({
+        id: a.id,
+        type: 'alert' as const,
+        title: 'Notificación Personal',
+        description: a.message,
+        time: a.createdAt || new Date().toISOString(),
+        tab: 'home',
+        targetId: a.id
+      }))
+    ];
+    
+    return items.sort((a, b) => {
+        const timeA = new Date(a.time).getTime();
+        const timeB = new Date(b.time).getTime();
+        return timeB - timeA;
+    });
+  }, [chatMessages, tasks, currentUser, users, activeAlerts]);
+
   const handleAcknowledgeAlert = (alertId: string) => {
     const updatedAlerts = (currentUser.alertMessages || []).map(a => 
       a.id === alertId ? { ...a, seen: true, seenAt: new Date().toISOString() } : a
@@ -43,46 +93,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Personal User Alerts */}
-      {activeAlerts.length > 0 && (
-        <div className="space-y-4">
-          <AnimatePresence>
-            {activeAlerts.map((alert, idx) => (
-              <motion.div 
-                key={alert.id}
-                initial={{ opacity: 0, scale: 0.95, y: -20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                transition={{ delay: idx * 0.1 }}
-                className="bg-neon p-6 rounded-[32px] border border-black/10 shadow-2xl shadow-neon/20 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-black/10 blur-3xl rounded-full -mr-16 -mt-16" />
-                <div className="w-14 h-14 bg-black/10 rounded-2xl flex items-center justify-center shrink-0">
-                  <BellRing size={28} className="text-black" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[10px] font-black text-black/60 uppercase tracking-widest mb-1">Notificación Personal</p>
-                  <p className="text-xl font-oswald font-black italic uppercase text-black leading-tight">
-                    {alert.message}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="hidden md:block px-6 py-2 bg-black/10 rounded-xl text-[10px] font-black text-black uppercase tracking-widest">
-                    Urgente
-                  </div>
-                  <button 
-                    onClick={() => handleAcknowledgeAlert(alert.id)}
-                    className="bg-black text-neon px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform shadow-lg"
-                  >
-                    Aceptar
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
-
       {/* Welcome Section */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -109,12 +119,12 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             </button>
           </div>
 
-          <div className="space-y-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Pending Tasks - PRIMARY */}
-            <div className="space-y-6">
+            <div className={`space-y-6 ${pendingTasks.length > 0 ? 'lg:col-span-2' : 'lg:col-span-1'}`}>
               <div className="flex items-center justify-between">
                 <h3 className="text-[12px] font-black text-white uppercase tracking-[0.2em] flex items-center gap-3">
-                  <BellRing size={16} className="text-neon" /> Tareas Pendientes
+                  <Timer size={16} className="text-neon" /> Tareas Pendientes
                 </h3>
                 {pendingTasks.length > 0 && (
                   <button 
@@ -127,7 +137,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
               </div>
               
               {pendingTasks.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {pendingTasks.map(task => (
                     <div key={task.id} className="flex flex-col p-6 bg-white/[0.03] rounded-3xl border border-white/5 group hover:border-neon/20 transition-all cursor-pointer" onClick={onOpenTasks}>
                       <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-neon/10 transition-colors">
@@ -145,14 +155,73 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                   ))}
                 </div>
               ) : (
-                <div className="py-24 text-center bg-white/[0.01] rounded-[40px] border border-dashed border-white/5">
-                  <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <CheckSquare size={32} className="text-gray-800" />
+                <div className="py-12 text-center bg-white/[0.01] rounded-[40px] border border-dashed border-white/5">
+                  <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckSquare size={24} className="text-gray-800" />
                   </div>
-                  <h4 className="text-gray-500 font-oswald font-black italic uppercase text-2xl tracking-widest">Todo al día</h4>
-                  <p className="text-gray-700 text-[10px] font-black uppercase tracking-widest mt-2">No tienes tareas pendientes en este momento</p>
+                  <h4 className="text-gray-500 font-oswald font-black italic uppercase text-xl tracking-widest">Todo al día</h4>
+                  <p className="text-gray-700 text-[9px] font-black uppercase tracking-widest mt-2">No tienes tareas pendientes</p>
                 </div>
               )}
+            </div>
+
+            {/* Notification Center */}
+            <div className={`space-y-6 ${pendingTasks.length > 0 ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-[12px] font-black text-white uppercase tracking-[0.2em] flex items-center gap-3">
+                  <BellRing size={16} className="text-neon" /> Centro de Notificaciones
+                </h3>
+                {notifications.length > 0 && (
+                  <span className="bg-neon text-black px-2 py-0.5 rounded-full text-[9px] font-black">{notifications.length}</span>
+                )}
+              </div>
+              
+              <div className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden flex flex-col h-[400px]">
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                  {notifications.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+                      <Bell size={32} className="text-gray-800 mb-4 opacity-20" />
+                      <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">No tienes notificaciones</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-white/5">
+                      {notifications.map(notif => (
+                        <div key={notif.id} className="p-4 hover:bg-white/5 transition-colors group">
+                          <div className="flex gap-4 items-start">
+                            <div className={`mt-1 p-2 rounded-xl shrink-0 ${notif.type === 'chat' ? 'bg-blue-500/10 text-blue-400' : notif.type === 'alert' ? 'bg-red-500/10 text-red-400' : 'bg-neon/10 text-neon'}`}>
+                              {notif.type === 'chat' ? <MessageSquare size={16} /> : notif.type === 'alert' ? <Bell size={16} /> : <CheckSquare size={16} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] font-black text-white uppercase tracking-tight mb-1 group-hover:text-neon transition-colors">{notif.title}</p>
+                              <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed mb-2">{notif.description}</p>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1 text-[8px] font-bold text-gray-600 uppercase">
+                                  <Clock size={10} /> {new Date(notif.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </div>
+                                {notif.type === 'alert' ? (
+                                  <button 
+                                    onClick={() => handleAcknowledgeAlert(notif.targetId)}
+                                    className="text-[9px] font-black text-red-400 hover:text-red-300 uppercase tracking-widest"
+                                  >
+                                    Aceptar
+                                  </button>
+                                ) : (
+                                  <button 
+                                    onClick={() => onOpenAdminTab(notif.tab, notif.targetId)}
+                                    className="text-[9px] font-black text-neon hover:text-white uppercase tracking-widest"
+                                  >
+                                    Ver
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
