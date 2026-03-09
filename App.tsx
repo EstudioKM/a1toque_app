@@ -11,7 +11,7 @@ import { LandingPage } from './components/LandingPage';
 import { LoginModal } from './components/LoginModal';
 import { WelcomeModal } from './components/WelcomeModal';
 import { db } from './services/firebase';
-import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc, onSnapshot } from 'firebase/firestore';
 import { A1ToqueLoader } from './components/A1ToqueLoader';
 
 const CLUB_COLORS: Record<string, string> = {
@@ -225,6 +225,38 @@ const App: React.FC = () => {
       }
     };
     fetchData();
+
+    // Set up real-time listeners
+    const unsubscribeChat = onSnapshot(collection(db, 'chat_messages'), (snapshot) => {
+      setChatMessages(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChatMessage)));
+    });
+
+    const unsubscribeConfig = onSnapshot(doc(db, 'config', 'site'), (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        setSiteConfig({ ...DEFAULT_SITE_CONFIG, ...docSnapshot.data() } as SiteConfig);
+      }
+    });
+
+    const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const updatedUsers = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as User));
+      setUsers(updatedUsers);
+      setCurrentUser(prev => {
+        if (!prev) return prev;
+        const updatedCurrentUser = updatedUsers.find(u => u.id === prev.id);
+        return updatedCurrentUser || prev;
+      });
+    });
+
+    const unsubscribeTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+      setTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task)));
+    });
+
+    return () => {
+      unsubscribeChat();
+      unsubscribeConfig();
+      unsubscribeUsers();
+      unsubscribeTasks();
+    };
   }, []);
   
   useEffect(() => {
@@ -406,7 +438,6 @@ const App: React.FC = () => {
   const addUser = async (user: Omit<User, 'id'>) => {
     const cleanUser = removeUndefinedFields(user);
     const docRef = await addDoc(collection(db, 'users'), cleanUser);
-    setUsers([...users, { ...cleanUser, id: docRef.id }]);
     return docRef;
   };
   const updateUser = async (user: User) => {
@@ -415,14 +446,9 @@ const App: React.FC = () => {
       delete userToUpdate.password;
     }
     await setDoc(doc(db, 'users', user.id), userToUpdate, { merge: true });
-    setUsers(users.map(u => u.id === user.id ? removeUndefinedFields(user) : u));
-    if (currentUser?.id === user.id) {
-        setCurrentUser(removeUndefinedFields(user));
-    }
   };
   const deleteUser = async (id: string) => {
     await deleteDoc(doc(db, 'users', id));
-    setUsers(users.filter(u => u.id !== id));
   };
 
   const addSocialAccount = async (account: Omit<SocialAccount, 'id'>) => {
@@ -500,7 +526,6 @@ const App: React.FC = () => {
   const updateSiteConfig = async (config: SiteConfig) => {
     const cleanConfig = removeUndefinedFields(config);
     await setDoc(doc(db, 'config', 'site'), cleanConfig);
-    setSiteConfig(cleanConfig);
   };
   
   const updateAdSlot = async (slot: AdSlotConfig) => {
@@ -526,26 +551,22 @@ const App: React.FC = () => {
 
   const addTask = async (task: Omit<Task, 'id'>) => {
     const cleanTask = removeUndefinedFields(task);
-    const docRef = await addDoc(collection(db, 'tasks'), cleanTask);
-    setTasks(prev => [{ ...cleanTask, id: docRef.id }, ...prev]);
+    await addDoc(collection(db, 'tasks'), cleanTask);
   };
   const updateTask = async (task: Task) => {
     const cleanTask = removeUndefinedFields(task);
     await setDoc(doc(db, 'tasks', task.id), cleanTask, { merge: true });
-    setTasks(prev => prev.map(t => t.id === task.id ? cleanTask : t));
   };
   const deleteTask = async (id: string) => {
     await deleteDoc(doc(db, 'tasks', id));
-    setTasks(prev => prev.filter(t => t.id !== id));
   };
 
   const addChatMessage = async (msg: Omit<ChatMessage, 'id'>) => {
     const cleanMsg = removeUndefinedFields(msg);
-    const docRef = await addDoc(collection(db, 'chat_messages'), cleanMsg);
-    setChatMessages(prev => [...prev, { ...cleanMsg, id: docRef.id }]);
+    await addDoc(collection(db, 'chat_messages'), cleanMsg);
   };
 
-  const markChatAsRead = async (senderId: string) => {
+  const markChatAsRead = useCallback(async (senderId: string) => {
     if (!currentUser) return;
     const unreadMsgs = chatMessages.filter(m => m.senderId === senderId && m.receiverId === currentUser.id && !m.isRead);
     if (unreadMsgs.length === 0) return;
@@ -555,8 +576,7 @@ const App: React.FC = () => {
       batch.update(doc(db, 'chat_messages', m.id), { isRead: true });
     });
     await batch.commit();
-    setChatMessages(prev => prev.map(m => (m.senderId === senderId && m.receiverId === currentUser.id) ? { ...m, isRead: true } : m));
-  };
+  }, [currentUser, chatMessages]);
 
   const markTaskAsViewed = async (taskId: string) => {
     if (!currentUser) return;
@@ -565,7 +585,6 @@ const App: React.FC = () => {
 
     const updatedViewed = [...(task.viewedByUserIds || []), currentUser.id];
     await setDoc(doc(db, 'tasks', taskId), { viewedByUserIds: updatedViewed }, { merge: true });
-    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, viewedByUserIds: updatedViewed } : t));
   };
   
   const unreadChatCount = useMemo(() => {
