@@ -15,6 +15,7 @@ export interface SiteConfig {
   footerText: string;
   homeAdInterval?: number;
   adminMessage?: string;
+  searchDomains?: string[]; // Dominios permitidos para búsqueda IA
 }
 
 export type BlockType = 'text' | 'image' | 'youtube' | 'instagram' | 'quote' | 'heading';

@@ -64,18 +64,41 @@ const generateContentWithRetry = async (
   throw new Error("API Fatal Error");
 };
 
-export const generateNewsDraftFromTopic = async (topic: string, systemInstruction: string, signal?: AbortSignal) => {
+export const generateNewsDraftFromTopic = async (topic: string, systemInstruction: string, searchDomains: string[] = [], signal?: AbortSignal) => {
     try {
-        const searchQuery = `"${topic}" (site:ole.com.ar OR site:tycsports.com OR site:espn.com.ar)`;
-        const prompt = `Actúa como periodista deportivo. Investiga y redacta sobre: "${topic}". 
-          REGLAS: ${systemInstruction}.
-          HERRAMIENTA: googleSearch con la consulta: ${searchQuery}.
-          SALIDA: JSON { "title", "excerpt", "category", "imageUrl", "blocks": [{"type":"text|heading|quote", "content"}] }`;
+        const domainQuery = searchDomains.length > 0 
+            ? ` (${searchDomains.map(d => `site:${d}`).join(' OR ')})`
+            : '';
+        const searchQuery = `"${topic}"${domainQuery}`;
+        
+        const prompt = `Actúa como periodista deportivo de investigación. Tu objetivo es redactar una noticia veraz y contrastada sobre: "${topic}". 
+          
+          INSTRUCCIONES DE INVESTIGACIÓN:
+          1. Utiliza la herramienta googleSearch para encontrar información reciente y confiable.
+          2. Prioriza los hechos confirmados. Si hay rumores, identifícalos como tales.
+          3. Busca múltiples fuentes para validar los datos clave (fechas, nombres, resultados).
+          
+          REGLAS DE ESTILO: ${systemInstruction}.
+          
+          CONSULTA DE BÚSQUEDA: ${searchQuery}.
+          
+          SALIDA REQUERIDA (JSON):
+          { 
+            "title": "Título impactante", 
+            "excerpt": "Resumen breve", 
+            "category": "Categoría adecuada", 
+            "imageUrl": "Palabra clave para imagen", 
+            "blocks": [
+              {"type": "heading", "content": "Subtítulo"},
+              {"type": "text", "content": "Párrafo de contenido..."},
+              {"type": "quote", "content": "Cita relevante", "caption": "Autor de la cita"}
+            ] 
+          }`;
 
         const response = await generateContentWithRetry({
             model: POWERFUL_MODEL,
             contents: prompt,
-            config: { tools: [{ googleSearch: {} }], temperature: 0.7 }
+            config: { tools: [{ googleSearch: {} }], temperature: 0.2 } // Menor temperatura para mayor precisión
         }, signal);
         
         const draft = cleanAndParseJSON(response.text, null);

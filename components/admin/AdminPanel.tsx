@@ -172,7 +172,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     const controller = new AbortController();
     const newTask: GenerationTask = { id: taskId, prompt: topic, status: 'researching', controller };
     setGenerationQueue(prev => [newTask, ...prev]);
-    const draft = await generateNewsDraftFromTopic(topic, systemInstruction, controller.signal);
+    const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], controller.signal);
     setGenerationQueue(prev => prev.map(t => t.id === taskId ? { ...t, status: draft ? 'completed' : 'failed', result: draft || undefined, error: draft ? undefined : "Error en tema." } : t));
   };
 
@@ -296,7 +296,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           )}
           {activeTab === 'news' && <NewsTab {...props} onOpenEditor={handleOpenArticleEditor} onOpenSocialCreator={handleOpenSocialCreator} onViewArticle={props.onViewArticle} />}
           {activeTab === 'social' && <SocialTab {...props} onOpenCreator={handleOpenSocialCreator} onOpenDetail={handleOpenSocialPostDetail} onOpenEditor={handleOpenSocialEditor} onDeletePost={props.onDeleteSocialPost} socialAccountMap={socialAccountMap} />}
-          {activeTab === 'research' && <ResearchTab generationQueue={generationQueue} onGenerateFromUrl={handleGenerateFromUrl} onGenerateFromTopic={handleGenerateFromTopic} onOpenSources={handleOpenSourcesModal} onLoadDraft={handleLoadDraftInEditor} onSaveDraft={handleSaveDraftFromTask} socialAccounts={props.socialAccounts} aiSystemPrompt={props.aiSystemPrompt} />}
+          {activeTab === 'research' && <ResearchTab generationQueue={generationQueue} onGenerateFromUrl={handleGenerateFromUrl} onGenerateFromTopic={handleGenerateFromTopic} onOpenSources={handleOpenSourcesModal} onLoadDraft={handleLoadDraftInEditor} onSaveDraft={handleSaveDraftFromTask} socialAccounts={props.socialAccounts} aiSystemPrompt={props.aiSystemPrompt} siteConfig={props.siteConfig} />}
           {activeTab === 'ads' && <AdsTab {...props} brandMap={brandMap} onOpenBrandEditor={handleOpenBrandEditor} onOpenSponsorshipEditor={handleOpenSponsorshipEditor} onOpenAdSlotEditor={handleOpenAdSlotEditor} />}
           {activeTab === 'users' && <UsersTab {...props} onOpenEditor={handleOpenUserEditor} rolesMap={rolesMap} />}
           {activeTab === 'metrics' && <MetricsTab {...props} brands={props.brands} brandMap={brandMap} socialAccountMap={socialAccountMap} onOpenDetail={handleOpenSocialPostDetail} />}

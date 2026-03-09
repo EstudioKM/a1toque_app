@@ -29,6 +29,7 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
   footerText: 'Periodismo de élite para una generación que no espera. Fusionando el deporte con la cultura urbana local.',
   homeAdInterval: 4,
   adminMessage: '¡Bienvenidos al nuevo panel operativo! Estamos optimizando los procesos para mejorar nuestra cobertura. No olviden registrar sus tareas diarias y revisar las tendencias antes de publicar.',
+  searchDomains: ['ole.com.ar', 'tycsports.com', 'espn.com.ar', 'infobae.com', 'lanacion.com.ar'],
 };
 
 const App: React.FC = () => {

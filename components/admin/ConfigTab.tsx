@@ -166,6 +166,59 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
                             className="w-full bg-black border border-white/10 rounded-2xl p-4 text-gray-300 text-sm focus:border-neon outline-none"
                         />
                     </div>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block pl-1">Dominios de Búsqueda IA (Fuentes de Verdad)</label>
+                        <div className="space-y-3">
+                            <div className="flex flex-wrap gap-2 p-4 bg-black border border-white/10 rounded-2xl min-h-[60px]">
+                                {(localSiteConfig.searchDomains || []).map((domain, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 group">
+                                        <span className="text-[10px] font-bold text-gray-300">{domain}</span>
+                                        <button 
+                                            onClick={() => {
+                                                const domains = (localSiteConfig.searchDomains || []).filter((_, i) => i !== idx);
+                                                setLocalSiteConfig({...localSiteConfig, searchDomains: domains});
+                                            }}
+                                            className="text-gray-600 hover:text-red-400 transition-colors"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {(!localSiteConfig.searchDomains || localSiteConfig.searchDomains.length === 0) && (
+                                    <span className="text-[10px] text-gray-600 font-bold uppercase italic tracking-widest py-1.5">No hay dominios configurados (Búsqueda abierta)</span>
+                                )}
+                            </div>
+                            <div className="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    placeholder="ej: tycsports.com"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            const val = (e.target as HTMLInputElement).value.trim();
+                                            if (val && !(localSiteConfig.searchDomains || []).includes(val)) {
+                                                setLocalSiteConfig({...localSiteConfig, searchDomains: [...(localSiteConfig.searchDomains || []), val]});
+                                                (e.target as HTMLInputElement).value = '';
+                                            }
+                                        }
+                                    }}
+                                    className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-neon outline-none"
+                                />
+                                <button 
+                                    onClick={(e) => {
+                                        const input = (e.currentTarget.previousSibling as HTMLInputElement);
+                                        const val = input.value.trim();
+                                        if (val && !(localSiteConfig.searchDomains || []).includes(val)) {
+                                            setLocalSiteConfig({...localSiteConfig, searchDomains: [...(localSiteConfig.searchDomains || []), val]});
+                                            input.value = '';
+                                        }
+                                    }}
+                                    className="px-4 bg-white/5 text-gray-400 hover:text-neon rounded-xl border border-white/10 transition-all"
+                                >
+                                    <Plus size={18} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div className="border-t border-white/10 pt-10">

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { GenerationTask, SocialAccount, Source } from '../../types';
+import { GenerationTask, SocialAccount, Source, SiteConfig } from '../../types';
 import { Loader2, CheckCircle2, AlertTriangle, Globe, FileSignature, Save, Sparkles, Search, Zap, ArrowRight } from 'lucide-react';
 
 interface ResearchTabProps {
   generationQueue: GenerationTask[];
   socialAccounts: SocialAccount[];
   aiSystemPrompt: string;
+  siteConfig: SiteConfig;
   onGenerateFromUrl: (url: string, systemPrompt: string) => void;
   onGenerateFromTopic: (topic: string, systemPrompt: string) => void;
   onOpenSources: (sources: Source[]) => void;
@@ -17,6 +18,7 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
   generationQueue,
   socialAccounts,
   aiSystemPrompt,
+  siteConfig,
   onGenerateFromUrl,
   onGenerateFromTopic,
   onOpenSources,
@@ -76,7 +78,7 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
           </div>
 
           <div className="flex flex-col md:flex-row gap-3">
-            <div className="flex-1">
+            <div className="flex-1 flex flex-col gap-2">
                 <select 
                     value={selectedAccountId} 
                     onChange={e => setSelectedAccountId(e.target.value)}
@@ -89,11 +91,22 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
                     </option>
                     ))}
                 </select>
+                <div className="flex items-center gap-2 px-2">
+                    <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Fuentes:</span>
+                    <div className="flex flex-wrap gap-1">
+                        {(siteConfig.searchDomains || []).slice(0, 4).map((d, i) => (
+                            <span key={i} className="text-[7px] font-bold bg-white/5 px-1.5 py-0.5 rounded border border-white/5 text-gray-500">{d}</span>
+                        ))}
+                        {(siteConfig.searchDomains || []).length > 4 && (
+                            <span className="text-[7px] font-bold bg-white/5 px-1.5 py-0.5 rounded border border-white/5 text-gray-500">+{siteConfig.searchDomains!.length - 4}</span>
+                        )}
+                    </div>
+                </div>
             </div>
             <button 
                 onClick={handleGenerate} 
                 disabled={!generationQuery}
-                className="w-full md:w-48 py-4 bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg disabled:opacity-30 flex items-center justify-center gap-2"
+                className="w-full md:w-48 h-[48px] bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg disabled:opacity-30 flex items-center justify-center gap-2"
             >
                 {generationQuery.startsWith('http') ? 'REVERSIONAR' : 'INVESTIGAR'} <ArrowRight size={16} strokeWidth={3} />
             </button>
