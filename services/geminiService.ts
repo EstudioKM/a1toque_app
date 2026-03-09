@@ -149,9 +149,22 @@ export const generateSocialMediaContent = async (title: string, excerpt: string,
 };
 
 export const generateSocialMediaContentFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string) => {
-  const prompt = `Community Manager experto. Post sobre: "${topic}". Reglas: ${systemInstruction}. Copy: ${copyInstruction}. 
-  CRÍTICO: Escribe con espacios normales entre las palabras.
-  JSON: { shortTitle, copy }`;
+  const prompt = `Actúa como un Community Manager experto y estratega de contenido. 
+  Tu objetivo es crear un posteo de alto impacto para redes sociales sobre: "${topic}".
+  
+  INSTRUCCIONES:
+  1. Si el tema es una URL, investígala a fondo y busca información adicional relacionada en internet para darle más contexto y valor al posteo.
+  2. Si es un tema general, realiza una búsqueda para encontrar los ángulos más recientes y relevantes.
+  3. Adapta el tono según estas reglas de personalidad: ${systemInstruction}.
+  4. Sigue estas directrices de redacción (copywriting): ${copyInstruction}.
+  
+  REQUISITOS TÉCNICOS:
+  - Usa la herramienta googleSearch para obtener datos actualizados.
+  - Escribe de forma natural, con espacios correctos entre palabras.
+  - El resultado debe ser un JSON válido.
+
+  JSON: { "shortTitle": "Título corto para imagen", "copy": "Texto del posteo con emojis y hashtags adecuados" }`;
+  
   const res = await generateContentWithRetry({ 
     model: FAST_MODEL, 
     contents: prompt, 

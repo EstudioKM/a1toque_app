@@ -133,9 +133,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   
   const [isArticleEditorOpen, setIsArticleEditorOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [newsTaskBeingEdited, setNewsTaskBeingEdited] = useState<string | null>(null);
   const [isSocialPostCreatorOpen, setIsSocialPostCreatorOpen] = useState(false);
   const [articleForSocial, setArticleForSocial] = useState<Article | null>(null);
   const [editingSocialPost, setEditingSocialPost] = useState<SocialPost | null>(null);
+  const [socialTaskBeingEdited, setSocialTaskBeingEdited] = useState<string | null>(null);
   const [isUserEditorOpen, setIsUserEditorOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isBrandEditorOpen, setIsBrandEditorOpen] = useState(false);
@@ -210,8 +212,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const handleLoadDraftInEditor = (task: GenerationTask) => {
     if (task.result) {
       const articleForEditor: Article = { id: `draft-${task.id}`, title: task.result.title, excerpt: task.result.excerpt, category: task.result.category, content: task.result.blocks.map((b: ContentBlock, i: number) => ({...b, id: `${b.type}-${i}`})), author: props.currentUser.id, date: new Date().toISOString().split('T')[0], isPublished: false, imageUrl: task.result.imageUrl || '', sources: task.result.sources };
+      setNewsTaskBeingEdited(task.id);
       handleOpenArticleEditor(articleForEditor);
-      props.onDeleteAiNewsTask(task.id);
     }
   };
 
@@ -224,7 +226,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   };
 
   const handleSaveArticleFromEditor = (data: Article | Omit<Article, 'id'>) => {
-    if ('id' in data && data.id && !data.id.startsWith('draft-')) { props.onUpdateArticle(data as Article); } else { const { id, ...articleData } = data as Article; props.onAddArticle(articleData); }
+    if ('id' in data && data.id && !data.id.startsWith('draft-')) { 
+        props.onUpdateArticle(data as Article); 
+    } else { 
+        const { id, ...articleData } = data as Article; 
+        props.onAddArticle(articleData); 
+        if (newsTaskBeingEdited) props.onDeleteAiNewsTask(newsTaskBeingEdited);
+    }
+    setNewsTaskBeingEdited(null);
   };
 
   const handleGenerateSocialFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string) => {
@@ -259,9 +268,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         status: 'draft'
       };
       setEditingSocialPost(draftPost as SocialPost);
+      setSocialTaskBeingEdited(task.id);
       setArticleForSocial(null);
       setIsSocialPostCreatorOpen(true);
-      props.onDeleteAiSocialTask(task.id);
     }
   };
 
@@ -394,8 +403,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           {activeTab === 'chat' && <ChatTab chatMessages={props.chatMessages} currentUser={props.currentUser} users={props.users} onAddChatMessage={props.onAddChatMessage} onMarkAsRead={props.onMarkChatAsRead} initialTargetId={props.initialTargetId} />}
         </div>
       </main>
-      {isArticleEditorOpen && ( <ArticleEditor article={editingArticle} users={props.users} currentUser={props.currentUser} categories={props.categories} onClose={() => setIsArticleEditorOpen(false)} onSave={handleSaveArticleFromEditor}/>)}
-      {isSocialPostCreatorOpen && ( <SocialPostCreator key={editingSocialPost?.id || articleForSocial?.id || 'new'} article={articleForSocial} draftPost={editingSocialPost} currentUser={props.currentUser} brands={props.brands} socialAccounts={props.socialAccounts} aiSystemPrompt={props.aiSystemPrompt} onClose={() => { setIsSocialPostCreatorOpen(false); setArticleForSocial(null); setEditingSocialPost(null); }} onAddSocialPost={props.onAddSocialPost} onUpdateSocialPost={props.onUpdateSocialPost} users={props.users} articles={props.articles}/>)}
+      {isArticleEditorOpen && ( <ArticleEditor article={editingArticle} users={props.users} currentUser={props.currentUser} categories={props.categories} onClose={() => { setIsArticleEditorOpen(false); setNewsTaskBeingEdited(null); }} onSave={handleSaveArticleFromEditor}/>)}
+      {isSocialPostCreatorOpen && ( <SocialPostCreator key={editingSocialPost?.id || articleForSocial?.id || 'new'} article={articleForSocial} draftPost={editingSocialPost} currentUser={props.currentUser} brands={props.brands} socialAccounts={props.socialAccounts} aiSystemPrompt={props.aiSystemPrompt} onClose={() => { setIsSocialPostCreatorOpen(false); setArticleForSocial(null); setEditingSocialPost(null); setSocialTaskBeingEdited(null); }} onAddSocialPost={(post) => { props.onAddSocialPost(post); if (socialTaskBeingEdited) props.onDeleteAiSocialTask(socialTaskBeingEdited); }} onUpdateSocialPost={(post) => { props.onUpdateSocialPost(post); if (socialTaskBeingEdited) props.onDeleteAiSocialTask(socialTaskBeingEdited); }} users={props.users} articles={props.articles}/>)}
       {isUserEditorOpen && ( <UserEditorModal user={editingUser} roles={props.roles} socialAccounts={props.socialAccounts} onClose={() => setIsUserEditorOpen(false)} onSave={editingUser ? props.onUpdateUser : props.onAddUser}/>)}
       {isBrandEditorOpen && ( <BrandEditorModal brand={editingBrand} onClose={() => setIsBrandEditorOpen(false)} onSave={editingBrand ? props.onUpdateBrand : props.onAddBrand}/>)}
       {isSponsorshipEditorOpen && ( <SponsorshipEditorModal sponsorship={editingSponsorship} brands={props.brands} adSlots={props.adSlots} onClose={() => setIsSponsorshipEditorOpen(false)} onSave={editingSponsorship?.id ? props.onUpdateSponsorship as any : props.onAddSponsorship as any}/>)}
