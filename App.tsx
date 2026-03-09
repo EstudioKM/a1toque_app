@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { ViewMode, Article, Sponsorship, Category, User, Brand, SponsorshipType, SocialAccount, SocialPost, CategoryConfig, Role, SiteConfig, AdSlotConfig, INITIAL_AD_SLOTS, WorkLog, Task, ChatMessage } from './types';
+import { ViewMode, Article, Sponsorship, Category, User, Brand, SponsorshipType, SocialAccount, SocialPost, CategoryConfig, Role, SiteConfig, AdSlotConfig, INITIAL_AD_SLOTS, WorkLog, Task, ChatMessage, GenerationTask, SocialGenerationTask } from './types';
 import { INITIAL_SPONSORSHIPS, INITIAL_USERS, DEFAULT_AI_PROMPT, INITIAL_BRANDS, INITIAL_SOCIAL_ACCOUNTS, INITIAL_CATEGORIES, INITIAL_ROLES } from './constants';
 import { Header } from './components/Header';
 import { ArticleCard } from './components/ArticleCard';
@@ -45,6 +45,8 @@ const App: React.FC = () => {
   const [workLogs, setWorkLogs] = useState<WorkLog[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [aiNewsTasks, setAiNewsTasks] = useState<GenerationTask[]>([]);
+  const [aiSocialTasks, setAiSocialTasks] = useState<SocialGenerationTask[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(DEFAULT_SITE_CONFIG);
   const [adSlots, setAdSlots] = useState<AdSlotConfig[]>([]);
@@ -79,9 +81,11 @@ const App: React.FC = () => {
           work_logs: collection(db, 'work_logs'),
           tasks: collection(db, 'tasks'),
           chat_messages: collection(db, 'chat_messages'),
+          ai_news_tasks: collection(db, 'ai_news_tasks'),
+          ai_social_tasks: collection(db, 'ai_social_tasks'),
         };
         
-        const [articlesSnapshot, sponsorshipsSnapshot, brandsSnapshot, usersSnapshot, socialAccountsSnapshot, socialPostsSnapshot, categoriesSnapshot, rolesSnapshot, adSlotsSnapshot, workLogsSnapshot, tasksSnapshot, chatMessagesSnapshot] = await Promise.all([
+        const [articlesSnapshot, sponsorshipsSnapshot, brandsSnapshot, usersSnapshot, socialAccountsSnapshot, socialPostsSnapshot, categoriesSnapshot, rolesSnapshot, adSlotsSnapshot, workLogsSnapshot, tasksSnapshot, chatMessagesSnapshot, aiNewsTasksSnapshot, aiSocialTasksSnapshot] = await Promise.all([
           getDocs(collections.articles),
           getDocs(collections.sponsorships),
           getDocs(collections.brands),
@@ -94,11 +98,15 @@ const App: React.FC = () => {
           getDocs(collections.work_logs),
           getDocs(collections.tasks),
           getDocs(collections.chat_messages),
+          getDocs(collections.ai_news_tasks),
+          getDocs(collections.ai_social_tasks),
         ]);
 
         setWorkLogs(workLogsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as WorkLog)));
         setTasks(tasksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task)));
         setChatMessages(chatMessagesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChatMessage)));
+        setAiNewsTasks(aiNewsTasksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as GenerationTask)));
+        setAiSocialTasks(aiSocialTasksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialGenerationTask)));
 
         // Load or create Site Config
         const siteConfigDoc = await getDoc(doc(db, 'config', 'site'));
@@ -251,11 +259,21 @@ const App: React.FC = () => {
       setTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task)));
     });
 
+    const unsubscribeAiNewsTasks = onSnapshot(collection(db, 'ai_news_tasks'), (snapshot) => {
+      setAiNewsTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as GenerationTask)));
+    });
+
+    const unsubscribeAiSocialTasks = onSnapshot(collection(db, 'ai_social_tasks'), (snapshot) => {
+      setAiSocialTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialGenerationTask)));
+    });
+
     return () => {
       unsubscribeChat();
       unsubscribeConfig();
       unsubscribeUsers();
       unsubscribeTasks();
+      unsubscribeAiNewsTasks();
+      unsubscribeAiSocialTasks();
     };
   }, []);
   
@@ -586,6 +604,36 @@ const App: React.FC = () => {
     const updatedViewed = [...(task.viewedByUserIds || []), currentUser.id];
     await setDoc(doc(db, 'tasks', taskId), { viewedByUserIds: updatedViewed }, { merge: true });
   };
+
+  const addAiNewsTask = async (task: Omit<GenerationTask, 'id'>) => {
+    const { controller, ...cleanTask } = removeUndefinedFields(task);
+    const docRef = await addDoc(collection(db, 'ai_news_tasks'), cleanTask);
+    return docRef.id;
+  };
+
+  const updateAiNewsTask = async (id: string, task: Partial<GenerationTask>) => {
+    const { controller, ...cleanTask } = removeUndefinedFields(task);
+    await setDoc(doc(db, 'ai_news_tasks', id), cleanTask, { merge: true });
+  };
+
+  const deleteAiNewsTask = async (id: string) => {
+    await deleteDoc(doc(db, 'ai_news_tasks', id));
+  };
+
+  const addAiSocialTask = async (task: Omit<SocialGenerationTask, 'id'>) => {
+    const { controller, ...cleanTask } = removeUndefinedFields(task);
+    const docRef = await addDoc(collection(db, 'ai_social_tasks'), cleanTask);
+    return docRef.id;
+  };
+
+  const updateAiSocialTask = async (id: string, task: Partial<SocialGenerationTask>) => {
+    const { controller, ...cleanTask } = removeUndefinedFields(task);
+    await setDoc(doc(db, 'ai_social_tasks', id), cleanTask, { merge: true });
+  };
+
+  const deleteAiSocialTask = async (id: string) => {
+    await deleteDoc(doc(db, 'ai_social_tasks', id));
+  };
   
   const unreadChatCount = useMemo(() => {
     if (!currentUser) return 0;
@@ -745,6 +793,14 @@ const App: React.FC = () => {
           onAddChatMessage={addChatMessage}
           onMarkChatAsRead={markChatAsRead}
           onMarkTaskAsViewed={markTaskAsViewed}
+          aiNewsTasks={aiNewsTasks}
+          aiSocialTasks={aiSocialTasks}
+          onAddAiNewsTask={addAiNewsTask}
+          onUpdateAiNewsTask={updateAiNewsTask}
+          onDeleteAiNewsTask={deleteAiNewsTask}
+          onAddAiSocialTask={addAiSocialTask}
+          onUpdateAiSocialTask={updateAiSocialTask}
+          onDeleteAiSocialTask={deleteAiSocialTask}
           onExit={() => {
             setView(ViewMode.HOME);
             setAdminTab(undefined);

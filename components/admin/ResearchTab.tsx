@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GenerationTask, SocialAccount, Source, SiteConfig } from '../../types';
-import { Loader2, CheckCircle2, AlertTriangle, Globe, FileSignature, Save, Sparkles, Search, Zap, ArrowRight } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertTriangle, Globe, FileSignature, Save, Sparkles, Search, Zap, ArrowRight, Trash2 } from 'lucide-react';
 
 interface ResearchTabProps {
   generationQueue: GenerationTask[];
@@ -12,6 +12,7 @@ interface ResearchTabProps {
   onOpenSources: (sources: Source[]) => void;
   onLoadDraft: (task: GenerationTask) => void;
   onSaveDraft: (task: GenerationTask) => void;
+  onRemoveTask: (id: string) => void;
 }
 
 export const ResearchTab: React.FC<ResearchTabProps> = ({ 
@@ -23,7 +24,8 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
   onGenerateFromTopic,
   onOpenSources,
   onLoadDraft,
-  onSaveDraft
+  onSaveDraft,
+  onRemoveTask
 }) => {
   const [generationQuery, setGenerationQuery] = useState('');
   const [selectedAccountId, setSelectedAccountId] = useState('global');
@@ -135,7 +137,8 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
                             <div className="min-w-0">
                                 <p className="text-white font-bold text-sm truncate md:max-w-md">{task.prompt}</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-white/5 text-gray-400">{task.status}</span>
+                                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${task.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-gray-400'}`}>{task.status}</span>
+                                    {task.error && <span className="text-[8px] font-bold text-red-500/60 uppercase">{task.error}</span>}
                                     {task.result?.sources && (
                                         <button onClick={() => onOpenSources(task.result?.sources || [])} className="text-[9px] text-gray-500 hover:text-neon font-black uppercase flex items-center gap-1 transition-colors">
                                             <Globe size={10} /> {task.result.sources.length} FUENTES
@@ -144,12 +147,21 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
                                 </div>
                             </div>
                         </div>
-                        {task.status === 'completed' && task.result && (
-                            <div className="flex gap-2 pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
-                                <button onClick={() => onSaveDraft(task)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white/5 text-gray-300 text-[9px] font-black uppercase italic tracking-widest rounded-xl hover:bg-white/10 transition-all"><Save size={14} /> GUARDAR</button>
-                                <button onClick={() => onLoadDraft(task)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-neon text-black text-[9px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all"><FileSignature size={14} strokeWidth={3} /> EDITAR</button>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2 pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
+                            {task.status === 'completed' && task.result && (
+                                <>
+                                    <button onClick={() => onSaveDraft(task)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-white/5 text-gray-300 text-[9px] font-black uppercase italic tracking-widest rounded-xl hover:bg-white/10 transition-all"><Save size={14} /> GUARDAR</button>
+                                    <button onClick={() => onLoadDraft(task)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-neon text-black text-[9px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all"><FileSignature size={14} strokeWidth={3} /> EDITAR</button>
+                                </>
+                            )}
+                            <button 
+                                onClick={() => onRemoveTask(task.id)} 
+                                className="w-10 h-10 flex items-center justify-center bg-red-500/5 text-red-500/40 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-red-500/10"
+                                title="Eliminar de la cola"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             ))

@@ -258,6 +258,7 @@ export type GenerationStatus = 'researching' | 'analyzing' | 'drafting' | 'compl
 
 export interface GenerationTask {
   id: string;
+  userId: string;
   prompt: string;
   status: GenerationStatus;
   controller?: AbortController;
@@ -269,6 +270,20 @@ export interface GenerationTask {
     imageUrl?: string;
     blocks: ContentBlock[];
     sources?: Source[];
+  };
+  error?: string;
+}
+
+export interface SocialGenerationTask {
+  id: string;
+  userId: string;
+  prompt: string;
+  status: GenerationStatus;
+  controller?: AbortController;
+  result?: {
+    shortTitle: string;
+    copy: string;
+    imageUrl?: string;
   };
   error?: string;
 }

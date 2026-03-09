@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Article, Sponsorship, Brand, User, Role, SocialAccount, SocialPost, Source, CategoryConfig, GenerationTask, ContentBlock, SiteConfig, AdSlotConfig, WorkLog, Task, ChatMessage, ViewMode } from '../../types';
+import { Article, Sponsorship, Brand, User, Role, SocialAccount, SocialPost, Source, CategoryConfig, GenerationTask, SocialGenerationTask, ContentBlock, SiteConfig, AdSlotConfig, WorkLog, Task, ChatMessage, ViewMode } from '../../types';
 import { LogOut, User as UserIcon, Settings, FileText, Send, BrainCircuit, ShoppingBag, BarChart3, Users, Shield, Menu, X, Clock, CheckSquare, MessageSquare, Bell, LayoutDashboard } from 'lucide-react';
 import { NotificationCenter } from '../NotificationCenter';
 import { ArticleEditor } from './modals/ArticleEditor';
@@ -12,7 +12,7 @@ import { SourcesModal } from './modals/SourcesModal';
 import { SocialPostDetailModal } from './modals/SocialPostDetailModal';
 import { AdSlotEditorModal } from './modals/AdSlotEditorModal';
 import { NewsTab } from './NewsTab';
-import { SocialTab } from './SocialTab';
+import { SocialMediaTab } from './SocialMediaTab';
 import { ResearchTab } from './ResearchTab';
 import { AdsTab } from './AdsTab';
 import { UsersTab } from './UsersTab';
@@ -24,7 +24,7 @@ import { TasksTab } from './TasksTab';
 import { AdminTasksTab } from './AdminTasksTab';
 import { ChatTab } from './ChatTab';
 import { HomeTab } from './HomeTab';
-import { generateNewsFromUrl, generateNewsDraftFromTopic } from '../../services/geminiService';
+import { generateNewsFromUrl, generateNewsDraftFromTopic, generateSocialMediaContentFromTopic } from '../../services/geminiService';
 
 type AdminTab = 'home' | 'news' | 'social' | 'users' | 'research' | 'ads' | 'metrics' | 'config' | 'profile' | 'permissions' | 'tasks' | 'admin_tasks' | 'chat';
 
@@ -32,7 +32,7 @@ const TABS_CONFIG = [
     { id: 'home', icon: LayoutDashboard, label: 'Inicio' },
     { id: 'tasks', icon: CheckSquare, label: 'Mi Trabajo' },
     { id: 'news', icon: FileText, label: 'Noticias' },
-    { id: 'social', icon: Send, label: 'Publicaciones' },
+    { id: 'social', icon: Send, label: 'Redes Sociales' },
     { id: 'research', icon: BrainCircuit, label: 'Investigación IA' },
     { id: 'ads', icon: ShoppingBag, label: 'Ads' },
     { id: 'metrics', icon: BarChart3, label: 'Métricas' },
@@ -100,6 +100,14 @@ interface AdminPanelProps {
   onAddChatMessage: (msg: Omit<ChatMessage, 'id'>) => void;
   onMarkChatAsRead: (senderId: string) => void;
   onMarkTaskAsViewed: (taskId: string) => void;
+  aiNewsTasks: GenerationTask[];
+  aiSocialTasks: SocialGenerationTask[];
+  onAddAiNewsTask: (task: Omit<GenerationTask, 'id'>) => Promise<string>;
+  onUpdateAiNewsTask: (id: string, task: Partial<GenerationTask>) => Promise<void>;
+  onDeleteAiNewsTask: (id: string) => Promise<void>;
+  onAddAiSocialTask: (task: Omit<SocialGenerationTask, 'id'>) => Promise<string>;
+  onUpdateAiSocialTask: (id: string, task: Partial<SocialGenerationTask>) => Promise<void>;
+  onDeleteAiSocialTask: (id: string) => Promise<void>;
   onExit: () => void;
   initialTab?: AdminTab;
   initialTargetId?: string;
@@ -140,8 +148,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [sourcesToShow, setSourcesToShow] = useState<Source[]>([]);
   const [isSocialPostDetailOpen, setIsSocialPostDetailOpen] = useState(false);
   const [selectedSocialPost, setSelectedSocialPost] = useState<SocialPost | null>(null);
-  const [generationQueue, setGenerationQueue] = useState<GenerationTask[]>([]);
   const [editingAdSlot, setEditingAdSlot] = useState<AdSlotConfig | null>(null);
+
+  const generationQueue = useMemo(() => 
+    props.aiNewsTasks.filter(t => t.userId === props.currentUser.id), 
+    [props.aiNewsTasks, props.currentUser.id]
+  );
+
+  const socialGenerationQueue = useMemo(() => 
+    props.aiSocialTasks.filter(t => t.userId === props.currentUser.id), 
+    [props.aiSocialTasks, props.currentUser.id]
+  );
 
   const brandMap = useMemo(() => new Map(props.brands.map(b => [b.id, b])), [props.brands]);
   const socialAccountMap = useMemo(() => new Map(props.socialAccounts.map(a => [a.id, a])), [props.socialAccounts]);
@@ -159,28 +176,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const handleOpenAdSlotEditor = (slot: AdSlotConfig) => { setEditingAdSlot(slot); };
 
   const handleGenerateFromUrl = async (url: string, systemInstruction: string) => {
-    const taskId = `task-${Date.now()}`;
     const controller = new AbortController();
-    const newTask: GenerationTask = { id: taskId, prompt: url, status: 'researching', controller };
-    setGenerationQueue(prev => [newTask, ...prev]);
+    const taskId = await props.onAddAiNewsTask({ 
+        userId: props.currentUser.id, 
+        prompt: url, 
+        status: 'researching' 
+    });
+    
     const draft = await generateNewsFromUrl(url, systemInstruction, controller.signal);
-    setGenerationQueue(prev => prev.map(t => t.id === taskId ? { ...t, status: draft ? 'completed' : 'failed', result: draft || undefined, error: draft ? undefined : "Error en URL." } : t));
+    await props.onUpdateAiNewsTask(taskId, { 
+        status: draft ? 'completed' : 'failed', 
+        result: draft || undefined, 
+        error: draft ? undefined : "Error en URL." 
+    });
   };
   
   const handleGenerateFromTopic = async (topic: string, systemInstruction: string) => {
-    const taskId = `task-${Date.now()}`;
     const controller = new AbortController();
-    const newTask: GenerationTask = { id: taskId, prompt: topic, status: 'researching', controller };
-    setGenerationQueue(prev => [newTask, ...prev]);
+    const taskId = await props.onAddAiNewsTask({ 
+        userId: props.currentUser.id, 
+        prompt: topic, 
+        status: 'researching' 
+    });
+    
     const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], controller.signal);
-    setGenerationQueue(prev => prev.map(t => t.id === taskId ? { ...t, status: draft ? 'completed' : 'failed', result: draft || undefined, error: draft ? undefined : "Error en tema." } : t));
+    await props.onUpdateAiNewsTask(taskId, { 
+        status: draft ? 'completed' : 'failed', 
+        result: draft || undefined, 
+        error: draft ? undefined : "Error en tema." 
+    });
   };
 
   const handleLoadDraftInEditor = (task: GenerationTask) => {
     if (task.result) {
       const articleForEditor: Article = { id: `draft-${task.id}`, title: task.result.title, excerpt: task.result.excerpt, category: task.result.category, content: task.result.blocks.map((b: ContentBlock, i: number) => ({...b, id: `${b.type}-${i}`})), author: props.currentUser.id, date: new Date().toISOString().split('T')[0], isPublished: false, imageUrl: task.result.imageUrl || '', sources: task.result.sources };
       handleOpenArticleEditor(articleForEditor);
-      setGenerationQueue(prev => prev.filter(t => t.id !== task.id));
+      props.onDeleteAiNewsTask(task.id);
     }
   };
 
@@ -188,12 +219,50 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     if (task.result) {
       const draftArticle: Omit<Article, 'id'> = { title: task.result.title, excerpt: task.result.excerpt, category: task.result.category, content: task.result.blocks.map((b: ContentBlock, i: number) => ({...b, id: `${b.type}-${i}`})), author: props.currentUser.id, date: new Date().toISOString().split('T')[0], isPublished: false, imageUrl: task.result.imageUrl || '', sources: task.result.sources };
       props.onAddArticle(draftArticle);
-      setGenerationQueue(prev => prev.filter(t => t.id !== task.id));
+      props.onDeleteAiNewsTask(task.id);
     }
   };
 
   const handleSaveArticleFromEditor = (data: Article | Omit<Article, 'id'>) => {
     if ('id' in data && data.id && !data.id.startsWith('draft-')) { props.onUpdateArticle(data as Article); } else { const { id, ...articleData } = data as Article; props.onAddArticle(articleData); }
+  };
+
+  const handleGenerateSocialFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string) => {
+    const controller = new AbortController();
+    const taskId = await props.onAddAiSocialTask({ 
+        userId: props.currentUser.id, 
+        prompt: topic, 
+        status: 'researching' 
+    });
+    
+    try {
+        const result = await generateSocialMediaContentFromTopic(topic, systemInstruction, copyInstruction);
+        await props.onUpdateAiSocialTask(taskId, { 
+            status: result ? 'completed' : 'failed', 
+            result: result || undefined, 
+            error: result ? undefined : "Error en generación social." 
+        });
+    } catch (error) {
+        await props.onUpdateAiSocialTask(taskId, { 
+            status: 'failed', 
+            error: "Error de red." 
+        });
+    }
+  };
+
+  const handleLoadSocialDraft = (task: SocialGenerationTask) => {
+    if (task.result) {
+      const draftPost: Partial<SocialPost> = {
+        titleOverlay: task.result.shortTitle,
+        copy: task.result.copy,
+        imageUrl: task.result.imageUrl || '',
+        status: 'draft'
+      };
+      setEditingSocialPost(draftPost as SocialPost);
+      setArticleForSocial(null);
+      setIsSocialPostCreatorOpen(true);
+      props.onDeleteAiSocialTask(task.id);
+    }
   };
 
   const handleNavClick = (tab: AdminTab) => { setActiveTab(tab); setIsSidebarOpen(false); };
@@ -298,8 +367,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
             />
           )}
           {activeTab === 'news' && <NewsTab {...props} onOpenEditor={handleOpenArticleEditor} onOpenSocialCreator={handleOpenSocialCreator} onViewArticle={props.onViewArticle} />}
-          {activeTab === 'social' && <SocialTab {...props} onOpenCreator={handleOpenSocialCreator} onOpenDetail={handleOpenSocialPostDetail} onOpenEditor={handleOpenSocialEditor} onDeletePost={props.onDeleteSocialPost} socialAccountMap={socialAccountMap} />}
-          {activeTab === 'research' && <ResearchTab generationQueue={generationQueue} onGenerateFromUrl={handleGenerateFromUrl} onGenerateFromTopic={handleGenerateFromTopic} onOpenSources={handleOpenSourcesModal} onLoadDraft={handleLoadDraftInEditor} onSaveDraft={handleSaveDraftFromTask} socialAccounts={props.socialAccounts} aiSystemPrompt={props.aiSystemPrompt} siteConfig={props.siteConfig} />}
+          {activeTab === 'social' && <SocialMediaTab {...props} onOpenCreator={handleOpenSocialCreator} onOpenDetail={handleOpenSocialPostDetail} onOpenEditor={handleOpenSocialEditor} onDeletePost={props.onDeleteSocialPost} socialAccountMap={socialAccountMap} socialGenerationQueue={socialGenerationQueue} onGenerateSocialFromTopic={handleGenerateSocialFromTopic} onLoadSocialDraft={handleLoadSocialDraft} onRemoveSocialTask={props.onDeleteAiSocialTask} />}
+          {activeTab === 'research' && <ResearchTab generationQueue={generationQueue} onGenerateFromUrl={handleGenerateFromUrl} onGenerateFromTopic={handleGenerateFromTopic} onOpenSources={handleOpenSourcesModal} onLoadDraft={handleLoadDraftInEditor} onSaveDraft={handleSaveDraftFromTask} onRemoveTask={props.onDeleteAiNewsTask} socialAccounts={props.socialAccounts} aiSystemPrompt={props.aiSystemPrompt} siteConfig={props.siteConfig} />}
           {activeTab === 'ads' && <AdsTab {...props} brandMap={brandMap} onOpenBrandEditor={handleOpenBrandEditor} onOpenSponsorshipEditor={handleOpenSponsorshipEditor} onOpenAdSlotEditor={handleOpenAdSlotEditor} />}
           {activeTab === 'users' && <UsersTab {...props} onOpenEditor={handleOpenUserEditor} rolesMap={rolesMap} />}
           {activeTab === 'metrics' && <MetricsTab {...props} brands={props.brands} brandMap={brandMap} socialAccountMap={socialAccountMap} onOpenDetail={handleOpenSocialPostDetail} />}
