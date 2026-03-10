@@ -11,66 +11,8 @@ import { LandingPage } from './components/LandingPage';
 import { LoginModal } from './components/LoginModal';
 import { WelcomeModal } from './components/WelcomeModal';
 import { db } from './services/firebase';
-import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc, onSnapshot, getDocFromServer, updateDoc, increment } from 'firebase/firestore';
-import { auth } from './services/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc, onSnapshot } from 'firebase/firestore';
 import { A1ToqueLoader } from './components/A1ToqueLoader';
-import ErrorBoundary from './components/ErrorBoundary';
-
-enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | null | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | null | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  if (errorMessage.includes('Missing or insufficient permissions') || errorMessage.includes('permission-denied')) {
-    throw new Error(JSON.stringify(errInfo));
-  }
-};
 
 const CLUB_COLORS: Record<string, string> = {
   'Unión': '#ef4444', 
@@ -124,259 +66,254 @@ const App: React.FC = () => {
   const [adminTargetId, setAdminTargetId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    const testConnection = async () => {
+    const fetchData = async () => {
       try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-      } catch (error) {
-        if(error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Please check your Firebase configuration. ");
-        }
-      }
-    };
-    testConnection();
-
-    const fetchData = async (user: any) => {
-      try {
-        const publicCollections = {
+        const collections = {
           articles: collection(db, 'articles'),
           sponsorships: collection(db, 'sponsorships'),
           brands: collection(db, 'brands'),
+          users: collection(db, 'users'),
+          social_accounts: collection(db, 'social_accounts'),
+          social_posts: collection(db, 'social_posts'),
           categories: collection(db, 'categories'),
           roles: collection(db, 'roles'),
           ad_slots: collection(db, 'ad_slots'),
-          social_accounts: collection(db, 'social_accounts'),
+          work_logs: collection(db, 'work_logs'),
+          tasks: collection(db, 'tasks'),
+          chat_messages: collection(db, 'chat_messages'),
+          ai_news_tasks: collection(db, 'ai_news_tasks'),
+          ai_social_tasks: collection(db, 'ai_social_tasks'),
         };
         
-        const [
-          articlesSnapshot, 
-          sponsorshipsSnapshot, 
-          brandsSnapshot, 
-          categoriesSnapshot, 
-          rolesSnapshot, 
-          adSlotsSnapshot, 
-          socialAccountsSnapshot
-        ] = await Promise.all([
-          getDocs(publicCollections.articles).catch(e => handleFirestoreError(e, OperationType.GET, 'articles')),
-          getDocs(publicCollections.sponsorships).catch(e => handleFirestoreError(e, OperationType.GET, 'sponsorships')),
-          getDocs(publicCollections.brands).catch(e => handleFirestoreError(e, OperationType.GET, 'brands')),
-          getDocs(publicCollections.categories).catch(e => handleFirestoreError(e, OperationType.GET, 'categories')),
-          getDocs(publicCollections.roles).catch(e => handleFirestoreError(e, OperationType.GET, 'roles')),
-          getDocs(publicCollections.ad_slots).catch(e => handleFirestoreError(e, OperationType.GET, 'ad_slots')),
-          getDocs(publicCollections.social_accounts).catch(e => handleFirestoreError(e, OperationType.GET, 'social_accounts')),
+        const [articlesSnapshot, sponsorshipsSnapshot, brandsSnapshot, usersSnapshot, socialAccountsSnapshot, categoriesSnapshot, rolesSnapshot, adSlotsSnapshot, workLogsSnapshot, tasksSnapshot, chatMessagesSnapshot, aiNewsTasksSnapshot, aiSocialTasksSnapshot] = await Promise.all([
+          getDocs(collections.articles),
+          getDocs(collections.sponsorships),
+          getDocs(collections.brands),
+          getDocs(collections.users),
+          getDocs(collections.social_accounts),
+          getDocs(collections.categories),
+          getDocs(collections.roles),
+          getDocs(collections.ad_slots),
+          getDocs(collections.work_logs),
+          getDocs(collections.tasks),
+          getDocs(collections.chat_messages),
+          getDocs(collections.ai_news_tasks),
+          getDocs(collections.ai_social_tasks),
         ]);
 
+        setWorkLogs(workLogsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as WorkLog)));
+        setTasks(tasksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task)));
+        setChatMessages(chatMessagesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChatMessage)));
+        setAiNewsTasks(aiNewsTasksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as GenerationTask)));
+        setAiSocialTasks(aiSocialTasksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialGenerationTask)));
+
         // Load or create Site Config
-        const siteConfigDoc = await getDoc(doc(db, 'config', 'site')).catch(e => handleFirestoreError(e, OperationType.GET, 'config/site'));
-        if (siteConfigDoc && siteConfigDoc.exists()) {
+        const siteConfigDoc = await getDoc(doc(db, 'config', 'site'));
+        if (siteConfigDoc.exists()) {
           setSiteConfig({ ...DEFAULT_SITE_CONFIG, ...siteConfigDoc.data() } as SiteConfig);
         } else {
-          try {
-            await setDoc(doc(db, 'config', 'site'), DEFAULT_SITE_CONFIG);
-            setSiteConfig(DEFAULT_SITE_CONFIG);
-          } catch (e) {
-            // Might fail if not admin, ignore
-            setSiteConfig(DEFAULT_SITE_CONFIG);
-          }
+          await setDoc(doc(db, 'config', 'site'), DEFAULT_SITE_CONFIG);
+          setSiteConfig(DEFAULT_SITE_CONFIG);
         }
         
-        if (adSlotsSnapshot && !adSlotsSnapshot.empty) {
+        if (adSlotsSnapshot.empty) {
+          const batch = writeBatch(db);
+          INITIAL_AD_SLOTS.forEach(item => batch.set(doc(db, "ad_slots", item.id), item));
+          await batch.commit();
+          setAdSlots(INITIAL_AD_SLOTS);
+        } else {
           setAdSlots(adSlotsSnapshot.docs.map(doc => doc.data() as AdSlotConfig));
-        } else if (adSlotsSnapshot) {
-          try {
-            const batch = writeBatch(db);
-            INITIAL_AD_SLOTS.forEach(item => batch.set(doc(db, "ad_slots", item.id), item));
-            await batch.commit();
-            setAdSlots(INITIAL_AD_SLOTS);
-          } catch (e) { setAdSlots(INITIAL_AD_SLOTS); }
         }
 
-        if (articlesSnapshot && !articlesSnapshot.empty) {
+        if (articlesSnapshot.empty) {
+          setArticles([]);
+        } else {
           const list = articlesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
           setArticles(list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        } else {
-          setArticles([]);
         }
         
-        if (sponsorshipsSnapshot && !sponsorshipsSnapshot.empty) {
+        if (sponsorshipsSnapshot.empty) {
+          const batch = writeBatch(db);
+          INITIAL_SPONSORSHIPS.forEach(item => batch.set(doc(db, "sponsorships", item.id), item));
+          await batch.commit();
+          setSponsorships(INITIAL_SPONSORSHIPS);
+        } else {
           setSponsorships(sponsorshipsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sponsorship)));
-        } else if (sponsorshipsSnapshot) {
-          try {
-            const batch = writeBatch(db);
-            INITIAL_SPONSORSHIPS.forEach(item => batch.set(doc(db, "sponsorships", item.id), item));
-            await batch.commit();
-            setSponsorships(INITIAL_SPONSORSHIPS);
-          } catch (e) { setSponsorships(INITIAL_SPONSORSHIPS); }
         }
 
-        if (brandsSnapshot && !brandsSnapshot.empty) {
+        if (brandsSnapshot.empty) {
+          const batch = writeBatch(db);
+          INITIAL_BRANDS.forEach(item => batch.set(doc(db, "brands", item.id), item));
+          await batch.commit();
+          setBrands(INITIAL_BRANDS);
+        } else {
           setBrands(brandsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Brand)));
-        } else if (brandsSnapshot) {
-          try {
-            const batch = writeBatch(db);
-            INITIAL_BRANDS.forEach(item => batch.set(doc(db, "brands", item.id), item));
-            await batch.commit();
-            setBrands(INITIAL_BRANDS);
-          } catch (e) { setBrands(INITIAL_BRANDS); }
         }
 
-        if (socialAccountsSnapshot && !socialAccountsSnapshot.empty) {
-            setSocialAccounts(socialAccountsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialAccount)));
-        } else if (socialAccountsSnapshot) {
-            try {
-              const batch = writeBatch(db);
-              INITIAL_SOCIAL_ACCOUNTS.forEach(item => batch.set(doc(db, "social_accounts", item.id), item));
-              await batch.commit();
-              setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS);
-            } catch (e) { setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS); }
-        }
-
-        if (categoriesSnapshot && !categoriesSnapshot.empty) {
-          const fetchedCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CategoryConfig));
-          setCategories(fetchedCategories.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
-        } else if (categoriesSnapshot) {
-          try {
-            const batch = writeBatch(db);
-            INITIAL_CATEGORIES.forEach(item => batch.set(doc(db, "categories", item.id), item));
-            await batch.commit();
-            setCategories(INITIAL_CATEGORIES);
-          } catch (e) { setCategories(INITIAL_CATEGORIES); }
-        }
-
-        if (rolesSnapshot && !rolesSnapshot.empty) {
-            setRoles(rolesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Role)));
-        } else if (rolesSnapshot) {
-            try {
-              const batch = writeBatch(db);
-              INITIAL_ROLES.forEach(item => batch.set(doc(db, "roles", item.id), item));
-              await batch.commit();
-              setRoles(INITIAL_ROLES);
-            } catch (e) { setRoles(INITIAL_ROLES); }
-        }
-
-        // Private data fetching
-        if (user) {
-          const privateCollections = {
-            users: collection(db, 'users'),
-            work_logs: collection(db, 'work_logs'),
-            tasks: collection(db, 'tasks'),
-            chat_messages: collection(db, 'chat_messages'),
-            ai_news_tasks: collection(db, 'ai_news_tasks'),
-            ai_social_tasks: collection(db, 'ai_social_tasks'),
-            social_posts: collection(db, 'social_posts'),
-          };
-
-          const [
-            usersSnapshot,
-            workLogsSnapshot,
-            tasksSnapshot,
-            chatMessagesSnapshot,
-            aiNewsTasksSnapshot,
-            aiSocialTasksSnapshot,
-            socialPostsSnapshot
-          ] = await Promise.all([
-            getDocs(privateCollections.users).catch(e => handleFirestoreError(e, OperationType.GET, 'users')),
-            getDocs(privateCollections.work_logs).catch(e => handleFirestoreError(e, OperationType.GET, 'work_logs')),
-            getDocs(privateCollections.tasks).catch(e => handleFirestoreError(e, OperationType.GET, 'tasks')),
-            getDocs(privateCollections.chat_messages).catch(e => handleFirestoreError(e, OperationType.GET, 'chat_messages')),
-            getDocs(privateCollections.ai_news_tasks).catch(e => handleFirestoreError(e, OperationType.GET, 'ai_news_tasks')),
-            getDocs(privateCollections.ai_social_tasks).catch(e => handleFirestoreError(e, OperationType.GET, 'ai_social_tasks')),
-            getDocs(privateCollections.social_posts).catch(e => handleFirestoreError(e, OperationType.GET, 'social_posts')),
-          ]);
-
-          if (workLogsSnapshot) setWorkLogs(workLogsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as WorkLog)));
-          if (tasksSnapshot) setTasks(tasksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task)));
-          if (chatMessagesSnapshot) setChatMessages(chatMessagesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChatMessage)));
-          if (aiNewsTasksSnapshot) setAiNewsTasks(aiNewsTasksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as GenerationTask)));
-          if (aiSocialTasksSnapshot) setAiSocialTasks(aiSocialTasksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialGenerationTask)));
-          if (socialPostsSnapshot) setSocialPosts(socialPostsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialPost)));
+        if (usersSnapshot.empty) {
+          const batch = writeBatch(db);
+          INITIAL_USERS.forEach(item => batch.set(doc(db, "users", item.id), item));
+          await batch.commit();
+          setUsers(INITIAL_USERS);
+        } else {
+          const fetchedUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
           
-          if (usersSnapshot) {
-            const fetchedUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-            setUsers(fetchedUsers);
-
-            // Migration logic (only if admin)
-            if (user.email === 'holaestudiokm@gmail.com') {
-              const kmUser = INITIAL_USERS.find(u => u.email === 'holaestudiokm@gmail.com');
-              if (kmUser && !fetchedUsers.find(u => u.email === kmUser.email)) {
-                  await setDoc(doc(db, "users", kmUser.id), kmUser);
-                  setUsers(prev => [...prev, kmUser]);
-              }
-            }
+          // MIGRATION: Ensure Estudio KM admin exists
+          const kmUser = INITIAL_USERS.find(u => u.email === 'holaestudiokm@gmail.com');
+          if (kmUser && !fetchedUsers.find(u => u.email === kmUser.email)) {
+              await setDoc(doc(db, "users", kmUser.id), kmUser);
+              setUsers([...fetchedUsers, kmUser]);
+          } else {
+              setUsers(fetchedUsers);
           }
         }
 
+        if (socialAccountsSnapshot.empty) {
+            const batch = writeBatch(db);
+            INITIAL_SOCIAL_ACCOUNTS.forEach(item => batch.set(doc(db, "social_accounts", item.id), item));
+            await batch.commit();
+            setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS);
+        } else {
+            const fetchedAccounts = socialAccountsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialAccount));
+            
+            // MIGRATION: Ensure social accounts have prompts if they are missing
+            const batch = writeBatch(db);
+            let needsUpdate = false;
+            const updatedAccounts = fetchedAccounts.map(acc => {
+                const initialAcc = INITIAL_SOCIAL_ACCOUNTS.find(ia => ia.id === acc.id);
+                if (initialAcc && (!acc.systemPrompt || !acc.copyPrompt)) {
+                    const updatedAcc = { 
+                        ...acc, 
+                        systemPrompt: acc.systemPrompt || initialAcc.systemPrompt,
+                        copyPrompt: acc.copyPrompt || initialAcc.copyPrompt
+                    };
+                    batch.set(doc(db, "social_accounts", acc.id), updatedAcc, { merge: true });
+                    needsUpdate = true;
+                    return updatedAcc;
+                }
+                return acc;
+            });
+
+            if (needsUpdate) {
+                await batch.commit();
+                setSocialAccounts(updatedAccounts);
+            } else {
+                setSocialAccounts(fetchedAccounts);
+            }
+        }
+
+        if (categoriesSnapshot.empty) {
+          const batch = writeBatch(db);
+          INITIAL_CATEGORIES.forEach(item => batch.set(doc(db, "categories", item.id), item));
+          await batch.commit();
+          setCategories(INITIAL_CATEGORIES);
+        } else {
+          const fetchedCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CategoryConfig));
+          setCategories(fetchedCategories.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+        }
+
+        if (rolesSnapshot.empty) {
+            const batch = writeBatch(db);
+            INITIAL_ROLES.forEach(item => batch.set(doc(db, "roles", item.id), item));
+            await batch.commit();
+            setRoles(INITIAL_ROLES);
+        } else {
+            const fetchedRoles = rolesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Role));
+            
+            // MIGRATION: Ensure system roles have the latest permissions from INITIAL_ROLES
+            const batch = writeBatch(db);
+            let needsUpdate = false;
+            
+            const updatedRoles = fetchedRoles.map(role => {
+              const initialRole = INITIAL_ROLES.find(r => r.id === role.id);
+              if (initialRole && initialRole.isSystemRole) {
+                // Check if permissions are different
+                const hasAllNewPermissions = initialRole.permissions.every(p => role.permissions.includes(p));
+                if (!hasAllNewPermissions) {
+                  const updatedRole = { ...role, permissions: Array.from(new Set([...role.permissions, ...initialRole.permissions])) };
+                  batch.set(doc(db, "roles", role.id), updatedRole, { merge: true });
+                  needsUpdate = true;
+                  return updatedRole;
+                }
+              }
+              return role;
+            });
+
+            if (needsUpdate) {
+              await batch.commit();
+              setRoles(updatedRoles);
+            } else {
+              setRoles(fetchedRoles);
+            }
+        }
+
+        // Social posts are handled by onSnapshot
+
       } catch (error) {
-        console.error("Error in fetchData:", error);
+        console.error("Error fetching data:", error);
+        setArticles([]);
+        setSponsorships(INITIAL_SPONSORSHIPS);
+        setBrands(INITIAL_BRANDS);
+        setUsers(INITIAL_USERS);
+        setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS);
+        setCategories(INITIAL_CATEGORIES);
+        setRoles(INITIAL_ROLES);
+        setSocialPosts([]);
+        setAdSlots(INITIAL_AD_SLOTS);
       } finally {
         setIsLoading(false);
       }
     };
+    fetchData();
 
-    const unsubscribes: (() => void)[] = [];
+    // Set up real-time listeners
+    const unsubscribeChat = onSnapshot(collection(db, 'chat_messages'), (snapshot) => {
+      setChatMessages(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChatMessage)));
+    }, (error) => console.error("Error in chat_messages snapshot:", error));
 
-    const setupListeners = (user: any) => {
-      // Clean up existing listeners
-      unsubscribes.forEach(unsub => unsub());
-      unsubscribes.length = 0;
-
-      // Public listeners
-      unsubscribes.push(onSnapshot(doc(db, 'config', 'site'), (docSnapshot) => {
-        if (docSnapshot.exists()) {
-          setSiteConfig({ ...DEFAULT_SITE_CONFIG, ...docSnapshot.data() } as SiteConfig);
-        }
-      }, (error) => handleFirestoreError(error, OperationType.GET, 'config/site')));
-
-      // Private listeners
-      if (user) {
-        unsubscribes.push(onSnapshot(collection(db, 'chat_messages'), (snapshot) => {
-          setChatMessages(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChatMessage)));
-        }, (error) => handleFirestoreError(error, OperationType.GET, 'chat_messages')));
-
-        unsubscribes.push(onSnapshot(collection(db, 'users'), (snapshot) => {
-          const updatedUsers = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as User));
-          setUsers(updatedUsers);
-          setCurrentUser(prev => {
-            if (!prev) return prev;
-            const updatedCurrentUser = updatedUsers.find(u => u.id === prev.id);
-            return updatedCurrentUser || prev;
-          });
-        }, (error) => handleFirestoreError(error, OperationType.GET, 'users')));
-
-        unsubscribes.push(onSnapshot(collection(db, 'tasks'), (snapshot) => {
-          setTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task)));
-        }, (error) => handleFirestoreError(error, OperationType.GET, 'tasks')));
-
-        unsubscribes.push(onSnapshot(collection(db, 'ai_news_tasks'), (snapshot) => {
-          setAiNewsTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as GenerationTask)));
-        }, (error) => handleFirestoreError(error, OperationType.GET, 'ai_news_tasks')));
-
-        unsubscribes.push(onSnapshot(collection(db, 'ai_social_tasks'), (snapshot) => {
-          setAiSocialTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialGenerationTask)));
-        }, (error) => handleFirestoreError(error, OperationType.GET, 'ai_social_tasks')));
-
-        unsubscribes.push(onSnapshot(collection(db, 'social_posts'), (snapshot) => {
-          const posts = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialPost));
-          setSocialPosts(posts.sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()));
-        }, (error) => handleFirestoreError(error, OperationType.GET, 'social_posts')));
+    const unsubscribeConfig = onSnapshot(doc(db, 'config', 'site'), (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        setSiteConfig({ ...DEFAULT_SITE_CONFIG, ...docSnapshot.data() } as SiteConfig);
       }
-    };
+    }, (error) => console.error("Error in config snapshot:", error));
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // If logged in, we'll fetch everything
-        fetchData(user);
-        setupListeners(user);
-      } else {
-        // If not logged in, only public data
-        setCurrentUser(null);
-        fetchData(null);
-        setupListeners(null);
+    const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const updatedUsers = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as User));
+      if (updatedUsers.length > 0) {
+        setUsers(updatedUsers);
+        setCurrentUser(prev => {
+          if (!prev) return prev;
+          const updatedCurrentUser = updatedUsers.find(u => u.id === prev.id);
+          return updatedCurrentUser || prev;
+        });
       }
-    });
+    }, (error) => console.error("Error in users snapshot:", error));
+
+    const unsubscribeTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+      setTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task)));
+    }, (error) => console.error("Error in tasks snapshot:", error));
+
+    const unsubscribeAiNewsTasks = onSnapshot(collection(db, 'ai_news_tasks'), (snapshot) => {
+      setAiNewsTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as GenerationTask)));
+    }, (error) => console.error("Error in ai_news_tasks snapshot:", error));
+
+    const unsubscribeAiSocialTasks = onSnapshot(collection(db, 'ai_social_tasks'), (snapshot) => {
+      setAiSocialTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialGenerationTask)));
+    }, (error) => console.error("Error in ai_social_tasks snapshot:", error));
+
+    const unsubscribeSocialPosts = onSnapshot(collection(db, 'social_posts'), (snapshot) => {
+      const posts = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialPost));
+      setSocialPosts(posts.sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()));
+    }, (error) => console.error("Error in social_posts snapshot:", error));
 
     return () => {
-      unsubscribeAuth();
-      unsubscribes.forEach(unsub => unsub());
+      unsubscribeChat();
+      unsubscribeConfig();
+      unsubscribeUsers();
+      unsubscribeTasks();
+      unsubscribeAiNewsTasks();
+      unsubscribeAiSocialTasks();
+      unsubscribeSocialPosts();
     };
   }, []);
   
@@ -395,21 +332,12 @@ const App: React.FC = () => {
     sessionStorage.setItem('a1toque_popup_seen', 'true');
   };
 
-  const handleArticleClick = useCallback(async (id: string) => {
+  const handleArticleClick = (id: string) => {
     const found = articles.find(a => a.id === id);
     if (found) {
       setSelectedArticle(found);
-      
-      try {
-        const articleRef = doc(db, 'articles', id);
-        await updateDoc(articleRef, { views: increment(1) });
-      } catch (error: any) {
-        if (error?.code !== 'permission-denied' && error?.code !== 'not-found') {
-          console.warn("Failed to update article views:", error);
-        }
-      }
     }
-  }, [articles]);
+  };
 
   const handleOpenAdminTab = (tab: string, targetId?: string) => {
     setAdminTab(tab);
@@ -527,29 +455,27 @@ const App: React.FC = () => {
   };
 
   const handleSponsorshipImpression = useCallback(async (id: string) => {
-    setSponsorships(prev => prev.map(s => s.id === id ? { ...s, impressions: (s.impressions || 0) + 1 } : s));
-    
-    try {
+    setSponsorships(currentSponsorships => {
+      const sponsorship = currentSponsorships.find(s => s.id === id);
+      if (!sponsorship) return currentSponsorships;
+      const updatedSponsorship = { ...sponsorship, impressions: (sponsorship.impressions || 0) + 1 };
       const sponsorshipRef = doc(db, 'sponsorships', id);
-      await updateDoc(sponsorshipRef, { impressions: increment(1) });
-    } catch (error: any) {
-      if (error?.code !== 'permission-denied' && error?.code !== 'not-found') {
-        console.error("Failed to update impressions in Firestore:", error);
-      }
-    }
+      setDoc(sponsorshipRef, { impressions: updatedSponsorship.impressions }, { merge: true })
+          .catch(error => console.error("Failed to update impressions in Firestore:", error));
+      return currentSponsorships.map(s => s.id === id ? updatedSponsorship : s);
+    });
   }, []);
 
   const handleSponsorshipClick = useCallback(async (id: string) => {
-    setSponsorships(prev => prev.map(s => s.id === id ? { ...s, clicks: (s.clicks || 0) + 1 } : s));
-    
-    try {
+    setSponsorships(currentSponsorships => {
+      const sponsorship = currentSponsorships.find(s => s.id === id);
+      if (!sponsorship) return currentSponsorships;
+      const updatedSponsorship = { ...sponsorship, clicks: (sponsorship.clicks || 0) + 1 };
       const sponsorshipRef = doc(db, 'sponsorships', id);
-      await updateDoc(sponsorshipRef, { clicks: increment(1) });
-    } catch (error: any) {
-      if (error?.code !== 'permission-denied' && error?.code !== 'not-found') {
-        console.error("Failed to update clicks in Firestore:", error);
-      }
-    }
+      setDoc(sponsorshipRef, { clicks: updatedSponsorship.clicks }, { merge: true })
+          .catch(error => console.error("Failed to update clicks in Firestore:", error));
+      return currentSponsorships.map(s => s.id === id ? updatedSponsorship : s);
+    });
   }, []);
   
   const addBrand = async (brand: Omit<Brand, 'id'>) => {
@@ -1079,10 +1005,4 @@ const App: React.FC = () => {
   );
 };
 
-const AppWithBoundary: React.FC = () => (
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>
-);
-
-export default AppWithBoundary;
+export default App;
