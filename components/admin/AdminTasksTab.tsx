@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Task, User, WorkLog, SocialAccount } from '../../types';
-import { Plus, Trash2, Users, CheckSquare, Square, Clock, X, LayoutDashboard, List, ChevronRight, TrendingUp, Timer, Calendar, Save, AlertCircle, BarChart3, PieChart as PieChartIcon, Filter, Download, Building, MessageCircle, Activity, BellRing } from 'lucide-react';
+import { Plus, Trash2, Users, CheckSquare, Square, Clock, X, LayoutDashboard, List, ChevronRight, TrendingUp, Timer, Calendar, Save, AlertCircle, BarChart3, PieChart as PieChartIcon, Filter, Download, Building, MessageCircle, Activity, BellRing, Edit2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -40,8 +40,13 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
   const [activeTab, setActiveTab] = useState<'overview' | 'management'>('management');
   const [userAlertMessage, setUserAlertMessage] = useState('');
   const [isAddingAlert, setIsAddingAlert] = useState(false);
+  const [isAddingGlobalAlert, setIsAddingGlobalAlert] = useState(false);
+  const [globalAlertMessage, setGlobalAlertMessage] = useState('');
+  const [globalAlertUserIds, setGlobalAlertUserIds] = useState<string[]>([]);
+  const [selectedAlertUserId, setSelectedAlertUserId] = useState<string | null>(null);
   const [modalTaskFilter, setModalTaskFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [modalTaskSort, setModalTaskSort] = useState<'date-desc' | 'date-asc' | 'time-desc' | 'time-asc'>('date-desc');
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const setQuickRange = (range: 'all' | 'thisMonth' | 'lastMonth' | 'last7Days' | 'today') => {
     if (range === 'all') {
@@ -166,17 +171,23 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
     e.preventDefault();
     if (!title || assignedUserIds.length === 0) return;
 
-    onAddTask({
+    const taskData = {
       title,
       description,
       assignedUserIds,
-      status: 'pending',
-      createdBy: 'admin', // Simplificado
-      createdAt: new Date().toISOString(),
+      status: editingTask ? editingTask.status : 'pending',
+      createdBy: editingTask ? editingTask.createdBy : 'admin',
+      createdAt: editingTask ? editingTask.createdAt : new Date().toISOString(),
       date,
       account,
       hours: hours + (minutes / 60)
-    });
+    };
+
+    if (editingTask) {
+      onUpdateTask({ ...editingTask, ...taskData } as Task);
+    } else {
+      onAddTask(taskData as Task);
+    }
 
     setTitle('');
     setDescription('');
@@ -186,6 +197,20 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
     setHours(0);
     setMinutes(0);
     setIsCreating(false);
+    setEditingTask(null);
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setTitle(task.title);
+    setDescription(task.description || '');
+    setAssignedUserIds(task.assignedUserIds);
+    setDate(task.date);
+    setAccount(task.account || '');
+    setHours(Math.floor(task.hours || 0));
+    setMinutes(Math.round(((task.hours || 0) % 1) * 60));
+    setIsCreating(true);
+    setSelectedUserId(null); // Close user details modal
   };
 
   const toggleUserSelection = (userId: string) => {
@@ -234,7 +259,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
             </div>
 
             <button 
-              onClick={() => setIsCreating(true)}
+              onClick={() => { setIsCreating(true); setEditingTask(null); }}
               className="flex items-center justify-center gap-2 px-8 py-4 bg-neon text-black text-xs font-black uppercase italic tracking-widest rounded-2xl hover:scale-105 transition shadow-[0_0_20px_rgba(0,255,157,0.3)]"
             >
               <Plus size={18} /> NUEVA TAREA
@@ -490,36 +515,344 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
         <div className="space-y-6">
           <div className="flex items-center justify-between px-2 mb-4">
             <h3 className="text-white font-oswald font-black italic uppercase text-sm flex items-center gap-2">
-              <Users size={16} className="text-neon" /> Equipo
+              <Users size={16} className="text-neon" /> Gestión de Equipo y Alertas
             </h3>
+            <button 
+              onClick={() => setIsAddingGlobalAlert(true)}
+              className="bg-neon/10 text-neon text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border border-neon/20 hover:bg-neon hover:text-black transition-all flex items-center gap-2"
+            >
+              <BellRing size={14} /> ALERTA GLOBAL
+            </button>
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {userStats.map(user => (
-              <button
-                key={user.id}
-                onClick={() => {
-                  setSelectedUserId(user.id);
-                  setUserAlertMessage('');
-                  setIsAddingAlert(false);
-                }}
-                className="w-full text-left p-5 rounded-3xl bg-white/[0.02] border border-white/5 hover:border-neon/30 hover:bg-neon/5 transition-all group relative overflow-hidden"
+
+          <AnimatePresence>
+            {isAddingGlobalAlert && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mb-6"
               >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-neon/5 blur-2xl rounded-full -mr-12 -mt-12 group-hover:bg-neon/10 transition-colors" />
-                <div className="flex items-center gap-4 relative z-10">
-                  <img 
-                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} 
-                    alt={user.name} 
-                    className="w-14 h-14 rounded-2xl object-cover border-2 border-white/10 group-hover:border-neon/30 transition-colors" 
+                <div className="bg-black/40 p-6 rounded-3xl border border-neon/30 relative">
+                  <div className="absolute top-0 right-0 p-4">
+                    <button onClick={() => setIsAddingGlobalAlert(false)} className="text-gray-500 hover:text-white transition-colors">
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <h4 className="text-white font-oswald font-black italic uppercase mb-4 flex items-center gap-2">
+                    <BellRing size={16} className="text-neon" /> Enviar Alerta a Usuarios
+                  </h4>
+                  
+                  <div className="mb-4">
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1 mb-2 block">Seleccionar Destinatarios</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[120px] overflow-y-auto custom-scrollbar pr-1">
+                      <button
+                        onClick={() => setGlobalAlertUserIds(globalAlertUserIds.length === users.length ? [] : users.map(u => u.id))}
+                        className={`flex items-center justify-center gap-2 p-2 rounded-xl border transition-all ${globalAlertUserIds.length === users.length ? 'bg-neon/10 border-neon text-neon' : 'bg-black border-white/5 text-gray-600 hover:border-white/20'}`}
+                      >
+                        <span className="text-[10px] font-black uppercase">Todos</span>
+                      </button>
+                      {users.map(user => (
+                        <button
+                          key={user.id}
+                          onClick={() => setGlobalAlertUserIds(prev => prev.includes(user.id) ? prev.filter(id => id !== user.id) : [...prev, user.id])}
+                          className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${globalAlertUserIds.includes(user.id) ? 'bg-neon/10 border-neon text-neon' : 'bg-black border-white/5 text-gray-600 hover:border-white/20'}`}
+                        >
+                          <img src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} className="w-5 h-5 rounded-md object-cover" />
+                          <span className="text-[9px] font-black uppercase truncate">{user.name.split(' ')[0]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <textarea 
+                    value={globalAlertMessage}
+                    onChange={(e) => setGlobalAlertMessage(e.target.value)}
+                    placeholder="Escribe un mensaje importante..."
+                    className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-sm text-white outline-none focus:border-neon placeholder:text-gray-700 resize-none mb-4"
+                    rows={3}
                   />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-oswald font-black uppercase italic text-lg truncate group-hover:text-neon transition-colors">{user.name}</p>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">{user.totalHours.toFixed(1)}h • {user.pendingTasks} pendientes</p>
+                  <div className="flex justify-end">
+                    <button 
+                      onClick={() => {
+                        if (!globalAlertMessage.trim() || globalAlertUserIds.length === 0) return;
+                        const newAlert = {
+                          id: Math.random().toString(36).substr(2, 9),
+                          message: globalAlertMessage,
+                          seen: false,
+                          createdAt: new Date().toISOString()
+                        };
+                        users.forEach(user => {
+                          if (globalAlertUserIds.includes(user.id)) {
+                            const currentMessages = user.alertMessages || [];
+                            onUpdateUser({ 
+                              ...user, 
+                              alertMessages: [newAlert, ...currentMessages] 
+                            });
+                          }
+                        });
+                        setGlobalAlertMessage('');
+                        setIsAddingGlobalAlert(false);
+                        setGlobalAlertUserIds([]);
+                      }}
+                      className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-transform ${(!globalAlertMessage.trim() || globalAlertUserIds.length === 0) ? 'bg-white/5 text-gray-500 cursor-not-allowed' : 'bg-neon text-black hover:scale-105'}`}
+                    >
+                      <Save size={16} /> Enviar Alerta
+                    </button>
                   </div>
                 </div>
-              </button>
-            ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          <div className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 bg-black/40">
+                    <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Usuario</th>
+                    <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Tareas Pendientes</th>
+                    <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Tareas Completadas</th>
+                    <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Horas Totales</th>
+                    <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Alertas Activas</th>
+                    <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {userStats.map(user => {
+                    const activeAlerts = user.alertMessages?.filter(a => !a.seen) || [];
+                    const activeAlertsCount = activeAlerts.length;
+                    return (
+                      <tr key={user.id} className="hover:bg-white/[0.02] transition-colors group">
+                        <td 
+                          className="p-4 cursor-pointer" 
+                          onClick={() => {
+                            setSelectedUserId(user.id);
+                            setUserAlertMessage('');
+                            setIsAddingAlert(false);
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <img 
+                              src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} 
+                              alt={user.name} 
+                              className="w-10 h-10 rounded-xl object-cover border border-white/10 group-hover:border-neon/30 transition-colors" 
+                            />
+                            <div>
+                              <p className="text-sm font-oswald font-black italic uppercase tracking-tight text-white group-hover:text-neon transition-colors">{user.name}</p>
+                              <p className="text-[10px] text-gray-500">{user.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className={`text-[11px] font-black px-3 py-1 rounded-md ${user.pendingTasks > 0 ? 'bg-yellow-500/10 text-yellow-500' : 'bg-white/5 text-gray-500'}`}>
+                            {user.pendingTasks}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className="text-[11px] font-black px-3 py-1 rounded-md bg-neon/10 text-neon">
+                            {user.completedTasks}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className="text-[11px] font-black text-white">{user.totalHours.toFixed(1)}h</span>
+                        </td>
+                        <td className="p-4">
+                          {activeAlertsCount > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-red-500/10 text-red-500 w-fit uppercase tracking-widest">
+                                {activeAlertsCount} Activas
+                              </span>
+                              <span className="text-[9px] text-gray-400 truncate max-w-[150px] italic">
+                                "{activeAlerts[0].message}"
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] font-black px-3 py-1 rounded-md bg-white/5 text-gray-500">
+                              0
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAssignedUserIds([user.id]);
+                                setIsCreating(true);
+                                setEditingTask(null);
+                              }}
+                              className="p-2 text-gray-400 hover:text-neon hover:bg-neon/10 rounded-lg transition-all"
+                              title="Asignar Tarea"
+                            >
+                              <Plus size={16} />
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedAlertUserId(user.id);
+                                setUserAlertMessage('');
+                              }}
+                              className="p-2 text-gray-400 hover:text-yellow-500 hover:bg-yellow-500/10 rounded-lg transition-all"
+                              title="Gestionar Alertas"
+                            >
+                              <BellRing size={16} />
+                            </button>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedUserId(user.id);
+                                setUserAlertMessage('');
+                                setIsAddingAlert(false);
+                              }}
+                              className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                              title="Ver Ficha"
+                            >
+                              <LayoutDashboard size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          {/* Standalone Alert Modal */}
+          <AnimatePresence>
+            {selectedAlertUserId && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setSelectedAlertUserId(null)}
+                  className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                />
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  className="relative w-full max-w-2xl bg-[#0A0A0A] border border-white/10 rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
+                >
+                  {(() => {
+                    const user = userStats.find(u => u.id === selectedAlertUserId);
+                    if (!user) return null;
+                    
+                    return (
+                      <>
+                        <div className="flex items-center justify-between p-6 border-b border-white/5 bg-white/[0.02]">
+                          <div className="flex items-center gap-4">
+                            <img 
+                              src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} 
+                              alt={user.name} 
+                              className="w-12 h-12 rounded-xl object-cover border border-neon/20" 
+                            />
+                            <div>
+                              <h3 className="text-2xl font-oswald font-black italic uppercase text-white tracking-tight leading-none">Alertas: {user.name}</h3>
+                              <span className="text-[10px] font-black text-neon uppercase tracking-widest">{user.email}</span>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setSelectedAlertUserId(null)}
+                            className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                          <div className="bg-black/40 p-4 rounded-2xl border border-neon/30">
+                            <h4 className="text-[10px] font-black text-white uppercase tracking-widest mb-3 flex items-center gap-2">
+                              <BellRing size={14} className="text-neon" /> Nueva Alerta
+                            </h4>
+                            <textarea 
+                              value={userAlertMessage}
+                              onChange={(e) => setUserAlertMessage(e.target.value)}
+                              placeholder="Escribe un mensaje importante..."
+                              className="w-full bg-transparent border border-white/10 rounded-xl p-3 text-xs text-white outline-none focus:border-neon placeholder:text-gray-700 resize-none mb-3"
+                              rows={3}
+                            />
+                            <div className="flex justify-end">
+                              <button 
+                                onClick={() => {
+                                  if (!userAlertMessage.trim()) return;
+                                  const currentMessages = user.alertMessages || [];
+                                  const newAlert = {
+                                    id: Math.random().toString(36).substr(2, 9),
+                                    message: userAlertMessage,
+                                    seen: false,
+                                    createdAt: new Date().toISOString()
+                                  };
+                                  onUpdateUser({ 
+                                    ...user, 
+                                    alertMessages: [newAlert, ...currentMessages] 
+                                  });
+                                  setUserAlertMessage('');
+                                }}
+                                className="bg-neon text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform"
+                              >
+                                <Save size={14} /> Enviar Alerta
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Historial de Alertas</h4>
+                            {user.alertMessages && user.alertMessages.length > 0 ? (
+                              user.alertMessages.map((alert) => (
+                                <div key={alert.id} className="bg-black/40 p-4 rounded-2xl border border-white/5 group relative">
+                                  <div className="flex items-start justify-between gap-4">
+                                    <p className="text-sm text-gray-300 leading-relaxed italic pr-8">"{alert.message}"</p>
+                                    <div className="flex flex-col items-end gap-2 shrink-0">
+                                      {alert.seen ? (
+                                        <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[9px] font-black text-green-500 uppercase tracking-widest">
+                                          Visto
+                                        </span>
+                                      ) : (
+                                        <span className="px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded text-[9px] font-black text-yellow-500 uppercase tracking-widest">
+                                          Pendiente
+                                        </span>
+                                      )}
+                                      <button 
+                                        onClick={() => {
+                                          const newMessages = user.alertMessages?.filter(a => a.id !== alert.id);
+                                          onUpdateUser({ ...user, alertMessages: newMessages });
+                                        }}
+                                        className="text-gray-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-4 mt-3">
+                                    <p className="text-[9px] text-gray-600 uppercase font-bold">
+                                      Enviado: {formatArgentinaTimestamp(alert.createdAt, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                    {alert.seenAt && (
+                                      <p className="text-[9px] text-gray-600 uppercase font-bold">
+                                        Visto: {formatArgentinaTimestamp(alert.seenAt, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="h-24 flex items-center justify-center border border-dashed border-white/5 rounded-2xl bg-black/20">
+                                <p className="text-[9px] text-gray-700 uppercase font-black tracking-widest">Sin alertas en el historial</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
 
           {/* User Details Modal */}
           <AnimatePresence>
@@ -572,118 +905,23 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
 
                         {/* Modal Body */}
                         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
-                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                            
-                            {/* Left Column: Stats */}
-                            <div className="lg:col-span-4 grid grid-cols-2 gap-4">
-                              <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[160px]">
-                                <p className="text-5xl font-oswald font-black italic text-white mb-2">{user.totalHours.toFixed(1)}</p>
-                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Horas Totales</p>
-                              </div>
-                              <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[160px]">
-                                <p className="text-5xl font-oswald font-black italic text-white mb-2">{user.completedTasks}</p>
-                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Tareas Listas</p>
-                              </div>
+                          {/* Stats Row */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[120px]">
+                              <p className="text-4xl font-oswald font-black italic text-white mb-2">{user.totalHours.toFixed(1)}</p>
+                              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Horas Totales</p>
                             </div>
-
-                            {/* Right Column: Alerts */}
-                            <div className="lg:col-span-8 bg-white/[0.02] border border-white/5 p-6 rounded-3xl flex flex-col">
-                              <div className="flex items-center justify-between mb-4">
-                                <h4 className="text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-2">
-                                  <BellRing size={14} className="text-neon" /> Alertas del Sistema
-                                </h4>
-                                <button 
-                                  onClick={() => setIsAddingAlert(!isAddingAlert)}
-                                  className="text-[9px] font-black text-neon uppercase tracking-widest hover:underline"
-                                >
-                                  {isAddingAlert ? 'Cancelar' : '+ Nueva Alerta'}
-                                </button>
-                              </div>
-
-                              <AnimatePresence>
-                                {isAddingAlert && (
-                                  <motion.div 
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="overflow-hidden shrink-0"
-                                  >
-                                    <div className="bg-black/40 p-4 rounded-2xl border border-neon/30 mb-4">
-                                      <textarea 
-                                        value={userAlertMessage}
-                                        onChange={(e) => setUserAlertMessage(e.target.value)}
-                                        placeholder="Escribe un mensaje importante..."
-                                        className="w-full bg-transparent border-none text-xs text-white outline-none placeholder:text-gray-700 resize-none mb-3"
-                                        rows={2}
-                                      />
-                                      <div className="flex justify-end">
-                                        <button 
-                                          onClick={() => {
-                                            if (!userAlertMessage.trim()) return;
-                                            const currentMessages = user.alertMessages || [];
-                                            const newAlert = {
-                                              id: Math.random().toString(36).substr(2, 9),
-                                              message: userAlertMessage,
-                                              seen: false,
-                                              createdAt: new Date().toISOString()
-                                            };
-                                            onUpdateUser({ 
-                                              ...user, 
-                                              alertMessages: [newAlert, ...currentMessages] 
-                                            });
-                                            setUserAlertMessage('');
-                                            setIsAddingAlert(false);
-                                          }}
-                                          className="bg-neon text-black px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform"
-                                        >
-                                          <Save size={14} /> Publicar
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-
-                              <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-[140px]">
-                                {user.alertMessages && user.alertMessages.length > 0 ? (
-                                  user.alertMessages.map((alert) => (
-                                    <div key={alert.id} className="bg-black/40 p-3 rounded-2xl border border-white/5 group relative">
-                                      <div className="flex items-start justify-between gap-4">
-                                        <p className="text-xs text-gray-300 leading-relaxed italic pr-8">"{alert.message}"</p>
-                                        <div className="flex flex-col items-end gap-2 shrink-0">
-                                          {alert.seen ? (
-                                            <span className="px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[7px] font-black text-green-500 uppercase tracking-widest">
-                                              Visto
-                                            </span>
-                                          ) : (
-                                            <span className="px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded text-[7px] font-black text-yellow-500 uppercase tracking-widest">
-                                              Pendiente
-                                            </span>
-                                          )}
-                                          <button 
-                                            onClick={() => {
-                                              const newMessages = user.alertMessages?.filter(a => a.id !== alert.id);
-                                              onUpdateUser({ ...user, alertMessages: newMessages });
-                                            }}
-                                            className="text-gray-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                                          >
-                                            <Trash2 size={14} />
-                                          </button>
-                                        </div>
-                                      </div>
-                                      {alert.seenAt && (
-                                        <p className="text-[8px] text-gray-600 mt-2 uppercase font-bold">
-                                          Visto el: {formatArgentinaTimestamp(alert.seenAt, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                        </p>
-                                      )}
-                                    </div>
-                                  ))
-                                ) : (
-                                  <div className="h-full flex items-center justify-center border border-dashed border-white/5 rounded-2xl bg-black/20">
-                                    <p className="text-[9px] text-gray-700 uppercase font-black tracking-widest">Sin alertas activas</p>
-                                  </div>
-                                )}
-                              </div>
+                            <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[120px]">
+                              <p className="text-4xl font-oswald font-black italic text-neon mb-2">{user.completedTasks}</p>
+                              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Tareas Listas</p>
+                            </div>
+                            <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[120px]">
+                              <p className="text-4xl font-oswald font-black italic text-yellow-500 mb-2">{user.pendingTasks}</p>
+                              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Pendientes</p>
+                            </div>
+                            <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[120px] cursor-pointer hover:border-red-500/30 transition-colors" onClick={() => setSelectedAlertUserId(user.id)}>
+                              <p className="text-4xl font-oswald font-black italic text-red-500 mb-2">{user.alertMessages?.filter(a => !a.seen).length || 0}</p>
+                              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Alertas Activas</p>
                             </div>
                           </div>
 
@@ -717,6 +955,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                   onClick={() => {
                                     setAssignedUserIds([user.id]);
                                     setIsCreating(true);
+                                    setEditingTask(null);
                                     setSelectedUserId(null); // Close modal to show creation form
                                   }}
                                   className="bg-neon/10 text-neon text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl border border-neon/20 hover:bg-neon hover:text-black transition-all"
@@ -731,11 +970,11 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                 <table className="w-full text-left border-collapse">
                                   <thead>
                                     <tr className="border-b border-white/5 bg-black/40">
+                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest w-24">Fecha</th>
                                       <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest">Tarea</th>
-                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest">Fecha</th>
-                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest">Tiempo</th>
-                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest">Estado</th>
-                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest text-right">Acciones</th>
+                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest w-24">Tiempo</th>
+                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest w-24">Estado</th>
+                                      <th className="p-4 text-[9px] font-black text-gray-500 uppercase tracking-widest text-right w-24">Acciones</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-white/5">
@@ -766,19 +1005,31 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                       return filteredTasks.map(task => {
                                         const taskTime = getTaskTime(task.id);
                                         return (
-                                          <tr key={task.id} className="hover:bg-white/[0.02] transition-colors group">
-                                            <td className="p-4">
-                                              <div className="flex items-center gap-3">
-                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${task.status === 'completed' ? 'bg-neon/10 text-neon' : 'bg-white/5 text-gray-700'}`}>
-                                                  {task.status === 'completed' ? <CheckSquare size={14} /> : <Square size={14} />}
-                                                </div>
-                                                <p className={`text-xs font-oswald font-black italic uppercase tracking-tight ${task.status === 'completed' ? 'text-gray-500 line-through' : 'text-white'}`}>
-                                                  {task.title}
-                                                </p>
-                                              </div>
-                                            </td>
+                                          <tr 
+                                            key={task.id} 
+                                            onClick={() => handleEditTask(task)}
+                                            className="hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                                          >
                                             <td className="p-4">
                                               <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">{formatArgentinaDate(task.date)}</p>
+                                            </td>
+                                            <td className="p-4">
+                                              <div className="flex items-start gap-3">
+                                                <div className={`mt-0.5 w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${task.status === 'completed' ? 'bg-neon/10 text-neon' : 'bg-white/5 text-gray-700'}`}>
+                                                  {task.status === 'completed' ? <CheckSquare size={12} /> : <Square size={12} />}
+                                                </div>
+                                                <div className="flex flex-col">
+                                                  <p className={`text-sm font-oswald font-black italic uppercase tracking-tight ${task.status === 'completed' ? 'text-gray-500 line-through' : 'text-white'}`}>
+                                                    {task.title}
+                                                  </p>
+                                                  {task.description && (
+                                                    <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5">{task.description}</p>
+                                                  )}
+                                                  <p className="text-[8px] text-gray-600 uppercase font-black tracking-widest mt-1">
+                                                    Creado por: {task.createdBy || 'Admin'}
+                                                  </p>
+                                                </div>
+                                              </div>
                                             </td>
                                             <td className="p-4">
                                               <p className="text-[10px] text-neon uppercase font-black tracking-widest flex items-center gap-1">
@@ -791,12 +1042,28 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                               </span>
                                             </td>
                                             <td className="p-4 text-right">
-                                              <button 
-                                                onClick={() => onDeleteTask(task.id)}
-                                                className="p-2 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 inline-flex"
-                                              >
-                                                <Trash2 size={14} />
-                                              </button>
+                                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleEditTask(task);
+                                                  }}
+                                                  className="p-2 text-gray-400 hover:text-neon hover:bg-neon/10 rounded-lg transition-all"
+                                                  title="Editar Tarea"
+                                                >
+                                                  <Edit2 size={14} />
+                                                </button>
+                                                <button 
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onDeleteTask(task.id);
+                                                  }}
+                                                  className="p-2 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                                  title="Eliminar Tarea"
+                                                >
+                                                  <Trash2 size={14} />
+                                                </button>
+                                              </div>
                                             </td>
                                           </tr>
                                         );
@@ -830,9 +1097,10 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
               <div className="absolute top-0 left-0 w-full h-1 bg-neon/20" />
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-xl font-oswald font-black italic uppercase text-neon flex items-center gap-3">
-                  <Plus size={20} /> Nueva Asignación de Tarea
+                  {editingTask ? <Edit2 size={20} /> : <Plus size={20} />} 
+                  {editingTask ? 'Editar Tarea' : 'Nueva Asignación de Tarea'}
                 </h3>
-                <button onClick={() => setIsCreating(false)} className="text-gray-500 hover:text-white transition-colors">
+                <button onClick={() => { setIsCreating(false); setEditingTask(null); }} className="text-gray-500 hover:text-white transition-colors">
                   <X size={20} />
                 </button>
               </div>
@@ -946,7 +1214,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                   </div>
                   
                   <button type="submit" className="w-full py-4 bg-neon text-black font-black uppercase italic text-xs tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition shadow-lg shadow-neon/20 flex items-center justify-center gap-2 mt-4">
-                    <Save size={16} /> CREAR Y ASIGNAR
+                    <Save size={16} /> {editingTask ? 'GUARDAR CAMBIOS' : 'CREAR Y ASIGNAR'}
                   </button>
                 </div>
               </form>

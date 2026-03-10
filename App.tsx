@@ -545,7 +545,12 @@ const App: React.FC = () => {
     await setDoc(doc(db, 'users', user.id), userToUpdate, { merge: true });
   };
   const deleteUser = async (id: string) => {
-    await deleteDoc(doc(db, 'users', id));
+    try {
+      await deleteDoc(doc(db, 'users', id));
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert("Error al eliminar usuario. Es posible que no tengas permisos suficientes o que el usuario esté protegido.");
+    }
   };
 
   const addSocialAccount = async (account: Omit<SocialAccount, 'id'>) => {
