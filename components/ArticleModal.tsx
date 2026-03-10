@@ -81,7 +81,7 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, users, curr
       id: 'unknown',
       name: 'Redacción',
       publicRole: 'Staff',
-      avatar: 'https://via.placeholder.com/100',
+      avatar: 'https://placehold.co/100',
       bio: 'Equipo editorial.'
   } as User;
   

@@ -181,42 +181,42 @@ export const INITIAL_SOCIAL_ACCOUNTS: SocialAccount[] = [
 export const INITIAL_SPONSORSHIPS: Sponsorship[] = [
   {
     id: 'placeholder-popup', name: 'Placeholder - Home Popup', brandId: 'gatorade', type: SponsorshipType.EXCLUSIVE,
-    imageUrl: 'https://via.placeholder.com/800x600/00ff9d/000000?text=HOME_POPUP+(800x600)',
+    imageUrl: 'https://placehold.co/800x600/00ff9d/000000?text=HOME_POPUP+(800x600)',
     link: '#', position: 'HOME_POPUP', active: true, impressions: 0, clicks: 0
   },
   {
     id: 'placeholder-home1', name: 'Placeholder - Home Nivel 1', brandId: 'nike', type: SponsorshipType.EXCLUSIVE,
-    imageUrl: 'https://via.placeholder.com/1140x250/00ff9d/000000?text=HOME_LVL_1+(1140x250)',
+    imageUrl: 'https://placehold.co/1140x250/00ff9d/000000?text=HOME_LVL_1+(1140x250)',
     link: '#', position: 'HOME_LVL_1', active: true, impressions: 0, clicks: 0
   },
   {
     id: 'placeholder-home2', name: 'Placeholder - Home Nivel 2', brandId: 'quini6', type: SponsorshipType.EXCLUSIVE,
-    imageUrl: 'https://via.placeholder.com/728x300/00ff9d/000000?text=HOME_LVL_2+(728x300)',
+    imageUrl: 'https://placehold.co/728x300/00ff9d/000000?text=HOME_LVL_2+(728x300)',
     link: '#', position: 'HOME_LVL_2', active: true, impressions: 0, clicks: 0
   },
   {
     id: 'placeholder-home3', name: 'Placeholder - Home Nivel 3 (Lateral)', brandId: 'loteria', type: SponsorshipType.EXCLUSIVE,
-    imageUrl: 'https://via.placeholder.com/300x600/00ff9d/000000?text=HOME_LVL_3+(300x600)',
+    imageUrl: 'https://placehold.co/300x600/00ff9d/000000?text=HOME_LVL_3+(300x600)',
     link: '#', position: 'HOME_LVL_3', active: true, impressions: 0, clicks: 0
   },
   {
     id: 'placeholder-news-top', name: 'Placeholder - Noticias Cabecera', brandId: 'gatorade', type: SponsorshipType.EXCLUSIVE,
-    imageUrl: 'https://via.placeholder.com/970x250/00ff9d/000000?text=NEWS_TOP_LVL_1+(970x250)',
+    imageUrl: 'https://placehold.co/970x250/00ff9d/000000?text=NEWS_TOP_LVL_1+(970x250)',
     link: '#', position: 'NEWS_TOP_LVL_1', active: true, impressions: 0, clicks: 0
   },
   {
     id: 'placeholder-news-side1', name: 'Placeholder - Noticias Lateral Vertical', brandId: 'nike', type: SponsorshipType.EXCLUSIVE,
-    imageUrl: 'https://via.placeholder.com/300x600/00ff9d/000000?text=NEWS_SIDE_LVL_1+(300x600)',
+    imageUrl: 'https://placehold.co/300x600/00ff9d/000000?text=NEWS_SIDE_LVL_1+(300x600)',
     link: '#', position: 'NEWS_SIDE_LVL_1', active: true, impressions: 0, clicks: 0
   },
   {
     id: 'placeholder-news-side2', name: 'Placeholder - Noticias Lateral Cuadrado', brandId: 'quini6', type: SponsorshipType.EXCLUSIVE,
-    imageUrl: 'https://via.placeholder.com/300x250/00ff9d/000000?text=NEWS_SIDE_LVL_2+(300x250)',
+    imageUrl: 'https://placehold.co/300x250/00ff9d/000000?text=NEWS_SIDE_LVL_2+(300x250)',
     link: '#', position: 'NEWS_SIDE_LVL_2', active: true, impressions: 0, clicks: 0
   },
   {
     id: 'placeholder-landing', name: 'Placeholder - Landing Page', brandId: 'loteria', type: SponsorshipType.EXCLUSIVE,
-    imageUrl: 'https://via.placeholder.com/1280x300/00ff9d/000000?text=LANDING_PAGE+(1280x300)',
+    imageUrl: 'https://placehold.co/1280x300/00ff9d/000000?text=LANDING_PAGE+(1280x300)',
     link: '#', position: 'LANDING_PAGE', active: true, impressions: 0, clicks: 0
   }
 ];
