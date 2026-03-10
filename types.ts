@@ -239,6 +239,7 @@ export interface SocialPost {
   postedAt: string;
   postedBy: string; // User ID
   imageUrl: string;
+  originalImageUrl?: string; // Imagen original cargada por el usuario
   titleOverlay: string;
   copy: string;
   postedToAccounts: string[]; // Array de SocialAccount IDs

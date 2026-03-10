@@ -85,8 +85,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           setLastGeneratedTitle(draftPost.titleOverlay || '');
           setCopy(draftPost.copy || '');
           setLastGeneratedCopy(draftPost.copy || '');
-          setImageUrl(draftPost.imageUrl || '');
-          setLastGeneratedBaseImage(draftPost.imageUrl || '');
+          setImageUrl(draftPost.originalImageUrl || draftPost.imageUrl || '');
+          setLastGeneratedBaseImage(draftPost.originalImageUrl || draftPost.imageUrl || '');
           setSelectedAccounts(draftPost.postedToAccounts || []);
           setLastGeneratedAccounts(draftPost.postedToAccounts || []);
           setSelectedSponsors(draftPost.associatedSponsors || []);
@@ -103,7 +103,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           }
           setSources(draftSources);
           
-          if (draftPost.imageUrl) {
+          if (draftPost.imageUrl && draftPost.imageUrl !== draftPost.originalImageUrl) {
               setGeneratedImageUrl(draftPost.imageUrl);
               setStatus('preview');
           } else {
@@ -413,6 +413,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         postedAt: draftPost?.postedAt || new Date().toISOString(),
         postedBy: draftPost?.postedBy || currentUser.id,
         imageUrl: generatedImageUrl || imageUrl || '',
+        originalImageUrl: imageUrl || '',
         titleOverlay: shortTitle,
         copy: copy,
         postedToAccounts: selectedAccounts,
@@ -449,6 +450,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         postedAt: new Date().toISOString(),
         postedBy: draftPost?.postedBy || currentUser.id,
         imageUrl: generatedImageUrl || imageUrl || '',
+        originalImageUrl: imageUrl || '',
         titleOverlay: shortTitle,
         copy: copy,
         postedToAccounts: selectedAccounts,
@@ -730,9 +732,9 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                                   <button 
                                      onClick={(e) => { 
                                         e.stopPropagation(); 
-                                        if (selectedAccounts.length > 0 && copy.trim() && shortTitle.trim()) handleGeneratePreview(); 
+                                        if (selectedAccounts.length > 0 && copy.trim()) handleGeneratePreview(); 
                                      }}
-                                     disabled={selectedAccounts.length === 0 || !copy.trim() || !shortTitle.trim()}
+                                     disabled={selectedAccounts.length === 0 || !copy.trim()}
                                      className="px-5 py-2.5 bg-neon text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:scale-110 active:scale-95 transition-all shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                      {status === 'preview' ? 'ACTUALIZAR DISEÑO' : 'GENERAR DISEÑO'}
@@ -749,7 +751,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                    </div>
 
                    <div className="space-y-1.5">
-                      <label className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">Título en Imagen</label>
+                      <label className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">Título en Imagen (Opcional)</label>
                       <textarea 
                         value={shortTitle} 
                         onChange={e => setShortTitle(e.target.value)} 
@@ -893,7 +895,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                 ) : (
                    <button 
                       onClick={handleGeneratePreview} 
-                      disabled={selectedAccounts.length === 0 || status === 'creatingPreview' || !copy.trim() || !shortTitle.trim()} 
+                      disabled={selectedAccounts.length === 0 || status === 'creatingPreview' || !copy.trim()} 
                       className="px-10 py-3 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                    >
                       {status === 'preview' ? 'RE-GENERAR' : 'GENERAR'} <ArrowRight size={18} strokeWidth={3} />

@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "Article": {
+      "title": "Article",
+      "description": "A news article",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "content": { "type": "array" },
+        "category": { "type": "string" },
+        "author": { "type": "string" },
+        "date": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "isPublished": { "type": "boolean" },
+        "sources": { "type": "array" }
+      },
+      "required": ["title", "content", "author", "date"]
+    },
+    "SocialPost": {
+      "title": "SocialPost",
+      "description": "A social media post",
+      "type": "object",
+      "properties": {
+        "originalArticleId": { "type": "string" },
+        "originalArticleTitle": { "type": "string" },
+        "postedAt": { "type": "string" },
+        "postedBy": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "titleOverlay": { "type": "string" },
+        "copy": { "type": "string" },
+        "postedToAccounts": { "type": "array" },
+        "associatedSponsors": { "type": "array" },
+        "status": { "type": "string", "enum": ["success", "failed", "draft"] },
+        "sources": { "type": "array" }
+      },
+      "required": ["postedBy", "postedAt", "copy", "status"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A system user",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "roleId": { "type": "string" },
+        "avatar": { "type": "string" },
+        "registrationDate": { "type": "string" }
+      },
+      "required": ["name", "email", "roleId"]
+    }
+  },
+  "firestore": {
+    "articles": { "schema": "Article", "description": "Collection of articles" },
+    "social_posts": { "schema": "SocialPost", "description": "Collection of social posts" },
+    "users": { "schema": "User", "description": "Collection of users" },
+    "chat_messages": { "schema": "object", "description": "Chat messages" },
+    "tasks": { "schema": "object", "description": "Tasks" },
+    "ai_news_tasks": { "schema": "object", "description": "AI News generation tasks" },
+    "ai_social_tasks": { "schema": "object", "description": "AI Social generation tasks" },
+    "config": { "schema": "object", "description": "Site configuration" }
+  }
+}
