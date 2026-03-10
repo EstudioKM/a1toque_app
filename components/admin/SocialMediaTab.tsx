@@ -79,6 +79,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
       return [];
     }
     return socialPosts.filter(post => 
+      post.postedBy === currentUser.id || 
       post.postedToAccounts.some(accountId => managedIds.includes(accountId))
     );
   }, [socialPosts, currentUser]);

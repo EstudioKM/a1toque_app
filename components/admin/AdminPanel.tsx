@@ -265,7 +265,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         titleOverlay: task.result.shortTitle,
         copy: task.result.copy,
         imageUrl: task.result.imageUrl || '',
-        status: 'draft'
+        status: 'draft',
+        sources: task.result.sources || []
       };
       setEditingSocialPost(draftPost as SocialPost);
       setSocialTaskBeingEdited(task.id);

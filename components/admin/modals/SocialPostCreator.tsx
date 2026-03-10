@@ -406,7 +406,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     }
   };
   
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     const postData = {
         originalArticleId: article?.id || draftPost?.originalArticleId || 'standalone',
         originalArticleTitle: article?.title || draftPost?.originalArticleTitle || shortTitle,
@@ -421,12 +421,17 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         status: 'draft' as const,
     };
 
-    if (draftPost && draftPost.id) {
-        onUpdateSocialPost({ ...postData, id: draftPost.id });
-    } else {
-        onAddSocialPost(postData);
+    try {
+        if (draftPost && draftPost.id) {
+            await onUpdateSocialPost({ ...postData, id: draftPost.id });
+        } else {
+            await onAddSocialPost(postData);
+        }
+        onClose();
+    } catch (error) {
+        console.error("Error saving draft:", error);
+        alert("Error al guardar el borrador.");
     }
-    onClose();
   };
   
   const handleFinalPublish = async () => {

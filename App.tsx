@@ -85,13 +85,12 @@ const App: React.FC = () => {
           ai_social_tasks: collection(db, 'ai_social_tasks'),
         };
         
-        const [articlesSnapshot, sponsorshipsSnapshot, brandsSnapshot, usersSnapshot, socialAccountsSnapshot, socialPostsSnapshot, categoriesSnapshot, rolesSnapshot, adSlotsSnapshot, workLogsSnapshot, tasksSnapshot, chatMessagesSnapshot, aiNewsTasksSnapshot, aiSocialTasksSnapshot] = await Promise.all([
+        const [articlesSnapshot, sponsorshipsSnapshot, brandsSnapshot, usersSnapshot, socialAccountsSnapshot, categoriesSnapshot, rolesSnapshot, adSlotsSnapshot, workLogsSnapshot, tasksSnapshot, chatMessagesSnapshot, aiNewsTasksSnapshot, aiSocialTasksSnapshot] = await Promise.all([
           getDocs(collections.articles),
           getDocs(collections.sponsorships),
           getDocs(collections.brands),
           getDocs(collections.users),
           getDocs(collections.social_accounts),
-          getDocs(collections.social_posts),
           getDocs(collections.categories),
           getDocs(collections.roles),
           getDocs(collections.ad_slots),
@@ -248,8 +247,7 @@ const App: React.FC = () => {
             }
         }
 
-        const socialPostsList = socialPostsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialPost));
-        setSocialPosts(socialPostsList.sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()));
+        // Social posts are handled by onSnapshot
 
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -301,6 +299,11 @@ const App: React.FC = () => {
       setAiSocialTasks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialGenerationTask)));
     });
 
+    const unsubscribeSocialPosts = onSnapshot(collection(db, 'social_posts'), (snapshot) => {
+      const posts = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialPost));
+      setSocialPosts(posts.sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()));
+    });
+
     return () => {
       unsubscribeChat();
       unsubscribeConfig();
@@ -308,6 +311,7 @@ const App: React.FC = () => {
       unsubscribeTasks();
       unsubscribeAiNewsTasks();
       unsubscribeAiSocialTasks();
+      unsubscribeSocialPosts();
     };
   }, []);
   
@@ -521,18 +525,14 @@ const App: React.FC = () => {
   const addSocialPost = async (post: Omit<SocialPost, 'id'>) => {
     const cleanPost = removeUndefinedFields(post);
     const docRef = await addDoc(collection(db, 'social_posts'), cleanPost);
-    const newPost = { ...cleanPost, id: docRef.id };
-    setSocialPosts(prev => [newPost, ...prev].sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()));
-    return newPost;
+    return { ...cleanPost, id: docRef.id };
   };
   const updateSocialPost = async (post: SocialPost) => {
     const cleanPost = removeUndefinedFields(post);
     await setDoc(doc(db, 'social_posts', post.id), cleanPost, { merge: true });
-    setSocialPosts(socialPosts.map(p => p.id === post.id ? cleanPost : p).sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()));
   };
   const deleteSocialPost = async (id: string) => {
     await deleteDoc(doc(db, 'social_posts', id));
-    setSocialPosts(prev => prev.filter(p => p.id !== id));
   };
   
   const addCategory = async (category: Omit<CategoryConfig, 'id' | 'order'>) => {
