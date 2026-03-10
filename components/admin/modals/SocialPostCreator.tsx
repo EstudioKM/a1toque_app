@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Article, User, Brand, SocialAccount, SocialPost, Source } from '../../../types';
+import { Article, User, Brand, SocialAccount, SocialPost, Source, SiteConfig } from '../../../types';
 import { generateSocialMediaContent, generateSocialMediaContentFromTopic, improveSocialMediaCopy, refineSocialMediaContent } from '../../../services/geminiService';
 import { X, ArrowRight, Loader2, AlertTriangle, CheckCircle2, UploadCloud, Sparkles, AtSign, Building, Check, Crop, Send, Save, Edit2, AlertCircle } from 'lucide-react';
 import { storage } from '../../../services/firebase';
@@ -17,6 +17,7 @@ interface SocialPostCreatorProps {
   brands: Brand[];
   socialAccounts: SocialAccount[];
   aiSystemPrompt: string;
+  siteConfig?: SiteConfig;
   onClose: () => void;
   onAddSocialPost: (post: Omit<SocialPost, 'id'>) => void;
   onUpdateSocialPost: (post: SocialPost) => void;
@@ -31,6 +32,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   brands,
   socialAccounts,
   aiSystemPrompt,
+  siteConfig,
   onClose,
   onAddSocialPost,
   onUpdateSocialPost,
@@ -657,14 +659,18 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
            </div>
         )}
 
-       <div className="max-w-5xl w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh] overflow-hidden relative">
+       <div className="max-w-5xl w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col max-h-[95vh] lg:max-h-[90vh] overflow-hidden relative">
           {/* Header */}
           <header className="h-14 border-b border-white/5 flex items-center justify-between px-8 bg-black/50 flex-shrink-0">
              <div className="flex items-center gap-6">
                 <div className="flex items-center gap-3">
-                   <div className="w-7 h-7 bg-neon rounded-lg flex items-center justify-center text-black">
-                      <Send size={14} strokeWidth={3} />
-                   </div>
+                   {siteConfig?.logoUrl ? (
+                      <img src={siteConfig.logoUrl} className="h-6 w-auto object-contain" alt="Logo" />
+                   ) : (
+                      <div className="w-7 h-7 bg-neon rounded-lg flex items-center justify-center text-black">
+                         <Send size={14} strokeWidth={3} />
+                      </div>
+                   )}
                    <h1 className="text-lg font-oswald font-black italic uppercase text-white tracking-tighter">
                       {draftPost ? 'REVISIÓN BORRADOR' : 'NUEVO POST SOCIAL'}
                    </h1>
@@ -680,8 +686,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-hidden p-5">
-             <div className="grid grid-cols-12 gap-5 h-full">
+          <main className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+             <div className="grid grid-cols-12 gap-5">
                 
                 {/* Visual Identity (Left) */}
                 <div className="col-span-12 lg:col-span-5 flex flex-col space-y-3">
@@ -774,7 +780,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                       </button>
                    </div>
                    
-                   <div className="flex-1 relative min-h-0">
+                   <div className="flex-1 relative min-h-[300px]">
                       <textarea 
                          value={copy} 
                          onChange={e => setCopy(e.target.value)} 
