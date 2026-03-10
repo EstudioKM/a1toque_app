@@ -85,7 +85,7 @@ const App: React.FC = () => {
           ai_social_tasks: collection(db, 'ai_social_tasks'),
         };
         
-        const [articlesSnapshot, sponsorshipsSnapshot, brandsSnapshot, usersSnapshot, socialAccountsSnapshot, categoriesSnapshot, rolesSnapshot, adSlotsSnapshot, workLogsSnapshot, tasksSnapshot, chatMessagesSnapshot, aiNewsTasksSnapshot, aiSocialTasksSnapshot] = await Promise.all([
+        const results = await Promise.allSettled([
           getDocs(collections.articles),
           getDocs(collections.sponsorships),
           getDocs(collections.brands),
@@ -101,6 +101,27 @@ const App: React.FC = () => {
           getDocs(collections.ai_social_tasks),
         ]);
 
+        const getResult = (index: number) => {
+          const res = results[index];
+          if (res.status === 'fulfilled') return res.value;
+          console.error(`Error fetching collection at index ${index}:`, res.reason);
+          return { empty: true, docs: [] } as any;
+        };
+
+        const articlesSnapshot = getResult(0);
+        const sponsorshipsSnapshot = getResult(1);
+        const brandsSnapshot = getResult(2);
+        const usersSnapshot = getResult(3);
+        const socialAccountsSnapshot = getResult(4);
+        const categoriesSnapshot = getResult(5);
+        const rolesSnapshot = getResult(6);
+        const adSlotsSnapshot = getResult(7);
+        const workLogsSnapshot = getResult(8);
+        const tasksSnapshot = getResult(9);
+        const chatMessagesSnapshot = getResult(10);
+        const aiNewsTasksSnapshot = getResult(11);
+        const aiSocialTasksSnapshot = getResult(12);
+
         setWorkLogs(workLogsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as WorkLog)));
         setTasks(tasksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Task)));
         setChatMessages(chatMessagesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChatMessage)));
@@ -108,22 +129,28 @@ const App: React.FC = () => {
         setAiSocialTasks(aiSocialTasksSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SocialGenerationTask)));
 
         // Load or create Site Config
-        const siteConfigDoc = await getDoc(doc(db, 'config', 'site'));
-        if (siteConfigDoc.exists()) {
-          setSiteConfig({ ...DEFAULT_SITE_CONFIG, ...siteConfigDoc.data() } as SiteConfig);
-        } else {
-          await setDoc(doc(db, 'config', 'site'), DEFAULT_SITE_CONFIG);
-          setSiteConfig(DEFAULT_SITE_CONFIG);
+        try {
+          const siteConfigDoc = await getDoc(doc(db, 'config', 'site'));
+          if (siteConfigDoc.exists()) {
+            setSiteConfig({ ...DEFAULT_SITE_CONFIG, ...siteConfigDoc.data() } as SiteConfig);
+          } else {
+            await setDoc(doc(db, 'config', 'site'), DEFAULT_SITE_CONFIG);
+            setSiteConfig(DEFAULT_SITE_CONFIG);
+          }
+        } catch (e) {
+          console.error("Error with site config:", e);
         }
         
-        if (adSlotsSnapshot.empty) {
-          const batch = writeBatch(db);
-          INITIAL_AD_SLOTS.forEach(item => batch.set(doc(db, "ad_slots", item.id), item));
-          await batch.commit();
-          setAdSlots(INITIAL_AD_SLOTS);
-        } else {
-          setAdSlots(adSlotsSnapshot.docs.map(doc => doc.data() as AdSlotConfig));
-        }
+        try {
+          if (adSlotsSnapshot.empty) {
+            const batch = writeBatch(db);
+            INITIAL_AD_SLOTS.forEach(item => batch.set(doc(db, "ad_slots", item.id), item));
+            await batch.commit();
+            setAdSlots(INITIAL_AD_SLOTS);
+          } else {
+            setAdSlots(adSlotsSnapshot.docs.map(doc => doc.data() as AdSlotConfig));
+          }
+        } catch (e) { console.error("Error seeding ad_slots:", e); setAdSlots(INITIAL_AD_SLOTS); }
 
         if (articlesSnapshot.empty) {
           setArticles([]);
@@ -132,120 +159,132 @@ const App: React.FC = () => {
           setArticles(list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         }
         
-        if (sponsorshipsSnapshot.empty) {
-          const batch = writeBatch(db);
-          INITIAL_SPONSORSHIPS.forEach(item => batch.set(doc(db, "sponsorships", item.id), item));
-          await batch.commit();
-          setSponsorships(INITIAL_SPONSORSHIPS);
-        } else {
-          setSponsorships(sponsorshipsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sponsorship)));
-        }
-
-        if (brandsSnapshot.empty) {
-          const batch = writeBatch(db);
-          INITIAL_BRANDS.forEach(item => batch.set(doc(db, "brands", item.id), item));
-          await batch.commit();
-          setBrands(INITIAL_BRANDS);
-        } else {
-          setBrands(brandsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Brand)));
-        }
-
-        if (usersSnapshot.empty) {
-          const batch = writeBatch(db);
-          INITIAL_USERS.forEach(item => batch.set(doc(db, "users", item.id), item));
-          await batch.commit();
-          setUsers(INITIAL_USERS);
-        } else {
-          const fetchedUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-          
-          // MIGRATION: Ensure Estudio KM admin exists
-          const kmUser = INITIAL_USERS.find(u => u.email === 'holaestudiokm@gmail.com');
-          if (kmUser && !fetchedUsers.find(u => u.email === kmUser.email)) {
-              await setDoc(doc(db, "users", kmUser.id), kmUser);
-              setUsers([...fetchedUsers, kmUser]);
+        try {
+          if (sponsorshipsSnapshot.empty) {
+            const batch = writeBatch(db);
+            INITIAL_SPONSORSHIPS.forEach(item => batch.set(doc(db, "sponsorships", item.id), item));
+            await batch.commit();
+            setSponsorships(INITIAL_SPONSORSHIPS);
           } else {
-              setUsers(fetchedUsers);
+            setSponsorships(sponsorshipsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sponsorship)));
           }
-        }
+        } catch (e) { console.error("Error seeding sponsorships:", e); setSponsorships(INITIAL_SPONSORSHIPS); }
 
-        if (socialAccountsSnapshot.empty) {
+        try {
+          if (brandsSnapshot.empty) {
             const batch = writeBatch(db);
-            INITIAL_SOCIAL_ACCOUNTS.forEach(item => batch.set(doc(db, "social_accounts", item.id), item));
+            INITIAL_BRANDS.forEach(item => batch.set(doc(db, "brands", item.id), item));
             await batch.commit();
-            setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS);
-        } else {
-            const fetchedAccounts = socialAccountsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialAccount));
-            
-            // MIGRATION: Ensure social accounts have prompts if they are missing
-            const batch = writeBatch(db);
-            let needsUpdate = false;
-            const updatedAccounts = fetchedAccounts.map(acc => {
-                const initialAcc = INITIAL_SOCIAL_ACCOUNTS.find(ia => ia.id === acc.id);
-                if (initialAcc && (!acc.systemPrompt || !acc.copyPrompt)) {
-                    const updatedAcc = { 
-                        ...acc, 
-                        systemPrompt: acc.systemPrompt || initialAcc.systemPrompt,
-                        copyPrompt: acc.copyPrompt || initialAcc.copyPrompt
-                    };
-                    batch.set(doc(db, "social_accounts", acc.id), updatedAcc, { merge: true });
-                    needsUpdate = true;
-                    return updatedAcc;
-                }
-                return acc;
-            });
+            setBrands(INITIAL_BRANDS);
+          } else {
+            setBrands(brandsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Brand)));
+          }
+        } catch (e) { console.error("Error seeding brands:", e); setBrands(INITIAL_BRANDS); }
 
-            if (needsUpdate) {
-                await batch.commit();
-                setSocialAccounts(updatedAccounts);
+        try {
+          if (usersSnapshot.empty) {
+            const batch = writeBatch(db);
+            INITIAL_USERS.forEach(item => batch.set(doc(db, "users", item.id), item));
+            await batch.commit();
+            setUsers(INITIAL_USERS);
+          } else {
+            const fetchedUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+            
+            // MIGRATION: Ensure Estudio KM admin exists
+            const kmUser = INITIAL_USERS.find(u => u.email === 'holaestudiokm@gmail.com');
+            if (kmUser && !fetchedUsers.find(u => u.email === kmUser.email)) {
+                await setDoc(doc(db, "users", kmUser.id), kmUser);
+                setUsers([...fetchedUsers, kmUser]);
             } else {
-                setSocialAccounts(fetchedAccounts);
+                setUsers(fetchedUsers);
             }
-        }
+          }
+        } catch (e) { console.error("Error seeding users:", e); setUsers(INITIAL_USERS); }
 
-        if (categoriesSnapshot.empty) {
-          const batch = writeBatch(db);
-          INITIAL_CATEGORIES.forEach(item => batch.set(doc(db, "categories", item.id), item));
-          await batch.commit();
-          setCategories(INITIAL_CATEGORIES);
-        } else {
-          const fetchedCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CategoryConfig));
-          setCategories(fetchedCategories.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
-        }
-
-        if (rolesSnapshot.empty) {
-            const batch = writeBatch(db);
-            INITIAL_ROLES.forEach(item => batch.set(doc(db, "roles", item.id), item));
-            await batch.commit();
-            setRoles(INITIAL_ROLES);
-        } else {
-            const fetchedRoles = rolesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Role));
-            
-            // MIGRATION: Ensure system roles have the latest permissions from INITIAL_ROLES
-            const batch = writeBatch(db);
-            let needsUpdate = false;
-            
-            const updatedRoles = fetchedRoles.map(role => {
-              const initialRole = INITIAL_ROLES.find(r => r.id === role.id);
-              if (initialRole && initialRole.isSystemRole) {
-                // Check if permissions are different
-                const hasAllNewPermissions = initialRole.permissions.every(p => role.permissions.includes(p));
-                if (!hasAllNewPermissions) {
-                  const updatedRole = { ...role, permissions: Array.from(new Set([...role.permissions, ...initialRole.permissions])) };
-                  batch.set(doc(db, "roles", role.id), updatedRole, { merge: true });
-                  needsUpdate = true;
-                  return updatedRole;
-                }
-              }
-              return role;
-            });
-
-            if (needsUpdate) {
+        try {
+          if (socialAccountsSnapshot.empty) {
+              const batch = writeBatch(db);
+              INITIAL_SOCIAL_ACCOUNTS.forEach(item => batch.set(doc(db, "social_accounts", item.id), item));
               await batch.commit();
-              setRoles(updatedRoles);
-            } else {
-              setRoles(fetchedRoles);
-            }
-        }
+              setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS);
+          } else {
+              const fetchedAccounts = socialAccountsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialAccount));
+              
+              // MIGRATION: Ensure social accounts have prompts if they are missing
+              const batch = writeBatch(db);
+              let needsUpdate = false;
+              const updatedAccounts = fetchedAccounts.map(acc => {
+                  const initialAcc = INITIAL_SOCIAL_ACCOUNTS.find(ia => ia.id === acc.id);
+                  if (initialAcc && (!acc.systemPrompt || !acc.copyPrompt)) {
+                      const updatedAcc = { 
+                          ...acc, 
+                          systemPrompt: acc.systemPrompt || initialAcc.systemPrompt,
+                          copyPrompt: acc.copyPrompt || initialAcc.copyPrompt
+                      };
+                      batch.set(doc(db, "social_accounts", acc.id), updatedAcc, { merge: true });
+                      needsUpdate = true;
+                      return updatedAcc;
+                  }
+                  return acc;
+              });
+
+              if (needsUpdate) {
+                  await batch.commit();
+                  setSocialAccounts(updatedAccounts);
+              } else {
+                  setSocialAccounts(fetchedAccounts);
+              }
+          }
+        } catch (e) { console.error("Error seeding social_accounts:", e); setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS); }
+
+        try {
+          if (categoriesSnapshot.empty) {
+            const batch = writeBatch(db);
+            INITIAL_CATEGORIES.forEach(item => batch.set(doc(db, "categories", item.id), item));
+            await batch.commit();
+            setCategories(INITIAL_CATEGORIES);
+          } else {
+            const fetchedCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CategoryConfig));
+            setCategories(fetchedCategories.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+          }
+        } catch (e) { console.error("Error seeding categories:", e); setCategories(INITIAL_CATEGORIES); }
+
+        try {
+          if (rolesSnapshot.empty) {
+              const batch = writeBatch(db);
+              INITIAL_ROLES.forEach(item => batch.set(doc(db, "roles", item.id), item));
+              await batch.commit();
+              setRoles(INITIAL_ROLES);
+          } else {
+              const fetchedRoles = rolesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Role));
+              
+              // MIGRATION: Ensure system roles have the latest permissions from INITIAL_ROLES
+              const batch = writeBatch(db);
+              let needsUpdate = false;
+              
+              const updatedRoles = fetchedRoles.map(role => {
+                const initialRole = INITIAL_ROLES.find(r => r.id === role.id);
+                if (initialRole && initialRole.isSystemRole) {
+                  // Check if permissions are different
+                  const hasAllNewPermissions = initialRole.permissions.every(p => role.permissions.includes(p));
+                  if (!hasAllNewPermissions) {
+                    const updatedRole = { ...role, permissions: Array.from(new Set([...role.permissions, ...initialRole.permissions])) };
+                    batch.set(doc(db, "roles", role.id), updatedRole, { merge: true });
+                    needsUpdate = true;
+                    return updatedRole;
+                  }
+                }
+                return role;
+              });
+
+              if (needsUpdate) {
+                await batch.commit();
+                setRoles(updatedRoles);
+              } else {
+                setRoles(fetchedRoles);
+              }
+          }
+        } catch (e) { console.error("Error seeding roles:", e); setRoles(INITIAL_ROLES); }
 
         // Social posts are handled by onSnapshot
 
