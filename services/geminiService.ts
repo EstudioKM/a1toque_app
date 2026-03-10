@@ -15,7 +15,7 @@ const getAI = () => {
   return aiInstance;
 };
 
-const FAST_MODEL = 'gemini-3-flash-preview';
+const FAST_MODEL = 'gemini-3.1-flash-lite-preview';
 const POWERFUL_MODEL = 'gemini-3.1-pro-preview';
 
 const cleanAndParseJSON = (text: any, defaultValue: any) => {
@@ -27,8 +27,8 @@ const cleanAndParseJSON = (text: any, defaultValue: any) => {
     let cleanedText = text.replace(/```json\n?|```/g, '').trim();
     if (!cleanedText || typeof cleanedText !== 'string') return defaultValue;
 
-    const start = cleanedText.indexOf('{');
-    const end = cleanedText.lastIndexOf('}');
+    const start = (cleanedText || '').indexOf('{');
+    const end = (cleanedText || '').lastIndexOf('}');
     
     if (start !== -1 && end !== -1 && end > start) {
         cleanedText = cleanedText.substring(start, end + 1);
@@ -137,43 +137,106 @@ export const generateNewsFromUrl = async (url: string, systemInstruction: string
 };
 
 export const generateSocialMediaContent = async (title: string, excerpt: string, systemInstruction: string, copyInstruction: string) => {
-  const prompt = `Community Manager experto. Crea posteo para: "${title}". Resumen: "${excerpt}". Instrucciones: ${systemInstruction}. Reglas de copy: ${copyInstruction}. 
-  CRÍTICO: Escribe con espacios normales entre las palabras.
-  JSON: { shortTitle, copy }`;
+  const prompt = `Actúa como un Community Manager experto y estratega de contenido. 
+  Tu objetivo es crear un posteo de alto impacto para redes sociales basado en: "${title}".
+  Resumen del contexto: "${excerpt}".
+  
+  INSTRUCCIONES OBLIGATORIAS:
+  1. SIEMPRE utiliza la herramienta googleSearch para buscar información adicional, noticias de último momento y datos actualizados sobre este tema. No te limites solo al resumen proporcionado.
+  2. Enriquece el posteo con datos reales, resultados recientes o contexto de actualidad que encuentres en internet.
+  3. Adapta el tono según: ${systemInstruction}.
+  4. Sigue las reglas de copy: ${copyInstruction}.
+  5. Escribe de forma natural, con espacios correctos entre palabras.
+  6. El campo "shortTitle" NO PUEDE TENER MÁS DE 26 CARACTERES.
+  
+  JSON: { "shortTitle": "Título corto (máx 26 carac)", "copy": "Texto del posteo enriquecido con datos reales" }`;
+  
   const res = await generateContentWithRetry({ 
-    model: FAST_MODEL, 
+    model: POWERFUL_MODEL, 
     contents: prompt,
-    config: { responseMimeType: "application/json" }
+    config: { 
+      tools: [{ googleSearch: {} }],
+      responseMimeType: "application/json" 
+    }
   });
-  return cleanAndParseJSON(res.text, { shortTitle: "A1TOQUE", copy: "Posteo generado." });
+  
+  const data = cleanAndParseJSON(res.text, { shortTitle: "A1TOQUE", copy: "Posteo generado." });
+  
+  const groundingChunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks;
+  data.sources = groundingChunks ? groundingChunks
+        .map((chunk: any) => chunk.web ? { uri: chunk.web.uri, title: chunk.web.title } : null)
+        .filter((s): s is Source => !!s) : [];
+        
+  return data;
 };
 
 export const generateSocialMediaContentFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string) => {
   const prompt = `Actúa como un Community Manager experto y estratega de contenido. 
   Tu objetivo es crear un posteo de alto impacto para redes sociales sobre: "${topic}".
   
-  INSTRUCCIONES:
-  1. Si el tema es una URL, investígala a fondo y busca información adicional relacionada en internet para darle más contexto y valor al posteo.
-  2. Si es un tema general, realiza una búsqueda para encontrar los ángulos más recientes y relevantes.
+  INSTRUCCIONES OBLIGATORIAS:
+  1. SIEMPRE utiliza la herramienta googleSearch para investigar el tema a fondo. Busca noticias de último minuto, resultados recientes y contexto relevante en internet.
+  2. Si el tema es una URL, investígala y busca información adicional relacionada para darle más valor al posteo.
   3. Adapta el tono según estas reglas de personalidad: ${systemInstruction}.
   4. Sigue estas directrices de redacción (copywriting): ${copyInstruction}.
-  
-  REQUISITOS TÉCNICOS:
-  - Usa la herramienta googleSearch para obtener datos actualizados.
-  - Escribe de forma natural, con espacios correctos entre palabras.
-  - El resultado debe ser un JSON válido.
+  5. Escribe de forma natural, con espacios correctos entre palabras.
+  6. El campo "shortTitle" NO PUEDE TENER MÁS DE 26 CARACTERES.
 
-  JSON: { "shortTitle": "Título corto para imagen", "copy": "Texto del posteo con emojis y hashtags adecuados" }`;
+  JSON: { "shortTitle": "Título corto (máx 26 carac)", "copy": "Texto del posteo con datos reales, emojis y hashtags" }`;
   
   const res = await generateContentWithRetry({ 
-    model: FAST_MODEL, 
+    model: POWERFUL_MODEL, 
     contents: prompt, 
     config: { 
       tools: [{ googleSearch: {} }],
       responseMimeType: "application/json"
     } 
   });
-  return cleanAndParseJSON(res.text, { shortTitle: "A1TOQUE", copy: "Posteo generado." });
+  
+  const data = cleanAndParseJSON(res.text, { shortTitle: "A1TOQUE", copy: "Posteo generado." });
+  
+  const groundingChunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks;
+  data.sources = groundingChunks ? groundingChunks
+        .map((chunk: any) => chunk.web ? { uri: chunk.web.uri, title: chunk.web.title } : null)
+        .filter((s): s is Source => !!s) : [];
+        
+  return data;
+};
+
+export const refineSocialMediaContent = async (currentTitle: string, currentCopy: string, instructions: string, systemInstruction: string, copyInstruction: string) => {
+  const prompt = `Actúa como un Community Manager experto.
+  Tienes este posteo actual:
+  Título: "${currentTitle}"
+  Copy: "${currentCopy}"
+  
+  El usuario pide esta modificación: "${instructions}"
+  
+  INSTRUCCIONES OBLIGATORIAS:
+  1. SIEMPRE utiliza googleSearch para validar datos, buscar información adicional solicitada por el usuario o encontrar noticias de último momento que mejoren la respuesta.
+  2. Reformula el título y el copy incorporando la petición del usuario y los datos reales encontrados.
+  3. Mantén el tono definido por: ${systemInstruction}.
+  4. Sigue las directrices de redacción: ${copyInstruction}.
+  5. CRÍTICO: El campo "shortTitle" NO PUEDE TENER MÁS DE 26 CARACTERES.
+  
+  JSON: { "shortTitle": "Título corto (máx 26 carac)", "copy": "Texto del posteo reformulado con datos actualizados" }`;
+  
+  const res = await generateContentWithRetry({ 
+    model: POWERFUL_MODEL, 
+    contents: prompt,
+    config: { 
+      tools: [{ googleSearch: {} }],
+      responseMimeType: "application/json" 
+    }
+  });
+  
+  const data = cleanAndParseJSON(res.text, { shortTitle: currentTitle, copy: currentCopy });
+  
+  const groundingChunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks;
+  data.sources = groundingChunks ? groundingChunks
+        .map((chunk: any) => chunk.web ? { uri: chunk.web.uri, title: chunk.web.title } : null)
+        .filter((s): s is Source => !!s) : [];
+        
+  return data;
 };
 
 export const improveSocialMediaCopy = async (currentCopy: string, systemInstruction: string, copyInstruction: string) => {

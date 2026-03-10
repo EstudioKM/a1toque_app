@@ -157,7 +157,16 @@ const App: React.FC = () => {
           await batch.commit();
           setUsers(INITIAL_USERS);
         } else {
-          setUsers(usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
+          const fetchedUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+          
+          // MIGRATION: Ensure Estudio KM admin exists
+          const kmUser = INITIAL_USERS.find(u => u.email === 'holaestudiokm@gmail.com');
+          if (kmUser && !fetchedUsers.find(u => u.email === kmUser.email)) {
+              await setDoc(doc(db, "users", kmUser.id), kmUser);
+              setUsers([...fetchedUsers, kmUser]);
+          } else {
+              setUsers(fetchedUsers);
+          }
         }
 
         if (socialAccountsSnapshot.empty) {
@@ -166,7 +175,32 @@ const App: React.FC = () => {
             await batch.commit();
             setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS);
         } else {
-            setSocialAccounts(socialAccountsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialAccount)));
+            const fetchedAccounts = socialAccountsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialAccount));
+            
+            // MIGRATION: Ensure social accounts have prompts if they are missing
+            const batch = writeBatch(db);
+            let needsUpdate = false;
+            const updatedAccounts = fetchedAccounts.map(acc => {
+                const initialAcc = INITIAL_SOCIAL_ACCOUNTS.find(ia => ia.id === acc.id);
+                if (initialAcc && (!acc.systemPrompt || !acc.copyPrompt)) {
+                    const updatedAcc = { 
+                        ...acc, 
+                        systemPrompt: acc.systemPrompt || initialAcc.systemPrompt,
+                        copyPrompt: acc.copyPrompt || initialAcc.copyPrompt
+                    };
+                    batch.set(doc(db, "social_accounts", acc.id), updatedAcc, { merge: true });
+                    needsUpdate = true;
+                    return updatedAcc;
+                }
+                return acc;
+            });
+
+            if (needsUpdate) {
+                await batch.commit();
+                setSocialAccounts(updatedAccounts);
+            } else {
+                setSocialAccounts(fetchedAccounts);
+            }
         }
 
         if (categoriesSnapshot.empty) {

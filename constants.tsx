@@ -110,6 +110,15 @@ export const INITIAL_USERS: User[] = [
     roleId: 'user',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
     registrationDate: '2024-05-20'
+  },
+  {
+    id: 'admin_km',
+    name: 'Estudio KM',
+    email: 'holaestudiokm@gmail.com',
+    password: 'admin',
+    roleId: 'admin',
+    avatar: 'https://ui-avatars.com/api/?name=Estudio+KM&background=00ff9d&color=000&bold=true',
+    registrationDate: '2024-03-10'
   }
 ];
 
@@ -122,11 +131,51 @@ export const INITIAL_BRANDS: Brand[] = [
 ];
 
 export const INITIAL_SOCIAL_ACCOUNTS: SocialAccount[] = [
-    { id: 'sa-1', name: 'A1Toque Oficial', handle: '@a1toque_oficial', platform: 'instagram', profileImageUrl: 'https://ui-avatars.com/api/?name=A1&background=222&color=00ff9d&bold=true' },
-    { id: 'sa-2', name: 'Colón A1Toque', handle: '@colona1toque', platform: 'twitter', profileImageUrl: 'https://ui-avatars.com/api/?name=C&background=b91c1c&color=fff&bold=true' },
-    { id: 'sa-3', name: 'Unión A1Toque', handle: '@uniona1toque', platform: 'twitter', profileImageUrl: 'https://ui-avatars.com/api/?name=U&background=ef4444&color=fff&bold=true' },
-    { id: 'sa-4', name: 'Central A1Toque', handle: '@centrala1toque', platform: 'instagram', profileImageUrl: 'https://ui-avatars.com/api/?name=C&background=fbbf24&color=000&bold=true' },
-    { id: 'sa-5', name: 'Newell\'s A1Toque', handle: '@newellsa1toque', platform: 'instagram', profileImageUrl: 'https://ui-avatars.com/api/?name=N&background=991b1b&color=fff&bold=true' },
+    { 
+        id: 'sa-1', 
+        name: 'A1Toque Oficial', 
+        handle: '@a1toque_oficial', 
+        platform: 'instagram', 
+        profileImageUrl: 'https://ui-avatars.com/api/?name=A1&background=222&color=00ff9d&bold=true',
+        systemPrompt: 'Eres la voz oficial de A1Toque. Tu tono es profesional, informativo y emocionante. Te enfocas en las noticias más importantes del deporte santafesino.',
+        copyPrompt: 'Escribe un copy que resuma la noticia de forma impactante. Usa emojis deportivos y termina con una pregunta para fomentar la interacción. #A1Toque'
+    },
+    { 
+        id: 'sa-2', 
+        name: 'Colón A1Toque', 
+        handle: '@colona1toque', 
+        platform: 'twitter', 
+        profileImageUrl: 'https://ui-avatars.com/api/?name=C&background=b91c1c&color=fff&bold=true',
+        systemPrompt: 'Eres un fanático e informador especializado en Colón de Santa Fe. Tu tono es apasionado, cercano al hincha sabalero y muy dinámico.',
+        copyPrompt: 'Crea un tweet corto y al pie. Usa hashtags como #Colon #Sabalero y emojis rojos y negros.'
+    },
+    { 
+        id: 'sa-3', 
+        name: 'Unión A1Toque', 
+        handle: '@uniona1toque', 
+        platform: 'twitter', 
+        profileImageUrl: 'https://ui-avatars.com/api/?name=U&background=ef4444&color=fff&bold=true',
+        systemPrompt: 'Eres un informador especializado en Unión de Santa Fe. Tu tono es enérgico, fiel al sentimiento tatengue y siempre al día con la actualidad del club.',
+        copyPrompt: 'Crea un tweet con la última info del Tate. Usa #Union #Tatengue y emojis rojos y blancos.'
+    },
+    { 
+        id: 'sa-4', 
+        name: 'Central A1Toque', 
+        handle: '@centrala1toque', 
+        platform: 'instagram', 
+        profileImageUrl: 'https://ui-avatars.com/api/?name=C&background=fbbf24&color=000&bold=true',
+        systemPrompt: 'Eres la voz de A1Toque para Rosario Central. Tu tono es canalla, vibrante y muy enfocado en la pasión de Arroyito.',
+        copyPrompt: 'Escribe un copy para Instagram que destaque la mística de Central. Usa emojis amarillos y azules y hashtags como #RosarioCentral #Canalla.'
+    },
+    { 
+        id: 'sa-5', 
+        name: 'Newell\'s A1Toque', 
+        handle: '@newellsa1toque', 
+        platform: 'instagram', 
+        profileImageUrl: 'https://ui-avatars.com/api/?name=N&background=991b1b&color=fff&bold=true',
+        systemPrompt: 'Eres la voz de A1Toque para Newell\'s Old Boys. Tu tono es leproso, orgulloso de la cantera y siempre conectado con el sentimiento del Parque.',
+        copyPrompt: 'Escribe un copy para Instagram que celebre el orgullo de Newell\'s. Usa emojis rojos y negros y hashtags como #Newells #LaLepra.'
+    },
 ];
 
 export const INITIAL_SPONSORSHIPS: Sponsorship[] = [

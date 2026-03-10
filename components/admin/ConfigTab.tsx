@@ -331,7 +331,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
             Instrucción base de periodismo para todos los borradores del portal.
           </p>
           <textarea
-            value={localAiPrompt}
+            value={localAiPrompt || ''}
             onChange={(e) => { setLocalAiPrompt(e.target.value); setPromptSaved(false); }}
             rows={12}
             className="w-full flex-1 bg-black border border-white/10 rounded-2xl p-6 text-xs text-gray-300 font-mono focus:border-neon outline-none leading-relaxed shadow-inner"
@@ -400,7 +400,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
                   <div className="flex gap-2">
                     <input 
                         type="text"
-                        value={newCategoryName}
+                        value={newCategoryName || ''}
                         onChange={e => setNewCategoryName(e.target.value)}
                         placeholder="Nombre..."
                         className="flex-1 bg-black border border-white/10 rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-neon"

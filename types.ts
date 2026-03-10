@@ -244,6 +244,7 @@ export interface SocialPost {
   postedToAccounts: string[]; // Array de SocialAccount IDs
   associatedSponsors: string[]; // Array de Brand IDs
   status: 'success' | 'failed' | 'draft';
+  sources?: Source[]; // Fuentes utilizadas por la IA
 }
 
 
@@ -284,6 +285,7 @@ export interface SocialGenerationTask {
     shortTitle: string;
     copy: string;
     imageUrl?: string;
+    sources?: Source[];
   };
   error?: string;
 }

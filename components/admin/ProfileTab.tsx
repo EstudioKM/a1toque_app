@@ -79,7 +79,7 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ currentUser, onUpdateUse
                 </button>
                 <input type="file" ref={avatarInputRef} onChange={handleFileUpload} hidden accept="image/*" />
             </div>
-            <input type="text" value={formData.avatar} onChange={e => handleInputChange('avatar', e.target.value)} placeholder="O pega una URL" className="w-full bg-black border border-white/10 rounded-lg p-2 text-xs text-blue-400 mt-2 focus:border-neon outline-none text-center" />
+            <input type="text" value={formData.avatar || ''} onChange={e => handleInputChange('avatar', e.target.value)} placeholder="O pega una URL" className="w-full bg-black border border-white/10 rounded-lg p-2 text-xs text-blue-400 mt-2 focus:border-neon outline-none text-center" />
             <h3 className="text-2xl text-white font-bold mt-4">{formData.name}</h3>
             <span className="mt-2 inline-block px-3 py-1 text-[10px] font-black uppercase rounded-full bg-neon text-black">{currentUserRole?.name}</span>
         </div>
@@ -88,11 +88,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ currentUser, onUpdateUse
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Nombre de Usuario</label>
-                    <input type="text" value={formData.name} onChange={e => handleInputChange('name', e.target.value)} className="w-full bg-black border border-white/10 rounded-lg p-3 text-sm text-white mt-2 focus:border-neon outline-none" />
+                    <input type="text" value={formData.name || ''} onChange={e => handleInputChange('name', e.target.value)} className="w-full bg-black border border-white/10 rounded-lg p-3 text-sm text-white mt-2 focus:border-neon outline-none" />
                 </div>
                  <div>
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Email</label>
-                    <input type="email" value={formData.email} onChange={e => handleInputChange('email', e.target.value)} className="w-full bg-black border border-white/10 rounded-lg p-3 text-sm text-white mt-2 focus:border-neon outline-none" />
+                    <input type="email" value={formData.email || ''} onChange={e => handleInputChange('email', e.target.value)} className="w-full bg-black border border-white/10 rounded-lg p-3 text-sm text-white mt-2 focus:border-neon outline-none" />
                 </div>
             </div>
              <div>
