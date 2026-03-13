@@ -4,7 +4,8 @@ import { formatArgentinaTimestamp } from '../../services/dateUtils';
 import { 
   Plus, Edit3, Trash2, ExternalLink, Send, CheckCircle2, 
   Clock, Sparkles, Zap, ArrowRight, Loader2, AlertTriangle,
-  LayoutGrid, History, Settings2, AtSign, AlertCircle, ChevronDown
+  LayoutGrid, History, Settings2, AtSign, AlertCircle, ChevronDown,
+  Calendar, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { OptimizedImage } from '../OptimizedImage';
 import { DEFAULT_SOCIAL_COPY_PROMPT } from '../../constants';
@@ -45,9 +46,11 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   onRemoveSocialTask
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'posteos' | 'scheduled' | 'history'>('posteos');
+  const [scheduledViewMode, setScheduledViewMode] = useState<'list' | 'calendar'>('calendar');
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [postToDelete, setPostToDelete] = useState<SocialPost | null>(null);
   const [generationQuery, setGenerationQuery] = useState('');
-  const [selectedAccountId, setSelectedAccountId] = useState('global');
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
   const [isVoiceSelectorOpen, setIsVoiceSelectorOpen] = useState(false);
 
   const availableSocialAccounts = useMemo(() => {
@@ -63,10 +66,12 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
     [availableSocialAccounts, selectedAccountId]
   );
 
-  // Reset selected account if it's no longer available
+  // Set initial account and reset if no longer available
   React.useEffect(() => {
-    if (selectedAccountId !== 'global' && !availableSocialAccounts.some(acc => acc.id === selectedAccountId)) {
-      setSelectedAccountId('global');
+    if (!selectedAccountId && availableSocialAccounts.length > 0) {
+      setSelectedAccountId(availableSocialAccounts[0].id);
+    } else if (selectedAccountId && !availableSocialAccounts.some(acc => acc.id === selectedAccountId)) {
+      setSelectedAccountId(availableSocialAccounts.length > 0 ? availableSocialAccounts[0].id : '');
     }
   }, [availableSocialAccounts, selectedAccountId]);
 
@@ -84,13 +89,44 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
     );
   }, [socialPosts, currentUser]);
 
+  const scheduledPostsByDate = useMemo(() => {
+    const map = new Map<string, SocialPost[]>();
+    filteredPosts.filter(p => p.status === 'scheduled').forEach(post => {
+      if (post.scheduledAt) {
+        const date = new Date(post.scheduledAt);
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        if (!map.has(dateStr)) {
+          map.set(dateStr, []);
+        }
+        map.get(dateStr)!.push(post);
+      }
+    });
+    return map;
+  }, [filteredPosts]);
+
+  const calendarDays = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 is Sunday
+    
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(new Date(year, month, i));
+    }
+    return days;
+  }, [calendarMonth]);
+
   const handleGenerate = () => {
     if (!generationQuery) return;
     
     let systemPromptToUse = aiSystemPrompt;
     let copyPromptToUse = DEFAULT_SOCIAL_COPY_PROMPT;
     
-    if (selectedAccountId !== 'global' && selectedAccount) {
+    if (selectedAccountId && selectedAccount) {
         if (selectedAccount.systemPrompt) {
             systemPromptToUse = selectedAccount.systemPrompt;
         }
@@ -103,7 +139,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
     const isUrl = generationQuery.match(/^(https?:\/\/[^\s]+)/);
     const finalPrompt = isUrl ? `Genera un posteo basado en esta noticia: ${generationQuery}` : generationQuery;
 
-    onGenerateSocialFromTopic(finalPrompt, systemPromptToUse, copyPromptToUse, selectedAccountId !== 'global' ? selectedAccountId : undefined);
+    onGenerateSocialFromTopic(finalPrompt, systemPromptToUse, copyPromptToUse, selectedAccountId || undefined);
     setGenerationQuery('');
   };
 
@@ -119,9 +155,24 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
     }
   };
 
-  const drafts = filteredPosts.filter(p => p.status === 'draft');
-  const scheduledPosts = filteredPosts.filter(p => p.status === 'scheduled');
-  const publishedPosts = filteredPosts.filter(p => p.status === 'success' || p.status === 'failed');
+  const drafts = useMemo(() => 
+    filteredPosts
+      .filter(p => p.status === 'draft')
+      .sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()),
+    [filteredPosts]
+  );
+  const scheduledPosts = useMemo(() => 
+    filteredPosts
+      .filter(p => p.status === 'scheduled')
+      .sort((a, b) => new Date(a.scheduledAt || 0).getTime() - new Date(b.scheduledAt || 0).getTime()),
+    [filteredPosts]
+  );
+  const publishedPosts = useMemo(() => 
+    filteredPosts
+      .filter(p => p.status === 'success' || p.status === 'failed')
+      .sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime()),
+    [filteredPosts]
+  );
 
   const renderPostItem = (post: SocialPost) => {
     const author = users.find(u => u.id === post.postedBy);
@@ -133,85 +184,86 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
       <div 
         key={post.id} 
         onClick={!isEditable ? () => onOpenDetail(post) : undefined}
-        className={`group relative rounded-2xl overflow-hidden border transition-all duration-200 ${!isEditable ? 'bg-[#0f0f0f] border-white/5 hover:border-white/10 cursor-pointer' : isScheduled ? 'bg-blue-500/5 border-blue-500/20' : 'bg-neon/[0.03] border-neon/20'}`}
+        className={`group relative rounded-[32px] overflow-hidden border transition-all duration-300 ${!isEditable ? 'bg-[#0f0f0f] border-white/5 hover:border-white/10 cursor-pointer' : isScheduled ? 'bg-blue-500/5 border-blue-500/20' : 'bg-neon/[0.03] border-neon/20'}`}
       >
-        <div className="flex items-center h-24 md:h-20">
-          <div className="w-24 md:w-20 h-full flex-shrink-0 relative overflow-hidden bg-neutral-900">
-              <OptimizedImage 
-                src={post.imageUrl} 
-                alt={post.titleOverlay} 
-                className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-500" 
-              />
-              {isDraft && (
-                <div className="absolute inset-0 bg-neon/10 flex items-center justify-center">
-                   <Clock size={16} className="text-neon" />
-                </div>
-              )}
-              {isScheduled && (
-                <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
-                   <Clock size={16} className="text-blue-400" />
-                </div>
-              )}
-          </div>
-
-          <div className="flex-1 px-4 min-w-0 flex flex-col justify-center">
-             <div className="flex items-center gap-2 mb-1 overflow-hidden">
-                <div className="flex items-center -space-x-1.5 flex-shrink-0">
-                  {post.postedToAccounts.map(accountId => {
-                    const account = socialAccountMap.get(accountId);
-                    return account?.profileImageUrl ? (
-                      <img key={accountId} src={account.profileImageUrl} title={account.name} className="w-5 h-5 rounded-full border border-black bg-neutral-800" />
-                    ) : null;
-                  })}
-                </div>
-                <span className="text-gray-700 text-[10px]">•</span>
-                <div className="text-gray-500 text-[8px] font-black uppercase tracking-widest truncate">
-                  {author?.name.split(' ')[0] || 'Sistema'} • {formatArgentinaTimestamp(post.postedAt, { day: '2-digit', month: 'short' })}
-                </div>
-             </div>
-
-             <h3 className="text-white font-oswald font-bold text-sm md:text-base uppercase italic leading-tight truncate group-hover:text-neon transition-colors" title={post.titleOverlay}>
-              {post.titleOverlay}
-             </h3>
-             <p className="text-gray-500 text-[10px] font-medium leading-relaxed truncate mt-1">
-               {post.copy.substring(0, 80)}{post.copy.length > 80 ? '...' : ''}
-             </p>
-
-             {post.originalArticleId !== 'standalone' && (
-              <div className="mt-1 flex items-center gap-1.5 text-gray-600 text-[8px] font-bold uppercase tracking-wider truncate">
-                 <ExternalLink size={8} /> {post.originalArticleTitle}
+        <div className="p-6">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+            <div className="flex items-start gap-4 flex-1 min-w-0">
+              <div className="w-12 h-12 rounded-2xl overflow-hidden bg-neutral-900 flex-shrink-0 border border-white/10">
+                <OptimizedImage 
+                  src={post.imageUrl} 
+                  alt={post.titleOverlay} 
+                  className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-500" 
+                />
               </div>
-            )}
-            {isScheduled && post.scheduledAt && (
-              <div className="mt-1 flex items-center gap-1.5 text-blue-400 text-[8px] font-black uppercase tracking-wider truncate bg-blue-500/10 w-fit px-2 py-0.5 rounded">
-                <Clock size={8} /> PROGRAMADO PARA: {new Date(post.scheduledAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
-              </div>
-            )}
-          </div>
+              
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex -space-x-2 flex-shrink-0">
+                    {post.postedToAccounts.map(accountId => {
+                      const account = socialAccountMap.get(accountId);
+                      return account?.profileImageUrl ? (
+                        <img key={accountId} src={account.profileImageUrl} title={account.name} className="w-5 h-5 rounded-full border border-black bg-neutral-800" />
+                      ) : null;
+                    })}
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-neon">
+                    {post.postedToAccounts.length > 0 ? socialAccountMap.get(post.postedToAccounts[0])?.name : 'General'}
+                  </span>
+                  <h3 className="text-white font-black uppercase italic text-sm truncate group-hover:text-neon transition-colors">
+                    {post.titleOverlay}
+                  </h3>
+                </div>
 
-          <div className="flex items-center pr-3 md:pr-5 gap-2 flex-shrink-0">
-             {isEditable ? (
+                <div className="bg-black/40 rounded-2xl p-5 border border-white/5 mb-4">
+                  <h4 className="text-white font-oswald font-black text-sm uppercase italic mb-2">{post.titleOverlay}</h4>
+                  <p className="text-gray-500 text-xs leading-relaxed line-clamp-3">{post.copy}</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[9px] font-black uppercase italic tracking-widest ${post.status === 'success' ? 'text-green-500 bg-green-500/10' : post.status === 'draft' ? 'text-white bg-white/10' : 'text-blue-400 bg-blue-400/10'}`}>
+                    {post.status === 'success' ? <CheckCircle2 size={10} /> : <Clock size={10} />}
+                    {post.status === 'success' ? 'PUBLICADO' : post.status === 'draft' ? 'BORRADOR' : 'PROGRAMADO'}
+                  </div>
+                  
+                  <span className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">
+                    {author?.name.split(' ')[0] || 'Sistema'} • {formatArgentinaTimestamp(post.postedAt, { day: '2-digit', month: 'short' })}
+                  </span>
+
+                  {isScheduled && post.scheduledAt && (
+                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest bg-blue-500/10 px-3 py-1 rounded-md">
+                      {new Date(post.scheduledAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-4 md:pt-0 border-t md:border-t-0 border-white/5 flex-shrink-0">
+              {isEditable ? (
                 <button 
                   onClick={(e) => { e.stopPropagation(); onOpenEditor(post); }} 
-                  className="p-2 md:px-4 md:py-1.5 bg-white/5 border border-white/10 text-white hover:text-black hover:bg-neon hover:border-neon rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all active:scale-95"
+                  className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-lg"
                 >
-                  <Edit3 size={14} className="md:hidden" />
-                  <span className="hidden md:inline">EDITAR</span>
+                  <Edit3 size={16} strokeWidth={3} /> REVISAR Y PUBLICAR
                 </button>
               ) : (
-                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg ${post.status === 'success' ? 'text-green-500/80 bg-green-500/5' : 'text-red-500/80 bg-red-500/5'}`}>
-                   {post.status === 'success' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                   <span className="text-[8px] font-black uppercase italic tracking-widest hidden sm:inline">{post.status === 'success' ? 'LISTO' : 'ERROR'}</span>
-                </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onOpenDetail(post); }}
+                  className="px-6 py-3 bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all"
+                >
+                  VER DETALLE
+                </button>
               )}
               
               <button 
                 onClick={(e) => confirmDelete(e, post)}
-                className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center bg-red-500/5 text-red-500/40 hover:bg-red-500 hover:text-white rounded-lg transition-all border border-red-500/10"
+                className="w-12 h-12 flex items-center justify-center bg-red-500/5 text-red-500/40 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-red-500/10"
                 title="Eliminar"
               >
-                <Trash2 size={14} />
+                <Trash2 size={18} />
               </button>
+            </div>
           </div>
         </div>
       </div>
@@ -221,7 +273,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   return (
     <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0">
       {/* Header Superior */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+      <div className="sticky top-16 lg:top-16 z-40 bg-black pt-4 pb-6 mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h2 className="text-3xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-3">
             <Send className="text-neon" size={32} /> REDES SOCIALES
@@ -252,7 +304,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
               onClick={() => setActiveSubTab('posteos')}
               className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeSubTab === 'posteos' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
             >
-              <Zap size={14} /> POSTEOS
+              <Zap size={14} /> BORRADORES
             </button>
             <button 
               onClick={() => setActiveSubTab('scheduled')}
@@ -264,7 +316,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
               onClick={() => setActiveSubTab('history')}
               className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeSubTab === 'history' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
             >
-              <History size={14} /> HISTORIAL
+              <History size={14} /> PUBLICADOS
             </button>
           </div>
         </div>
@@ -273,19 +325,17 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
       {activeSubTab === 'posteos' ? (
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Input de Generación */}
-          <div className="bg-[#0f0f0f] p-8 rounded-[40px] border border-white/5 shadow-2xl relative mt-4">
+          <div className="bg-[#0f0f0f] p-6 md:p-8 rounded-[40px] border border-white/5 shadow-2xl relative mt-4">
             <div className="absolute top-0 right-0 p-8 opacity-5 overflow-hidden pointer-events-none">
                 <Zap size={120} />
             </div>
             
             <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-8">
+                <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 bg-neon/10 rounded-2xl flex items-center justify-center text-neon">
                         <Sparkles size={20} />
                     </div>
-                    <div>
-                        <h3 className="text-lg font-oswald font-black text-white uppercase italic tracking-tight">GENERAR POSTEO</h3>
-                    </div>
+                    <h3 className="text-lg font-oswald font-black text-white uppercase italic tracking-tight">GENERAR POSTEO</h3>
                 </div>
 
                 <div className="flex flex-col gap-4">
@@ -295,60 +345,53 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                             value={generationQuery} 
                             onChange={e => setGenerationQuery(e.target.value)} 
                             placeholder="¿Sobre qué quieres postear hoy? (Ej: El triunfo de Messi, Rumores de mercado...)" 
-                            className="w-full bg-black border border-white/10 rounded-2xl px-6 py-5 text-sm text-white focus:border-neon outline-none transition-all placeholder:text-gray-700" 
+                            className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-sm text-white focus:border-neon outline-none transition-all placeholder:text-gray-700" 
                             onKeyDown={(e) => e.key === 'Enter' && !!generationQuery && handleGenerate()}
                         />
                     </div>
 
-                <div className="flex flex-col md:flex-row gap-3">
-                    <div className="flex-1 relative">
-                        <button 
-                            onClick={() => setIsVoiceSelectorOpen(!isVoiceSelectorOpen)}
-                            className="w-full bg-black border border-white/10 rounded-xl px-4 py-4 text-xs font-bold text-white flex items-center justify-between hover:border-neon/50 transition-all"
-                        >
-                            <div className="flex items-center gap-3">
-                                {selectedAccountId === 'global' ? (
-                                    <div className="w-6 h-6 rounded-full bg-neon/20 flex items-center justify-center text-neon text-[10px] font-black">A1</div>
-                                ) : (
-                                    <img src={selectedAccount?.profileImageUrl} className="w-6 h-6 rounded-full bg-neutral-800 object-cover" />
-                                )}
-                                <span>{selectedAccountId === 'global' ? 'Voz Global A1Toque' : `Personalidad: ${selectedAccount?.name}`}</span>
-                            </div>
-                            <ChevronDown size={14} className={`transition-transform ${isVoiceSelectorOpen ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {isVoiceSelectorOpen && (
-                            <div className="absolute bottom-full mb-2 left-0 right-0 bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-50 animate-in slide-in-from-bottom-2 duration-200">
-                                <div className="scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                                    <button 
-                                        onClick={() => { setSelectedAccountId('global'); setIsVoiceSelectorOpen(false); }}
-                                        className={`w-full px-4 py-3 text-left text-[10px] font-black uppercase italic tracking-widest flex items-center gap-3 transition-colors ${selectedAccountId === 'global' ? 'bg-neon text-black' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                                    >
-                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${selectedAccountId === 'global' ? 'bg-black/20' : 'bg-neon/20 text-neon'}`}>A1</div>
-                                        Voz Global A1Toque
-                                    </button>
-                                    {availableSocialAccounts.map(account => (
-                                        <button 
-                                            key={account.id}
-                                            onClick={() => { setSelectedAccountId(account.id); setIsVoiceSelectorOpen(false); }}
-                                            className={`w-full px-4 py-3 text-left text-[10px] font-black uppercase italic tracking-widest flex items-center gap-3 transition-colors ${selectedAccountId === account.id ? 'bg-neon text-black' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                                        >
-                                            <img src={account.profileImageUrl} className="w-6 h-6 rounded-full bg-neutral-800 object-cover" />
-                                            {account.name} ({account.platform})
-                                        </button>
-                                    ))}
+                    <div className="flex flex-col md:flex-row gap-3">
+                        <div className="flex-1 relative">
+                            <button 
+                                onClick={() => setIsVoiceSelectorOpen(!isVoiceSelectorOpen)}
+                                className="w-full bg-black border border-white/10 rounded-xl px-4 h-[52px] text-xs font-bold text-white flex items-center justify-between hover:border-neon/50 transition-all"
+                            >
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    {selectedAccount?.profileImageUrl ? (
+                                        <img src={selectedAccount.profileImageUrl} className="w-6 h-6 rounded-full bg-neutral-800 object-cover flex-shrink-0" />
+                                    ) : (
+                                        <div className="w-6 h-6 rounded-full bg-neon/20 flex items-center justify-center text-neon text-[10px] font-black flex-shrink-0">A1</div>
+                                    )}
+                                    <span className="truncate text-left">{selectedAccount ? `Personalidad: ${selectedAccount.name}` : 'Seleccionar Personalidad'}</span>
                                 </div>
-                            </div>
-                        )}
+                                <ChevronDown size={14} className={`transition-transform ${isVoiceSelectorOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {isVoiceSelectorOpen && (
+                                <div className="absolute top-full mt-2 left-0 right-0 bg-[#111] border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-50 animate-in slide-in-from-top-2 duration-200">
+                                    <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                                        {availableSocialAccounts.map(account => (
+                                            <button 
+                                                key={account.id}
+                                                onClick={() => { setSelectedAccountId(account.id); setIsVoiceSelectorOpen(false); }}
+                                                className={`w-full px-4 py-3 text-left text-[10px] font-black uppercase italic tracking-widest flex items-center gap-3 transition-colors ${selectedAccountId === account.id ? 'bg-neon text-black' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                                            >
+                                                <img src={account.profileImageUrl} className="w-6 h-6 rounded-full bg-neutral-800 object-cover flex-shrink-0" />
+                                                <span className="truncate">{account.name} ({account.platform})</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <button 
+                            onClick={handleGenerate} 
+                            disabled={!generationQuery}
+                            className="w-full md:w-56 h-[52px] bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg disabled:opacity-30 flex items-center justify-center gap-2"
+                        >
+                            GENERAR POSTEO <ArrowRight size={16} strokeWidth={3} />
+                        </button>
                     </div>
-                    <button 
-                        onClick={handleGenerate} 
-                        disabled={!generationQuery}
-                        className="w-full md:w-56 h-[52px] bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg disabled:opacity-30 flex items-center justify-center gap-2"
-                    >
-                        GENERAR POSTEO <ArrowRight size={16} strokeWidth={3} />
-                    </button>
-                </div>
                 </div>
             </div>
           </div>
@@ -358,11 +401,11 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
             <div className="flex items-center justify-between mb-6 px-2">
                 <div className="flex items-center gap-4">
                     <h3 className="text-xl font-oswald font-black italic uppercase text-white tracking-tight">Borradores en Proceso</h3>
-                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full">{socialGenerationQueue.length + drafts.length} TAREAS</span>
+                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-md border border-white/5">{socialGenerationQueue.length + drafts.length} TAREAS</span>
                 </div>
                 <button 
                   onClick={() => onOpenCreator()} 
-                  className="flex items-center gap-2 px-6 py-3 bg-white text-black text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-lg"
+                  className="flex items-center gap-2 px-6 py-3 bg-white text-black text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_10px_20px_rgba(255,255,255,0.1)]"
                 >
                   <Plus size={16} strokeWidth={3} /> <span className="hidden sm:inline">NUEVO MANUAL</span>
                 </button>
@@ -379,65 +422,68 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                   {socialGenerationQueue.map(task => {
                     const taskAccount = task.accountId ? socialAccountMap.get(task.accountId) : null;
                     return (
-                    <div key={task.id} className={`bg-[#0f0f0f] p-6 rounded-3xl border transition-all ${task.status === 'completed' ? 'border-neon/20' : task.status === 'failed' ? 'border-red-500/20' : 'border-white/5 animate-pulse'}`}>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                            <div className="flex items-start gap-4">
-                                <div className={`mt-1 flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden ${task.status === 'completed' ? 'bg-neon text-black' : task.status === 'failed' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-400'}`}>
+                    <div key={task.id} className={`bg-[#0f0f0f] p-6 rounded-3xl border overflow-hidden transition-all ${task.status === 'completed' ? 'border-neon/20' : task.status === 'failed' ? 'border-red-500/20' : 'border-white/5 animate-pulse'}`}>
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                            <div className="flex items-start gap-4 flex-1 min-w-0">
+                                <div className={`mt-1 flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden ${task.status === 'completed' ? 'bg-neon/10 text-neon' : task.status === 'failed' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-400'}`}>
                                     {taskAccount && taskAccount.profileImageUrl ? (
                                         <img src={taskAccount.profileImageUrl} className="w-full h-full object-cover" />
                                     ) : (
                                         <>
-                                            {task.status === 'researching' && <Loader2 size={18} className="animate-spin" />}
-                                            {task.status === 'completed' && <CheckCircle2 size={18} strokeWidth={3} />}
-                                            {task.status === 'failed' && <AlertTriangle size={18} />}
+                                            {task.status === 'researching' && <Loader2 size={20} className="animate-spin" />}
+                                            {task.status === 'completed' && <CheckCircle2 size={20} strokeWidth={3} />}
+                                            {task.status === 'failed' && <AlertTriangle size={20} />}
                                         </>
                                     )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        {taskAccount && <span className="text-[9px] font-black uppercase tracking-widest text-neon">{taskAccount.name}</span>}
-                                        <p className="text-white font-bold text-sm truncate md:max-w-md">{task.prompt}</p>
+                                    <div className="flex items-center gap-3 mb-3">
+                                        {taskAccount && <span className="text-[10px] font-black uppercase tracking-widest text-neon">{taskAccount.name}</span>}
+                                        <h4 className="text-white font-black uppercase italic text-sm truncate">{task.prompt}</h4>
                                     </div>
+                                    
+                                    {task.status === 'completed' && task.result && (
+                                        <div className="bg-black/40 rounded-2xl p-5 border border-white/5 mb-4">
+                                            <h5 className="text-white font-oswald font-black text-sm uppercase italic mb-2">{task.result.shortTitle}</h5>
+                                            <p className="text-gray-500 text-xs leading-relaxed line-clamp-3">{task.result.copy}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center gap-3">
+                                        <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-md ${task.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white'}`}>{task.status}</span>
+                                        {task.error && <span className="text-[9px] font-bold text-red-500/60 uppercase">{task.error}</span>}
+                                        {task.status === 'completed' && (
+                                            <span className="text-[9px] font-black uppercase text-neon tracking-widest flex items-center gap-1.5">
+                                                <Sparkles size={10} /> LISTO PARA REVISIÓN
+                                            </span>
+                                        )}
+                                    </div>
+                                    
                                     {task.status === 'failed' && (
                                         <button 
                                             onClick={() => onGenerateSocialFromTopic(task.prompt, aiSystemPrompt, DEFAULT_SOCIAL_COPY_PROMPT, task.accountId)}
-                                            className="mt-2 text-[9px] font-black uppercase italic tracking-widest text-neon hover:text-white transition-colors flex items-center gap-1"
+                                            className="mt-3 text-[9px] font-black uppercase italic tracking-widest text-neon hover:text-white transition-colors flex items-center gap-1.5"
                                         >
                                             <Sparkles size={10} /> REGENERAR
                                         </button>
                                     )}
-                                    
-                                    {task.status === 'completed' && task.result && (
-                                        <div className="mt-2 bg-black/50 rounded-xl p-3 border border-white/5">
-                                            <h4 className="text-white font-oswald font-bold text-xs uppercase italic truncate">{task.result.shortTitle}</h4>
-                                            <p className="text-gray-500 text-[10px] mt-1 line-clamp-2">{task.result.copy}</p>
-                                        </div>
-                                    )}
-
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${task.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-gray-400'}`}>{task.status}</span>
-                                        {task.error && <span className="text-[8px] font-bold text-red-500/60 uppercase">{task.error}</span>}
-                                        {task.result && (
-                                            <span className="text-[8px] font-black uppercase text-neon tracking-widest">Listo para revisión</span>
-                                        )}
-                                    </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
+                            <div className="flex items-center gap-3 pt-4 md:pt-0 border-t md:border-t-0 border-white/5 flex-shrink-0">
                                 {task.status === 'completed' && task.result && (
                                     <button 
                                         onClick={() => onLoadSocialDraft(task)} 
-                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-3.5 bg-neon text-black text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all"
+                                        className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-lg"
                                     >
-                                        <Edit3 size={14} strokeWidth={3} /> REVISAR Y PUBLICAR
+                                        <Edit3 size={16} strokeWidth={3} /> REVISAR Y PUBLICAR
                                     </button>
                                 )}
                                 <button 
                                     onClick={() => onRemoveSocialTask(task.id)} 
-                                    className="w-10 h-10 flex items-center justify-center bg-red-500/5 text-red-500/40 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-red-500/10"
+                                    className="w-12 h-12 flex items-center justify-center bg-red-500/5 text-red-500/40 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-red-500/10"
                                     title="Eliminar borrador"
                                 >
-                                    <Trash2 size={14} />
+                                    <Trash2 size={18} />
                                 </button>
                             </div>
                         </div>
@@ -458,28 +504,118 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
               </h3>
               <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mt-1">Contenido pendiente de publicación</p>
             </div>
-            <button 
-              onClick={() => onOpenCreator()} 
-              className="flex items-center gap-2 px-6 py-3 bg-white text-black text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-lg"
-            >
-              <Plus size={16} strokeWidth={3} /> <span className="hidden sm:inline">NUEVO MANUAL</span>
-            </button>
+            <div className="flex items-center gap-4">
+              <div className="flex bg-black/40 p-1 rounded-xl border border-white/5">
+                <button 
+                  onClick={() => setScheduledViewMode('list')}
+                  className={`p-2 rounded-lg transition-all ${scheduledViewMode === 'list' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}
+                  title="Vista de Lista"
+                >
+                  <LayoutGrid size={16} />
+                </button>
+                <button 
+                  onClick={() => setScheduledViewMode('calendar')}
+                  className={`p-2 rounded-lg transition-all ${scheduledViewMode === 'calendar' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}
+                  title="Vista de Calendario"
+                >
+                  <Calendar size={16} />
+                </button>
+              </div>
+              <button 
+                onClick={() => onOpenCreator()} 
+                className="flex items-center gap-2 px-6 py-3 bg-white text-black text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-lg"
+              >
+                <Plus size={16} strokeWidth={3} /> <span className="hidden sm:inline">NUEVO MANUAL</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-3">
-            {scheduledPosts.length > 0 ? scheduledPosts.map(renderPostItem) : (
-              <div className="py-20 text-center border border-dashed border-white/5 rounded-[40px] bg-[#0f0f0f]">
-                <Clock className="w-12 h-12 text-gray-800 mx-auto mb-4 opacity-30" />
-                <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">No hay posteos programados</p>
+          {scheduledViewMode === 'calendar' ? (
+            <div className="bg-[#0f0f0f] border border-white/5 rounded-3xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h4 className="text-white font-oswald font-bold text-lg uppercase tracking-wider">
+                  {calendarMonth.toLocaleString('es-AR', { month: 'long', year: 'numeric' })}
+                </h4>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
+                    className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white transition-all"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button 
+                    onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
+                    className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white transition-all"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
+              
+              <div className="grid grid-cols-7 gap-2 mb-2">
+                {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => (
+                  <div key={day} className="text-center text-[10px] font-black uppercase tracking-widest text-gray-500 py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="grid grid-cols-7 gap-2">
+                {calendarDays.map((date, i) => {
+                  if (!date) return <div key={`empty-${i}`} className="bg-white/[0.02] rounded-xl min-h-[100px]" />;
+                  
+                  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                  const dayPosts = scheduledPostsByDate.get(dateStr) || [];
+                  const isToday = new Date().toDateString() === date.toDateString();
+                  
+                  return (
+                    <div key={dateStr} className={`bg-white/[0.02] rounded-xl min-h-[100px] p-2 border transition-all ${isToday ? 'border-neon/30 bg-neon/5' : 'border-white/5 hover:border-white/10'}`}>
+                      <div className={`text-[10px] font-black mb-2 ${isToday ? 'text-neon' : 'text-gray-500'}`}>
+                        {date.getDate()}
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        {dayPosts.map(post => (
+                          <div 
+                            key={post.id} 
+                            onClick={() => onOpenEditor(post)}
+                            className="bg-black/40 hover:bg-white/10 p-1.5 rounded-lg border border-white/5 cursor-pointer transition-all flex items-center gap-2 group"
+                            title={post.titleOverlay}
+                          >
+                            <div className="flex -space-x-1 flex-shrink-0">
+                              {post.postedToAccounts.slice(0, 2).map(accountId => {
+                                const account = socialAccountMap.get(accountId);
+                                return account?.profileImageUrl ? (
+                                  <img key={accountId} src={account.profileImageUrl} className="w-4 h-4 rounded-full border border-black bg-neutral-800 object-cover" />
+                                ) : null;
+                              })}
+                            </div>
+                            <span className="text-[9px] font-bold text-gray-300 group-hover:text-white truncate">
+                              {post.titleOverlay}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {scheduledPosts.length > 0 ? scheduledPosts.map(renderPostItem) : (
+                <div className="py-20 text-center border border-dashed border-white/5 rounded-[40px] bg-[#0f0f0f]">
+                  <Clock className="w-12 h-12 text-gray-800 mx-auto mb-4 opacity-30" />
+                  <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">No hay posteos programados</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h3 className="text-xl font-oswald font-black italic uppercase text-white tracking-tight">Historial de Posteos</h3>
+              <h3 className="text-xl font-oswald font-black italic uppercase text-white tracking-tight">Posteos Publicados</h3>
               <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest">Registro de actividad en redes</p>
             </div>
           </div>
@@ -504,7 +640,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
               </div>
               <h3 className="text-2xl font-oswald font-black text-white uppercase italic mb-3 tracking-tighter">¿BORRAR POSTEO?</h3>
               <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-10 px-2 leading-relaxed">
-                Esta acción es irreversible y eliminará el registro de tu historial.
+                Esta acción es irreversible y eliminará el registro de tus publicaciones.
               </p>
               <div className="flex flex-col gap-3">
                 <button onClick={executeDelete} className="w-full py-4 bg-red-600 text-white font-black uppercase italic text-[11px] tracking-widest rounded-xl hover:bg-red-500 transition-colors">ELIMINAR AHORA</button>

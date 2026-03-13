@@ -157,14 +157,23 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     setIsOpen(false);
                     onOpenAdminTab(notif.tab, notif.targetId);
                   }}
-                  className="w-full text-left p-4 hover:bg-white/5 border-b border-white/5 transition-colors flex gap-3 items-start group"
+                  className={`w-full text-left p-4 hover:bg-white/5 border-b border-white/5 transition-colors flex gap-3 items-start group ${notif.type === 'alert' ? 'bg-yellow-500/5 border-l-2 border-l-yellow-500' : ''}`}
                 >
-                  <div className={`mt-1 p-2 rounded-lg ${notif.type === 'chat' ? 'bg-blue-500/10 text-blue-400' : notif.type === 'alert' ? 'bg-red-500/10 text-red-400' : 'bg-neon/10 text-neon'}`}>
+                  <div className={`mt-1 p-2 rounded-lg shrink-0 ${notif.type === 'chat' ? 'bg-blue-500/10 text-blue-400' : notif.type === 'alert' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-neon/10 text-neon'}`}>
                     {notif.type === 'chat' ? <MessageSquare size={14} /> : notif.type === 'alert' ? <Bell size={14} /> : <CheckSquare size={14} />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-black text-white uppercase tracking-tight mb-0.5 group-hover:text-neon transition-colors">{notif.title}</p>
-                    <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed mb-1.5">{notif.description}</p>
+                    {notif.type === 'alert' ? (
+                      <>
+                        <p className="text-[9px] font-bold text-yellow-500/70 uppercase tracking-widest mb-0.5">{notif.title}</p>
+                        <p className="text-[12px] text-white font-medium leading-relaxed mb-1.5">{notif.description}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[11px] font-black text-white uppercase tracking-tight mb-0.5 group-hover:text-neon transition-colors">{notif.title}</p>
+                        <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed mb-1.5">{notif.description}</p>
+                      </>
+                    )}
                     <div className="flex items-center gap-1 text-[8px] font-bold text-gray-600 uppercase">
                       <Clock size={10} /> {new Date(notif.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>

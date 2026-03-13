@@ -198,22 +198,31 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                   ) : (
                     <div className="divide-y divide-white/5">
                       {notifications.map(notif => (
-                        <div key={notif.id} className={`p-4 hover:bg-white/5 transition-colors group ${notif.type === 'alert' ? 'bg-red-500/5 border-l-4 border-red-500' : ''}`}>
+                        <div key={notif.id} className={`p-4 hover:bg-white/5 transition-colors group ${notif.type === 'alert' ? 'bg-yellow-500/10 border-l-4 border-yellow-500' : ''}`}>
                           <div className="flex gap-4 items-start">
-                            <div className={`mt-1 p-2 rounded-xl shrink-0 ${notif.type === 'chat' ? 'bg-blue-500/10 text-blue-400' : notif.type === 'alert' ? 'bg-red-500/20 text-red-400' : 'bg-neon/10 text-neon'}`}>
+                            <div className={`mt-1 p-2 rounded-xl shrink-0 ${notif.type === 'chat' ? 'bg-blue-500/10 text-blue-400' : notif.type === 'alert' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-neon/10 text-neon'}`}>
                               {notif.type === 'chat' ? <MessageSquare size={16} /> : notif.type === 'alert' ? <Bell size={16} /> : <CheckSquare size={16} />}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className={`text-[11px] font-black uppercase tracking-tight mb-1 ${notif.type === 'alert' ? 'text-red-400' : 'text-white'} group-hover:text-neon transition-colors`}>{notif.title}</p>
-                              <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed mb-2">{notif.description}</p>
-                              <div className="flex items-center justify-between">
+                              {notif.type === 'alert' ? (
+                                <>
+                                  <p className="text-[9px] font-bold text-yellow-500/70 uppercase tracking-widest mb-1">{notif.title}</p>
+                                  <p className="text-[13px] text-white font-medium leading-relaxed mb-3">{notif.description}</p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-[11px] font-black uppercase tracking-tight mb-1 text-white group-hover:text-neon transition-colors">{notif.title}</p>
+                                  <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed mb-2">{notif.description}</p>
+                                </>
+                              )}
+                              <div className="flex items-center justify-between mt-2">
                                 <div className="flex items-center gap-1 text-[8px] font-bold text-gray-600 uppercase">
                                   <Clock size={10} /> {formatArgentinaTime(notif.time)}
                                 </div>
                                 {notif.type === 'alert' ? (
                                   <button 
                                     onClick={() => handleAcknowledgeAlert(notif.targetId)}
-                                    className="text-[9px] font-black text-red-400 hover:text-red-300 uppercase tracking-widest"
+                                    className="px-4 py-2 bg-yellow-500 text-black font-black uppercase tracking-widest rounded-lg hover:bg-yellow-400 transition-colors text-[10px] shadow-[0_0_15px_rgba(234,179,8,0.3)]"
                                   >
                                     Aceptar
                                   </button>

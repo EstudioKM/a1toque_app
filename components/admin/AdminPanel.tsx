@@ -363,7 +363,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">{availableTabs.map(tab => (<NavButton key={tab.id} tab={tab.id as AdminTab} icon={tab.icon} label={tab.label} />))}</div>
         <div className="space-y-2 border-t border-white/10 pt-6 mt-4"><NavButton tab="profile" icon={UserIcon} label="Mi Perfil" /><button onClick={props.onExit} className="flex items-center space-x-3 w-full text-left px-3 py-3 rounded-xl transition-all text-sm font-bold text-red-400 hover:bg-red-500/10"> <LogOut size={18} /> <span>Salir del Panel</span></button></div>
       </aside>
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-black lg:ml-64 pt-20 lg:pt-24">
+      <main className="flex-1 p-4 md:p-8 bg-black lg:ml-64 pt-20 lg:pt-24">
         <div className="max-w-7xl mx-auto">
           {activeTab === 'home' && (
             <HomeTab 

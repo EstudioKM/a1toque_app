@@ -239,7 +239,9 @@ export interface SocialPost {
   postedAt: string;
   postedBy: string; // User ID
   imageUrl: string;
+  imageUrls?: string[]; // Soporte para carrusel
   originalImageUrl?: string; // Imagen original cargada por el usuario
+  originalImageUrls?: string[]; // Imágenes originales para carrusel
   titleOverlay: string;
   copy: string;
   postedToAccounts: string[]; // Array de SocialAccount IDs

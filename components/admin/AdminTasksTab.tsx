@@ -47,6 +47,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
   const [modalTaskFilter, setModalTaskFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [modalTaskSort, setModalTaskSort] = useState<'date-desc' | 'date-asc' | 'time-desc' | 'time-asc'>('date-desc');
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [showCompletedTasksModal, setShowCompletedTasksModal] = useState(false);
 
   const setQuickRange = (range: 'all' | 'thisMonth' | 'lastMonth' | 'last7Days' | 'today') => {
     if (range === 'all') {
@@ -162,7 +163,17 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
       value: parseFloat(value.toFixed(1))
     })).sort((a, b) => b.value - a.value);
 
-    return { dailyData, accountData, memberData, totalHours: rangeTasks.reduce((acc, t) => acc + (t.hours || 0), 0) };
+    const completedTasks = rangeTasks.filter(t => t.status === 'completed').length;
+    const pendingTasks = rangeTasks.filter(t => t.status === 'pending').length;
+
+    return { 
+      dailyData, 
+      accountData, 
+      memberData, 
+      totalHours: rangeTasks.reduce((acc, t) => acc + (t.hours || 0), 0),
+      completedTasks,
+      pendingTasks
+    };
   }, [tasks, dateRange, users, userFilter]);
 
   const COLORS = ['#00FF9D', '#00D1FF', '#FF00FF', '#FFD700', '#FF4500', '#8A2BE2'];
@@ -273,7 +284,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
 
             {/* Bottom Row: Filters */}
             <div className="flex flex-wrap items-center gap-4">
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="relative flex items-center">
                     <Calendar size={14} className="absolute left-3 text-gray-500 pointer-events-none" />
@@ -339,44 +350,44 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
 
             <div className="bg-white/5 border border-white/10 p-6 rounded-[32px] relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                <CheckSquare size={48} className="text-neon" />
-              </div>
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Tareas Completadas</p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-oswald font-black italic text-white">
-                  {tasks.filter(t => {
-                    if (t.status !== 'completed') return false;
-                    const tDate = parseArgentinaDate(t.date);
-                    const start = dateRange.start ? parseArgentinaDate(dateRange.start) : new Date(0);
-                    const end = dateRange.end ? parseArgentinaDate(dateRange.end) : new Date(8640000000000000);
-                    return tDate >= start && tDate <= end;
-                  }).length}
-                </span>
-                <span className="text-xs font-bold text-gray-600 uppercase">finalizadas</span>
-              </div>
-            </div>
-
-            <div className="bg-white/5 border border-white/10 p-6 rounded-[32px] relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                 <TrendingUp size={48} className="text-neon" />
               </div>
               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Promedio Diario</p>
               <div className="flex items-baseline gap-2">
                 <span className="text-5xl font-oswald font-black italic text-white">
-                  {(analytics.totalHours / analytics.dailyData.length).toFixed(1)}
+                  {(analytics.totalHours / Math.max(1, analytics.dailyData.length)).toFixed(1)}
                 </span>
                 <span className="text-xs font-bold text-gray-600 uppercase">hrs/día</span>
               </div>
+              <p className="text-[9px] font-bold text-gray-600 uppercase mt-2">
+                {dateRange.start ? `Desde ${format(parseArgentinaDate(dateRange.start), 'dd/MM/yyyy')}` : 'Histórico'}
+              </p>
             </div>
 
             <div className="bg-white/5 border border-white/10 p-6 rounded-[32px] relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                <Building size={48} className="text-neon" />
+                <Clock size={48} className="text-neon" />
               </div>
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Cuentas Activas</p>
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Tareas Pendientes</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-oswald font-black italic text-white">{analytics.accountData.length}</span>
-                <span className="text-xs font-bold text-gray-600 uppercase">proyectos</span>
+                <span className="text-5xl font-oswald font-black italic text-white">{analytics.pendingTasks}</span>
+                <span className="text-xs font-bold text-gray-600 uppercase">en curso</span>
+              </div>
+            </div>
+
+            <div 
+              onClick={() => setShowCompletedTasksModal(true)}
+              className="bg-white/5 border border-white/10 p-6 rounded-[32px] relative overflow-hidden group cursor-pointer hover:bg-white/10 transition-colors"
+            >
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                <CheckSquare size={48} className="text-neon" />
+              </div>
+              <p className="text-[10px] font-black text-neon uppercase tracking-widest mb-4">Tareas Completadas</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-5xl font-oswald font-black italic text-neon">
+                  {analytics.completedTasks}
+                </span>
+                <span className="text-xs font-bold text-neon/70 uppercase">finalizadas</span>
               </div>
             </div>
           </div>
@@ -1218,6 +1229,82 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCompletedTasksModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-[#0D0D0D] p-8 rounded-3xl border border-neon/30 shadow-2xl shadow-neon/10 relative overflow-hidden max-w-4xl w-full max-h-[90vh] flex flex-col"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-neon" />
+              <div className="flex justify-between items-center mb-8 shrink-0">
+                <h3 className="text-xl font-oswald font-black italic uppercase text-neon flex items-center gap-3">
+                  <CheckSquare size={20} /> 
+                  Tareas Completadas
+                </h3>
+                <button onClick={() => setShowCompletedTasksModal(false)} className="text-gray-500 hover:text-white transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="overflow-y-auto custom-scrollbar flex-1 pr-2">
+                <div className="space-y-4">
+                  {tasks.filter(t => t.status === 'completed').length === 0 ? (
+                    <div className="text-center py-12 text-gray-500 font-oswald italic uppercase tracking-widest">
+                      No hay tareas completadas
+                    </div>
+                  ) : (
+                    tasks.filter(t => t.status === 'completed')
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map(task => (
+                        <div key={task.id} className="bg-white/5 border border-neon/20 p-4 rounded-2xl flex items-start justify-between gap-4 group hover:bg-white/10 transition-colors">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="px-2 py-1 bg-neon/10 text-neon text-[9px] font-black uppercase tracking-widest rounded-md border border-neon/20">
+                                {task.account || 'General'}
+                              </span>
+                              <span className="text-[10px] font-bold text-gray-500 flex items-center gap-1">
+                                <Calendar size={10} /> {format(parseArgentinaDate(task.date), 'dd/MM/yyyy')}
+                              </span>
+                            </div>
+                            <h4 className="text-white font-black uppercase italic text-sm mb-1">{task.title}</h4>
+                            <p className="text-gray-400 text-xs line-clamp-2">{task.description}</p>
+                          </div>
+                          
+                          <div className="flex flex-col items-end gap-3 shrink-0">
+                            <div className="flex -space-x-2">
+                              {task.assignedUserIds.map(uid => {
+                                const user = users.find(u => u.id === uid);
+                                return user ? (
+                                  <img 
+                                    key={uid}
+                                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`}
+                                    alt={user.name}
+                                    className="w-8 h-8 rounded-full border-2 border-[#0D0D0D] object-cover"
+                                    title={user.name}
+                                  />
+                                ) : null;
+                              })}
+                            </div>
+                            {task.hours && (
+                              <div className="flex items-center gap-1 text-neon text-[10px] font-black">
+                                <Clock size={12} />
+                                {task.hours} HRS
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

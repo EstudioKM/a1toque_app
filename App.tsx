@@ -10,6 +10,7 @@ import { SponsorshipBanner } from './components/SponsorshipBanner';
 import { LandingPage } from './components/LandingPage';
 import { LoginModal } from './components/LoginModal';
 import { WelcomeModal } from './components/WelcomeModal';
+import { PersonalNotificationsModal } from './components/PersonalNotificationsModal';
 import { db } from './services/firebase';
 import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc, onSnapshot } from 'firebase/firestore';
 import { A1ToqueLoader } from './components/A1ToqueLoader';
@@ -58,6 +59,8 @@ const App: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [welcomeUserName, setWelcomeUserName] = useState('');
+  const [showPersonalNotificationsModal, setShowPersonalNotificationsModal] = useState(false);
+  const [hasShownPersonalNotifications, setHasShownPersonalNotifications] = useState(false);
 
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showPopup, setShowPopup] = useState(false);
@@ -365,6 +368,16 @@ const App: React.FC = () => {
       }
     }
   }, [view, isLoading]);
+
+  useEffect(() => {
+    if (currentUser && !hasShownPersonalNotifications) {
+      const activeAlerts = (currentUser.alertMessages || []).filter(a => !a.seen);
+      if (activeAlerts.length > 0) {
+        setShowPersonalNotificationsModal(true);
+        setHasShownPersonalNotifications(true);
+      }
+    }
+  }, [currentUser, hasShownPersonalNotifications]);
 
   const handleClosePopup = () => {
     setShowPopup(false);
@@ -808,6 +821,25 @@ const App: React.FC = () => {
     <div className="min-h-screen selection:bg-neon selection:text-black bg-black">
       {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} onLogin={handleLogin} onRegister={handleRegister} />}
       {showWelcomeModal && <WelcomeModal userName={welcomeUserName} onClose={() => setShowWelcomeModal(false)} />}
+      {showPersonalNotificationsModal && currentUser && (
+        <PersonalNotificationsModal
+          user={currentUser}
+          onClose={() => setShowPersonalNotificationsModal(false)}
+          onMarkAsSeen={(alertId) => {
+            const updatedAlerts = (currentUser.alertMessages || []).map(a => 
+              a.id === alertId ? { ...a, seen: true, seenAt: new Date().toISOString() } : a
+            );
+            updateUser({ ...currentUser, alertMessages: updatedAlerts });
+          }}
+          onMarkAllAsSeen={() => {
+            const updatedAlerts = (currentUser.alertMessages || []).map(a => 
+              ({ ...a, seen: true, seenAt: new Date().toISOString() })
+            );
+            updateUser({ ...currentUser, alertMessages: updatedAlerts });
+            setShowPersonalNotificationsModal(false);
+          }}
+        />
+      )}
       
       {!showMainContent && view === ViewMode.HOME && (
         <div className="fixed inset-0 z-[1000] bg-black flex items-center justify-center">

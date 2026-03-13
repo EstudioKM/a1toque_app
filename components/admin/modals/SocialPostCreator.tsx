@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Article, User, Brand, SocialAccount, SocialPost, Source, SiteConfig } from '../../../types';
 import { generateSocialMediaContent, generateSocialMediaContentFromTopic, improveSocialMediaCopy, refineSocialMediaContent } from '../../../services/geminiService';
-import { X, ArrowRight, Loader2, AlertTriangle, CheckCircle2, UploadCloud, Sparkles, AtSign, Building, Check, Crop, Send, Save, Edit2, AlertCircle, Calendar, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { X, ArrowRight, Loader2, AlertTriangle, CheckCircle2, UploadCloud, Sparkles, AtSign, Building, Check, Crop, Send, Save, Edit2, AlertCircle, Calendar, ChevronLeft, ChevronRight, Clock, Trash2, Plus } from 'lucide-react';
 import { storage } from '../../../services/firebase';
 import { ref, uploadString, getDownloadURL, uploadBytes } from 'firebase/storage';
 import { ImageCropper } from './ImageCropper';
@@ -44,7 +44,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   const [status, setStatus] = useState<PublicationStatus>('idle');
   const [shortTitle, setShortTitle] = useState('');
   const [copy, setCopy] = useState('');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [selectedSponsors, setSelectedSponsors] = useState<string[]>([]);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
@@ -99,7 +100,12 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           setLastGeneratedTitle(draftPost.titleOverlay || '');
           setCopy(draftPost.copy || '');
           setLastGeneratedCopy(draftPost.copy || '');
-          setImageUrl(draftPost.originalImageUrl || draftPost.imageUrl || '');
+          
+          const initialImages = draftPost.imageUrls && draftPost.imageUrls.length > 0 
+            ? draftPost.imageUrls 
+            : (draftPost.imageUrl ? [draftPost.imageUrl] : []);
+          
+          setImageUrls(initialImages);
           setLastGeneratedBaseImage(draftPost.originalImageUrl || draftPost.imageUrl || '');
           setSelectedAccounts(draftPost.postedToAccounts || []);
           setLastGeneratedAccounts(draftPost.postedToAccounts || []);
@@ -107,8 +113,13 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           setLastGeneratedSponsors(draftPost.associatedSponsors || []);
           
           if (draftPost.scheduledAt) {
-            setScheduledAt(draftPost.scheduledAt.slice(0, 16)); // Format for datetime-local
+            setScheduledAt(draftPost.scheduledAt);
             setIsScheduling(true);
+            
+            // Update selectedDate and selectedTime to match the draft
+            const draftDate = new Date(draftPost.scheduledAt);
+            setSelectedDate(draftDate);
+            setSelectedTime(`${draftDate.getHours().toString().padStart(2, '0')}:${draftDate.getMinutes().toString().padStart(2, '0')}`);
           }
 
           // Asegurar que las fuentes incluyan el artículo original si existe
@@ -130,7 +141,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           }
           isInitialized.current = true;
         } else if (article) {
-          setImageUrl(article.imageUrl);
+          setImageUrls(article.imageUrl ? [article.imageUrl] : []);
           setLastGeneratedBaseImage(article.imageUrl);
           setStatus('generating');
 
@@ -199,23 +210,66 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   }, [selectedSponsors, status, copy, brandMap]);
 
 
+  const handleLoadArticleImages = () => {
+    if (!article) return;
+    
+    const articleImages: string[] = [];
+    
+    // Imagen principal
+    if (article.imageUrl) articleImages.push(article.imageUrl);
+    
+    // Imágenes de los bloques de contenido
+    if (Array.isArray(article.content)) {
+      article.content.forEach(block => {
+        if (block.type === 'image' && block.content) {
+          articleImages.push(block.content);
+        }
+      });
+    }
+    
+    if (articleImages.length > 0) {
+      // Filtrar duplicados
+      const uniqueImages = articleImages.filter((img, idx) => articleImages.indexOf(img) === idx);
+      
+      // Solo agregar las que no están ya en imageUrls
+      const newImages = uniqueImages.filter(img => !imageUrls.includes(img));
+      
+      if (newImages.length > 0) {
+        setImageUrls(prev => [...prev, ...newImages]);
+      }
+    }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setIsUploading(true);
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = error => reject(error);
-      });
-      const storageRef = ref(storage, `social_images/${Date.now()}-${file.name}`);
-      const snapshot = await uploadString(storageRef, base64, 'data_url');
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      setImageUrl(downloadURL);
-      setGeneratedImageUrl('');
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
+        });
+        const storageRef = ref(storage, `social_images/${Date.now()}-${file.name}`);
+        const snapshot = await uploadString(storageRef, base64, 'data_url');
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        newUrls.push(downloadURL);
+      }
+      
+      // Si no había imágenes, la primera nueva será la base para generación
+      if (imageUrls.length === 0) {
+        setGeneratedImageUrl('');
+      }
+      
+      setImageUrls(prev => [...prev, ...newUrls]);
+      if (imageUrls.length === 0 && newUrls.length > 0) {
+        setCurrentImageIndex(0);
+      }
     } catch (error) {
       console.error("Upload error:", error);
     } finally {
@@ -224,7 +278,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   };
   
     const handleUrlProcessing = async () => {
-    if (!imageUrl || !imageUrl.startsWith('http') || imageUrl.includes('firebasestorage.googleapis.com')) {
+    const currentUrl = imageUrls[currentImageIndex];
+    if (!currentUrl || !currentUrl.startsWith('http') || currentUrl.includes('firebasestorage.googleapis.com')) {
         setUrlError(null);
         return;
     }
@@ -234,12 +289,12 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     
     try {
         // Intentamos usar un proxy más robusto para imágenes
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`;
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(currentUrl)}`;
         const response = await fetch(proxyUrl);
         
         if (!response.ok) {
             // Fallback a corsproxy.io si el primero falla
-            const fallbackUrl = `https://corsproxy.io/?${encodeURIComponent(imageUrl)}`;
+            const fallbackUrl = `https://corsproxy.io/?${encodeURIComponent(currentUrl)}`;
             const fallbackResponse = await fetch(fallbackUrl);
             if (!fallbackResponse.ok) throw new Error('No se pudo acceder a la imagen externa');
             
@@ -266,7 +321,16 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     const snapshot = await uploadBytes(storageRef, blob);
     const downloadURL = await getDownloadURL(snapshot.ref);
 
-    setImageUrl(downloadURL);
+    // Si estamos editando la primera imagen, invalidamos la generada
+    if (currentImageIndex === 0) {
+      setGeneratedImageUrl('');
+    }
+
+    setImageUrls(prev => {
+      const next = [...prev];
+      next[currentImageIndex] = downloadURL;
+      return next;
+    });
   };
   
   const handleImproveCopy = async () => {
@@ -350,7 +414,11 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         const storageRef = ref(storage, `social_images/cropped-${Date.now()}.jpg`);
         const snapshot = await uploadString(storageRef, croppedImageBase64, 'data_url');
         const downloadURL = await getDownloadURL(snapshot.ref);
-        setImageUrl(downloadURL);
+        setImageUrls(prev => {
+          const next = [...prev];
+          next[currentImageIndex] = downloadURL;
+          return next;
+        });
         setGeneratedImageUrl('');
     } catch (error) {
         console.error("Cropped image upload error:", error);
@@ -376,12 +444,25 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       const authorUser = article ? users.find(u => u.id === article.author) : null;
       const authorName = authorUser ? authorUser.name : 'Redacción';
       
+      const getFinalImageUrls = () => {
+        if (state === 'approved' || state === 'scheduled') {
+          if (generatedImageUrl) {
+            // Si hay una imagen generada, reemplaza la primera de la lista pero mantiene las demás
+            return [generatedImageUrl, ...imageUrls.slice(1)];
+          }
+          return imageUrls;
+        }
+        return imageUrls;
+      };
+
       return {
         state,
         accounts: selectedAccountDetails,
         author: authorName,
         publisher: currentUser.name,
-        imageUrl: (state === 'approved' || state === 'scheduled') ? generatedImageUrl : imageUrl,
+        imageUrl: (state === 'approved' || state === 'scheduled') ? generatedImageUrl : imageUrls[0],
+        imageUrls: getFinalImageUrls(),
+        postType: imageUrls.length > 1 ? 'carousel' : 'single',
         title: shortTitle,
         copy: copy,
         sponsorCount: selectedSponsors.length,
@@ -394,7 +475,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   const hasChangesSinceLastGeneration = () => {
     if (shortTitle !== lastGeneratedTitle) return true;
     if (copy !== lastGeneratedCopy) return true;
-    if (imageUrl !== lastGeneratedBaseImage) return true;
+    if (imageUrls[0] !== lastGeneratedBaseImage) return true;
     
     // Compare arrays
     if (selectedSponsors.length !== lastGeneratedSponsors.length) return true;
@@ -407,16 +488,29 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   };
 
   const handleGeneratePreview = async () => {
-    if (!imageUrl) {
+    if (imageUrls.length === 0) {
         alert("Por favor, carga una imagen primero.");
         return;
     }
     setStatus('creatingPreview');
     const payload = buildWebhookPayload('create');
-    const webhookUrl = "https://hook.us1.make.com/k1ju5hoo957qi7tasocjdpcso23egosw";
+    const webhookUrl = "/api/webhook/publish";
     try {
       const response = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Webhook failed: ${response.status}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.details) errorMessage += ` - ${errorJson.details}`;
+          else if (errorJson.error) errorMessage += ` - ${errorJson.error}`;
+        } catch (e) {
+          if (errorText) errorMessage += ` - ${errorText.substring(0, 100)}`;
+        }
+        throw new Error(errorMessage);
+      }
+
       const newImageUrl = await response.text();
       if (!newImageUrl.startsWith('http')) throw new Error(`Invalid URL from webhook: ${newImageUrl}`);
       setGeneratedImageUrl(newImageUrl);
@@ -424,7 +518,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       setLastGeneratedCopy(copy);
       setLastGeneratedSponsors([...selectedSponsors]);
       setLastGeneratedAccounts([...selectedAccounts]);
-      setLastGeneratedBaseImage(imageUrl);
+      setLastGeneratedBaseImage(imageUrls[0]);
       setStatus('preview');
     } catch (error) {
       console.error("Failed to generate preview:", error);
@@ -438,8 +532,9 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         originalArticleTitle: article?.title || draftPost?.originalArticleTitle || shortTitle,
         postedAt: draftPost?.postedAt || new Date().toISOString(),
         postedBy: draftPost?.postedBy || currentUser.id,
-        imageUrl: generatedImageUrl || imageUrl || '',
-        originalImageUrl: imageUrl || '',
+        imageUrl: generatedImageUrl || imageUrls[0] || '',
+        imageUrls: imageUrls,
+        originalImageUrl: imageUrls[0] || '',
         titleOverlay: shortTitle,
         copy: copy,
         postedToAccounts: selectedAccounts,
@@ -468,19 +563,32 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     
     const isScheduled = isScheduling && scheduledAt;
     const payload = buildWebhookPayload(isScheduled ? 'scheduled' : 'approved');
-    const webhookUrl = "https://hook.us1.make.com/k1ju5hoo957qi7tasocjdpcso23egosw";
+    const webhookUrl = "/api/webhook/publish";
     
     try {
       const response = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Webhook failed: ${response.status}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.details) errorMessage += ` - ${errorJson.details}`;
+          else if (errorJson.error) errorMessage += ` - ${errorJson.error}`;
+        } catch (e) {
+          if (errorText) errorMessage += ` - ${errorText.substring(0, 100)}`;
+        }
+        throw new Error(errorMessage);
+      }
       
       const postData = {
         originalArticleId: article?.id || draftPost?.originalArticleId || 'standalone',
         originalArticleTitle: article?.title || draftPost?.originalArticleTitle || shortTitle,
         postedAt: new Date().toISOString(),
         postedBy: draftPost?.postedBy || currentUser.id,
-        imageUrl: generatedImageUrl || imageUrl || '',
-        originalImageUrl: imageUrl || '',
+        imageUrl: generatedImageUrl || imageUrls[0] || '',
+        imageUrls: imageUrls,
+        originalImageUrl: imageUrls[0] || '',
         titleOverlay: shortTitle,
         copy: copy,
         postedToAccounts: selectedAccounts,
@@ -614,18 +722,18 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           </div>
        )}
 
-       {isCropperOpen && imageUrl && (
-        <ImageCropper imageUrl={imageUrl} onClose={() => setIsCropperOpen(false)} onSave={handleCropSave} />
+       {isCropperOpen && imageUrls[currentImageIndex] && (
+        <ImageCropper imageUrl={imageUrls[currentImageIndex]} onClose={() => setIsCropperOpen(false)} onSave={handleCropSave} />
        )}
 
        {/* FULL IMAGE PREVIEW MODAL */}
-       {showFullImage && (generatedImageUrl || imageUrl) && (
+       {showFullImage && (generatedImageUrl || imageUrls[currentImageIndex]) && (
           <div 
             className="fixed inset-0 z-[400] bg-black/95 flex items-center justify-center p-8 animate-in fade-in zoom-in duration-300 cursor-zoom-out"
             onClick={() => setShowFullImage(false)}
           >
              <img 
-                src={generatedImageUrl || imageUrl || ''} 
+                src={generatedImageUrl || imageUrls[currentImageIndex] || ''} 
                 className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" 
                 alt="Full Preview" 
              />
@@ -852,9 +960,9 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
            </div>
         )}
 
-       <div className="max-w-5xl w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col max-h-[95vh] lg:max-h-[90vh] overflow-hidden relative">
+       <div className="max-w-5xl w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col h-[95vh] lg:h-[90vh] overflow-hidden relative">
           {/* Header */}
-          <header className="h-14 border-b border-white/5 flex items-center justify-between px-8 bg-black/50 flex-shrink-0">
+          <header className="h-12 border-b border-white/5 flex items-center justify-between px-6 bg-black/50 flex-shrink-0">
              <div className="flex items-center gap-6">
                 <div className="flex items-center gap-3">
                    {siteConfig?.logoUrl ? (
@@ -941,52 +1049,90 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-y-auto p-5 custom-scrollbar">
-             <div className="grid grid-cols-12 gap-5">
-                
+          <main className="flex-1 overflow-hidden p-4">
+             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
                 {/* Visual Identity (Left) */}
-                <div className="col-span-12 lg:col-span-5 flex flex-col space-y-3">
+                <div className="col-span-1 lg:col-span-5 flex flex-col space-y-4 h-full overflow-y-auto custom-scrollbar pr-2 pb-4">
                    <div className="flex items-center justify-between">
-                      <h2 className="text-[9px] font-black text-neon uppercase tracking-[0.4em]">01. IDENTIDAD VISUAL</h2>
-                      <div className="flex gap-2">
-                         <button onClick={() => imageInputRef.current?.click()} className="p-1.5 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all border border-white/5">
-                            <UploadCloud size={14} />
-                         </button>
-                         <button onClick={() => setIsCropperOpen(true)} className="p-1.5 hover:bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all border border-white/5">
-                            <Crop size={14} />
-                         </button>
-                      </div>
-                      <input type="file" ref={imageInputRef} onChange={handleImageUpload} hidden accept="image/*"/>
+                      <h2 className="text-[10px] font-black text-neon uppercase tracking-[0.4em]">01. IDENTIDAD VISUAL</h2>
+                      {article && (
+                        <button 
+                          onClick={handleLoadArticleImages}
+                          className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-bold text-gray-400 hover:text-white transition-all"
+                        >
+                          <Plus size={12} />
+                          CARGAR IMÁGENES DE LA NOTA
+                        </button>
+                      )}
                    </div>
 
                    <div className="space-y-1.5">
-                      <label className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">Título en Imagen</label>
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em]">Título en Imagen</label>
                       <textarea 
                         value={shortTitle} 
                         onChange={e => setShortTitle(e.target.value)} 
                         maxLength={26} 
                         rows={1}
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-white text-xl font-oswald font-black uppercase italic outline-none resize-none leading-tight tracking-tighter focus:border-neon transition-all" 
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-white text-base font-oswald font-black uppercase italic outline-none resize-none leading-tight tracking-tighter focus:border-neon transition-all" 
                         placeholder="ESCRIBE EL TÍTULO AQUÍ..." 
                       />
                    </div>
 
-                   <div className="space-y-1.5">
-                      <label className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">URL de Imagen</label>
-                      <input 
-                         type="text" 
-                         value={imageUrl || ''} 
-                         onChange={e => setImageUrl(e.target.value)} 
-                         onBlur={handleUrlProcessing}
-                         placeholder="https://..." 
-                         className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold text-blue-400 focus:border-neon outline-none transition-all" 
-                      />
-                   </div>
-
                    <div 
-                      className="relative aspect-video w-full rounded-[20px] overflow-hidden border border-white/10 bg-black group shadow-xl flex-shrink-0 cursor-pointer"
-                      onClick={() => (generatedImageUrl || imageUrl) && setShowFullImage(true)}
+                      className="relative flex-1 min-h-[200px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#050505] group shadow-2xl flex flex-col"
                    >
+                      {/* Image Controls Overlay */}
+                      <div className="absolute top-3 right-3 z-30 flex gap-2 opacity-70 hover:opacity-100 transition-opacity duration-200">
+                         <button onClick={(e) => { e.stopPropagation(); imageInputRef.current?.click(); }} className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-lg text-white transition-all border border-white/10 shadow-lg" title="Subir Imagen">
+                            <UploadCloud size={16} />
+                         </button>
+                         {imageUrls.length > 0 && (
+                           <>
+                            <button onClick={(e) => { e.stopPropagation(); setIsCropperOpen(true); }} className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-lg text-white transition-all border border-white/10 shadow-lg" title="Recortar">
+                               <Crop size={16} />
+                            </button>
+                            <button 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (imageUrls.length > 1) {
+                                  setImageUrls(prev => prev.filter((_, i) => i !== currentImageIndex));
+                                  setCurrentImageIndex(prev => Math.max(0, prev - 1));
+                                  if (currentImageIndex === 0) setGeneratedImageUrl('');
+                                } else {
+                                  setImageUrls([]);
+                                  setGeneratedImageUrl('');
+                                }
+                              }} 
+                              className="p-2 bg-red-500/20 hover:bg-red-500/40 backdrop-blur-md rounded-lg text-red-500 transition-all border border-red-500/20 shadow-lg" 
+                              title="Eliminar Imagen"
+                            >
+                               <Trash2 size={16} />
+                            </button>
+                           </>
+                         )}
+                      </div>
+                      <input type="file" ref={imageInputRef} onChange={handleImageUpload} hidden accept="image/*" multiple />
+
+                      {/* URL Input Overlay (Bottom) */}
+                      <div className="absolute bottom-3 left-3 right-3 z-30 opacity-70 hover:opacity-100 transition-opacity duration-200">
+                        <input 
+                           type="text" 
+                           value={imageUrls[currentImageIndex] || ''} 
+                           onChange={e => {
+                             const val = e.target.value;
+                             setImageUrls(prev => {
+                               const next = [...prev];
+                               next[currentImageIndex] = val;
+                               return next;
+                             });
+                           }} 
+                           onBlur={handleUrlProcessing}
+                           onClick={e => e.stopPropagation()}
+                           placeholder="Pegar URL de imagen..." 
+                           className="w-full bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold text-white focus:border-neon outline-none transition-all shadow-lg placeholder:text-gray-500" 
+                        />
+                      </div>
+
                       {status === 'creatingPreview' && (
                          <div className="absolute inset-0 z-20 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center">
                             <Loader2 className="animate-spin text-neon size-8 mb-3" />
@@ -994,68 +1140,103 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                          </div>
                       )}
                       
-                      {generatedImageUrl || imageUrl ? (
-                         <>
-                            <img src={generatedImageUrl || imageUrl || ''} alt="Preview" className="w-full h-full object-contain transition-transform duration-[20s] group-hover:scale-105" />
+                      {generatedImageUrl || imageUrls.length > 0 ? (
+                         <div className="w-full h-full flex items-center justify-center bg-[#050505] cursor-zoom-in relative" onClick={() => setShowFullImage(true)}>
+                            <img 
+                               src={(currentImageIndex === 0 && generatedImageUrl) ? generatedImageUrl : (imageUrls[currentImageIndex] || '')} 
+                               alt="Preview" 
+                               className="max-w-full max-h-full object-contain transition-transform duration-[20s] group-hover:scale-105" 
+                            />
+                             
+                             {/* Carousel Controls */}
+                             {imageUrls.length > 1 && (
+                               <>
+                                 <button 
+                                   onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev > 0 ? prev - 1 : imageUrls.length - 1)); }}
+                                   className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white transition-all z-40"
+                                 >
+                                   <ChevronLeft size={20} />
+                                 </button>
+                                 <button 
+                                   onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev < imageUrls.length - 1 ? prev + 1 : 0)); }}
+                                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/40 hover:bg-black/60 rounded-full text-white transition-all z-40"
+                                 >
+                                   <ChevronRight size={20} />
+                                 </button>
+                                 <div className="absolute bottom-14 left-1/2 -translate-x-1/2 flex gap-1 z-40">
+                                   {imageUrls.map((_, idx) => (
+                                     <div key={idx} className={`w-1.5 h-1.5 rounded-full ${idx === currentImageIndex ? 'bg-neon' : 'bg-white/20'}`} />
+                                   ))}
+                                 </div>
+                               </>
+                             )}
                             
                             {/* OVERLAY BUTTONS */}
-                            {status !== 'creatingPreview' && (
-                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            {status !== 'creatingPreview' && currentImageIndex === 0 && (
+                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 pointer-events-none">
                                   <button 
                                      onClick={(e) => { 
                                         e.stopPropagation(); 
                                         if (selectedAccounts.length > 0 && copy.trim()) handleGeneratePreview(); 
                                      }}
                                      disabled={selectedAccounts.length === 0 || !copy.trim()}
-                                     className="px-5 py-2.5 bg-neon text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:scale-110 active:scale-95 transition-all shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+                                     className="pointer-events-auto px-6 py-3 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-110 active:scale-95 transition-all shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                     {status === 'preview' ? 'ACTUALIZAR DISEÑO' : 'GENERAR DISEÑO'}
+                                     {generatedImageUrl ? 'RE-GENERAR PORTADA' : 'GENERAR PORTADA'}
                                   </button>
+                                  {generatedImageUrl && (
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); setGeneratedImageUrl(''); }}
+                                      className="pointer-events-auto px-4 py-3 bg-white/10 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-white/20 transition-all border border-white/10 backdrop-blur-sm"
+                                    >
+                                      VER ORIGINAL
+                                    </button>
+                                  )}
                                </div>
                             )}
-                         </>
+                         </div>
                       ) : (
-                         <div className="h-full flex flex-col items-center justify-center text-gray-900">
-                            <UploadCloud size={32} className="mb-2 opacity-10" />
-                            <p className="text-[9px] font-black uppercase tracking-widest opacity-30">Esperando Imagen</p>
+                         <div className="h-full flex flex-col items-center justify-center text-gray-800 cursor-pointer hover:text-gray-600 transition-colors" onClick={() => imageInputRef.current?.click()}>
+                            <UploadCloud size={40} className="mb-3 opacity-20" />
+                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Click para subir imágenes (Carrusel)</p>
                          </div>
                       )}
                    </div>
 
-                   {/* Patrocinios (Moved to left column) */}
-                   <div className="pt-3 border-t border-white/5 mt-3">
-                      <div className="flex flex-col gap-2">
+                   {/* Patrocinios */}
+                   <div className="pt-4 border-t border-white/5">
+                      <div className="flex flex-col gap-3">
                          <div className="flex items-center justify-between">
-                            <h3 className="text-[9px] font-black text-neon uppercase tracking-[0.4em]">03. PATROCINIOS</h3>
-                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{selectedSponsors.length} SELECCIONADOS</span>
+                            <h3 className="text-[10px] font-black text-neon uppercase tracking-[0.4em]">03. PATROCINIOS</h3>
+                            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">{selectedSponsors.length} SELECCIONADOS</span>
                          </div>
                          
-                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                             {brands.map(brand => (
                                <button 
                                   key={brand.id} 
                                   onClick={() => setSelectedSponsors(p => p.includes(brand.id) ? p.filter(id => id !== brand.id) : [...p, brand.id])}
-                                  className={`relative group flex flex-col items-center justify-center gap-2 p-2 rounded-xl border transition-all overflow-hidden ${
+                                  className={`relative group flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border transition-all overflow-hidden ${
                                      selectedSponsors.includes(brand.id) 
                                         ? 'bg-neon/5 border-neon shadow-[0_0_20px_rgba(0,255,157,0.1)]' 
                                         : 'bg-white/[0.02] border-white/5 hover:border-white/20 hover:bg-white/[0.04]'
                                   }`}
                                >
                                   {selectedSponsors.includes(brand.id) && (
-                                     <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-neon flex items-center justify-center text-black shadow-[0_0_10px_rgba(0,255,157,0.5)]">
-                                        <Check size={8} strokeWidth={4} />
+                                     <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-neon flex items-center justify-center text-black shadow-[0_0_10px_rgba(0,255,157,0.5)]">
+                                        <Check size={6} strokeWidth={4} />
                                      </div>
                                   )}
                                   
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${selectedSponsors.includes(brand.id) ? 'bg-white/10' : 'bg-black/50 group-hover:bg-white/5'}`}>
+                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${selectedSponsors.includes(brand.id) ? 'bg-white/10' : 'bg-black/50 group-hover:bg-white/5'}`}>
                                      {brand.logoUrl ? (
-                                        <img src={brand.logoUrl} className={`w-5 h-5 object-contain transition-all ${selectedSponsors.includes(brand.id) ? 'scale-110' : 'grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100'}`} alt={brand.name} />
+                                        <img src={brand.logoUrl} className={`w-4 h-4 object-contain transition-all ${selectedSponsors.includes(brand.id) ? 'scale-110' : 'grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100'}`} alt={brand.name} />
                                      ) : (
-                                        <Building size={14} className={selectedSponsors.includes(brand.id) ? 'text-neon' : 'text-gray-600'} />
+                                        <Building size={12} className={selectedSponsors.includes(brand.id) ? 'text-neon' : 'text-gray-600'} />
                                      )}
                                   </div>
                                   
-                                  <span className={`text-[8px] font-black uppercase tracking-wider text-center line-clamp-1 w-full transition-colors ${selectedSponsors.includes(brand.id) ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>
+                                  <span className={`text-[7px] font-black uppercase tracking-wider text-center line-clamp-1 w-full transition-colors ${selectedSponsors.includes(brand.id) ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>
                                      {brand.name}
                                   </span>
                                </button>
@@ -1067,37 +1248,38 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                 </div>
 
                 {/* Narrative (Right) */}
-                <div className="col-span-12 lg:col-span-7 flex flex-col space-y-3">
+                <div className="col-span-1 lg:col-span-7 flex flex-col space-y-4 h-full overflow-y-auto custom-scrollbar pr-2 pb-4">
                    <div className="flex items-center justify-between">
-                      <h2 className="text-[9px] font-black text-neon uppercase tracking-[0.4em]">02. NARRATIVA Y COPY</h2>
+                      <h2 className="text-[10px] font-black text-neon uppercase tracking-[0.4em]">02. NARRATIVA Y COPY</h2>
                       <button 
                          onClick={() => setIsRefinementVisible(true)}
-                         className="flex items-center gap-2 px-4 py-1.5 bg-neon text-black text-[9px] font-black uppercase tracking-widest rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(0,255,157,0.2)]"
+                         className="flex items-center gap-2 px-4 py-2 bg-neon text-black text-[9px] font-black uppercase tracking-widest rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(0,255,157,0.2)]"
                       >
-                         <Sparkles size={10} /> REVISAR Y MEJORAR
+                         <Sparkles size={12} /> REVISAR Y MEJORAR
                       </button>
                    </div>
                    
-                   <div className="flex-1 relative min-h-[300px]">
+                   <div className="flex-1 relative min-h-[200px] flex flex-col">
                       <textarea 
                          value={copy} 
                          onChange={e => setCopy(e.target.value)} 
-                         className="w-full h-full bg-white/[0.02] border border-white/5 rounded-[20px] p-5 text-sm text-gray-300 focus:text-white focus:border-neon/10 outline-none leading-relaxed resize-none transition-all custom-scrollbar" 
+                         className="flex-1 w-full bg-white/[0.02] border border-white/5 rounded-2xl p-4 text-sm text-gray-300 focus:text-white focus:border-neon/20 outline-none leading-relaxed resize-none transition-all custom-scrollbar" 
                          placeholder="Desarrolla el mensaje principal..."
                       />
-                      <div className="absolute bottom-4 right-6 text-[8px] font-mono text-gray-600">
-                         {copy.length} CARACTERES
-                      </div>
-                   </div>
+                       <div className="absolute bottom-3 right-5 text-[9px] font-mono text-gray-500 font-bold">
+                          {copy.length} CARACTERES
+                       </div>
+                    </div>
 
-                   {!article && !draftPost && (
-                      <div className="pt-2 border-t border-white/5">
-                         <div className="flex gap-2">
+                    {!article && !draftPost && (
+                       <div className="pt-4 border-t border-white/5">
+                         <div className="flex gap-3">
                             <input 
                                type="text" 
                                value={generationQuery} 
                                onChange={e => setGenerationQuery(e.target.value)} 
                                placeholder="¿Sobre qué quieres postear hoy?" 
+
                                className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-[10px] text-white focus:border-neon outline-none" 
                             />
                             <button 
@@ -1116,7 +1298,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           </main>
 
           {/* Footer Actions */}
-          <footer className="h-20 border-t border-white/5 bg-black/50 flex items-center justify-between px-10 flex-shrink-0">
+          <footer className="h-16 border-t border-white/5 bg-black/50 flex items-center justify-between px-6 flex-shrink-0">
              <button 
                 onClick={onClose} 
                 className="text-gray-600 text-[10px] font-black uppercase tracking-[0.3em] hover:text-white transition-all"
@@ -1127,7 +1309,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
              <div className="flex items-center gap-4">
                 <button 
                    onClick={handleSaveDraft} 
-                   className="px-6 py-3 bg-white/5 text-white text-[10px] font-black uppercase tracking-widest rounded-xl border border-white/10 hover:bg-white/10 transition-all flex items-center gap-2"
+                   className="px-4 py-2 bg-white/5 text-white text-[10px] font-black uppercase tracking-widest rounded-xl border border-white/10 hover:bg-white/10 transition-all flex items-center gap-2"
                 >
                    <Save size={16} /> GUARDAR BORRADOR
                 </button>
@@ -1137,9 +1319,9 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                       <button 
                          onClick={() => setShowScheduleModal(true)} 
                          disabled={!copy.trim() || !shortTitle.trim()}
-                         className="px-8 py-3 bg-blue-500 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(59,130,246,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                         className="px-6 py-2 bg-blue-500 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(59,130,246,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                         <Calendar size={18} strokeWidth={3} /> PROGRAMAR
+                         <Calendar size={16} strokeWidth={3} /> PROGRAMAR
                       </button>
                       <button 
                          onClick={() => {
@@ -1147,18 +1329,18 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                             setShowConfirmPublish(true);
                          }} 
                          disabled={!copy.trim() || !shortTitle.trim()}
-                         className="px-10 py-3 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                         className="px-8 py-2 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                         <Send size={18} strokeWidth={3} /> PUBLICAR
+                         <Send size={16} strokeWidth={3} /> PUBLICAR
                       </button>
                    </div>
                 ) : (
                    <button 
                       onClick={handleGeneratePreview} 
                       disabled={selectedAccounts.length === 0 || status === 'creatingPreview' || !copy.trim() || !shortTitle.trim()} 
-                      className="px-10 py-3 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-8 py-2 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                    >
-                      {status === 'preview' ? 'RE-GENERAR' : 'GENERAR'} <ArrowRight size={18} strokeWidth={3} />
+                      {status === 'preview' ? 'RE-GENERAR' : 'GENERAR'} <ArrowRight size={16} strokeWidth={3} />
                    </button>
                 )}
              </div>

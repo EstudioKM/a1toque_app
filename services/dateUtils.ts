@@ -5,8 +5,23 @@
  */
 export const parseArgentinaDate = (dateStr: string) => {
   if (!dateStr) return new Date();
-  const [year, month, day] = dateStr.split('-').map(Number);
-  return new Date(year, month - 1, day, 12, 0, 0);
+  
+  // If it's an ISO string (contains T), parse it directly
+  if (dateStr.includes('T')) {
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? new Date() : date;
+  }
+
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts.map(Number);
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      return new Date(year, month - 1, day, 12, 0, 0);
+    }
+  }
+  
+  const date = new Date(dateStr);
+  return isNaN(date.getTime()) ? new Date() : date;
 };
 
 /**
