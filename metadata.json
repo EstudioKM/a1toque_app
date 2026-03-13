@@ -1,7 +1,5 @@
 {
   "name": "A1TOQUE - orden v7",
   "description": "Una versión modernizada del portal de noticias deportivas A1Toque, con gestión de contenidos asistida por IA y un diseño minimalista y dinámico.",
-  "requestFramePermissions": [
-    "camera"
-  ]
+  "requestFramePermissions": []
 }

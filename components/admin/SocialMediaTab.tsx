@@ -22,7 +22,7 @@ interface SocialMediaTabProps {
   onOpenDetail: (post: SocialPost) => void;
   onOpenEditor: (post: SocialPost) => void;
   onDeletePost: (id: string) => void;
-  onGenerateSocialFromTopic: (topic: string, systemPrompt: string, copyPrompt: string) => void;
+  onGenerateSocialFromTopic: (topic: string, systemPrompt: string, copyPrompt: string, accountId?: string) => void;
   onLoadSocialDraft: (task: SocialGenerationTask) => void;
   onRemoveSocialTask: (id: string) => void;
 }
@@ -44,7 +44,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   onLoadSocialDraft,
   onRemoveSocialTask
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'posteos' | 'history'>('posteos');
+  const [activeSubTab, setActiveSubTab] = useState<'posteos' | 'scheduled' | 'history'>('posteos');
   const [postToDelete, setPostToDelete] = useState<SocialPost | null>(null);
   const [generationQuery, setGenerationQuery] = useState('');
   const [selectedAccountId, setSelectedAccountId] = useState('global');
@@ -103,7 +103,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
     const isUrl = generationQuery.match(/^(https?:\/\/[^\s]+)/);
     const finalPrompt = isUrl ? `Genera un posteo basado en esta noticia: ${generationQuery}` : generationQuery;
 
-    onGenerateSocialFromTopic(finalPrompt, systemPromptToUse, copyPromptToUse);
+    onGenerateSocialFromTopic(finalPrompt, systemPromptToUse, copyPromptToUse, selectedAccountId !== 'global' ? selectedAccountId : undefined);
     setGenerationQuery('');
   };
 
@@ -120,17 +120,20 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   };
 
   const drafts = filteredPosts.filter(p => p.status === 'draft');
-  const publishedPosts = filteredPosts.filter(p => p.status !== 'draft');
+  const scheduledPosts = filteredPosts.filter(p => p.status === 'scheduled');
+  const publishedPosts = filteredPosts.filter(p => p.status === 'success' || p.status === 'failed');
 
   const renderPostItem = (post: SocialPost) => {
     const author = users.find(u => u.id === post.postedBy);
     const isDraft = post.status === 'draft';
+    const isScheduled = post.status === 'scheduled';
+    const isEditable = isDraft || isScheduled;
     
     return (
       <div 
         key={post.id} 
-        onClick={!isDraft ? () => onOpenDetail(post) : undefined}
-        className={`group relative rounded-2xl overflow-hidden border transition-all duration-200 ${!isDraft ? 'bg-[#0f0f0f] border-white/5 hover:border-white/10 cursor-pointer' : 'bg-neon/[0.03] border-neon/20'}`}
+        onClick={!isEditable ? () => onOpenDetail(post) : undefined}
+        className={`group relative rounded-2xl overflow-hidden border transition-all duration-200 ${!isEditable ? 'bg-[#0f0f0f] border-white/5 hover:border-white/10 cursor-pointer' : isScheduled ? 'bg-blue-500/5 border-blue-500/20' : 'bg-neon/[0.03] border-neon/20'}`}
       >
         <div className="flex items-center h-24 md:h-20">
           <div className="w-24 md:w-20 h-full flex-shrink-0 relative overflow-hidden bg-neutral-900">
@@ -142,6 +145,11 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
               {isDraft && (
                 <div className="absolute inset-0 bg-neon/10 flex items-center justify-center">
                    <Clock size={16} className="text-neon" />
+                </div>
+              )}
+              {isScheduled && (
+                <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                   <Clock size={16} className="text-blue-400" />
                 </div>
               )}
           </div>
@@ -174,10 +182,15 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                  <ExternalLink size={8} /> {post.originalArticleTitle}
               </div>
             )}
+            {isScheduled && post.scheduledAt && (
+              <div className="mt-1 flex items-center gap-1.5 text-blue-400 text-[8px] font-black uppercase tracking-wider truncate bg-blue-500/10 w-fit px-2 py-0.5 rounded">
+                <Clock size={8} /> PROGRAMADO PARA: {new Date(post.scheduledAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center pr-3 md:pr-5 gap-2 flex-shrink-0">
-             {isDraft ? (
+             {isEditable ? (
                 <button 
                   onClick={(e) => { e.stopPropagation(); onOpenEditor(post); }} 
                   className="p-2 md:px-4 md:py-1.5 bg-white/5 border border-white/10 text-white hover:text-black hover:bg-neon hover:border-neon rounded-lg text-[9px] font-black uppercase italic tracking-widest transition-all active:scale-95"
@@ -216,67 +229,51 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
           <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Gestión de comunidad y automatización IA</p>
         </div>
         
-        <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 self-stretch md:self-auto">
-          <button 
-            onClick={() => setActiveSubTab('posteos')}
-            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeSubTab === 'posteos' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
-          >
-            <Zap size={14} /> POSTEOS
-          </button>
-          <button 
-            onClick={() => setActiveSubTab('history')}
-            className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeSubTab === 'history' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
-          >
-            <History size={14} /> HISTORIAL
-          </button>
+        <div className="flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/10">
+            <div className="flex items-center gap-2">
+                <AtSign className="text-neon" size={14} />
+                <span className="text-[9px] font-black text-white uppercase tracking-widest">Cuentas Activas</span>
+            </div>
+            <div className="flex -space-x-2 overflow-hidden">
+                {availableSocialAccounts.slice(0, 5).map(acc => (
+                    <img key={acc.id} src={acc.profileImageUrl} className="w-6 h-6 rounded-full border border-[#0f0f0f] bg-neutral-800 object-cover" title={acc.name} />
+                ))}
+                {availableSocialAccounts.length > 5 && (
+                    <div className="w-6 h-6 rounded-full border border-[#0f0f0f] bg-neutral-800 flex items-center justify-center text-[8px] font-bold text-gray-400">
+                        +{availableSocialAccounts.length - 5}
+                    </div>
+                )}
+            </div>
+          </div>
+
+          <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 self-stretch md:self-auto">
+            <button 
+              onClick={() => setActiveSubTab('posteos')}
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeSubTab === 'posteos' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
+            >
+              <Zap size={14} /> POSTEOS
+            </button>
+            <button 
+              onClick={() => setActiveSubTab('scheduled')}
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeSubTab === 'scheduled' ? 'bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]' : 'text-gray-500 hover:text-white'}`}
+            >
+              <Clock size={14} /> PROGRAMADOS
+            </button>
+            <button 
+              onClick={() => setActiveSubTab('history')}
+              className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeSubTab === 'history' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
+            >
+              <History size={14} /> HISTORIAL
+            </button>
+          </div>
         </div>
       </div>
 
       {activeSubTab === 'posteos' ? (
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Dashboard de Cuentas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-             <div className="bg-[#0f0f0f] p-6 rounded-[32px] border border-white/5 flex flex-col justify-between">
-                <div>
-                    <div className="flex items-center gap-2 mb-4">
-                        <AtSign className="text-neon" size={16} />
-                        <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Cuentas Activas</h3>
-                    </div>
-                    <div className="flex -space-x-2 overflow-hidden mb-4">
-                        {availableSocialAccounts.slice(0, 5).map(acc => (
-                            <img key={acc.id} src={acc.profileImageUrl} className="w-8 h-8 rounded-full border-2 border-[#0f0f0f] bg-neutral-800 object-cover" title={acc.name} />
-                        ))}
-                        {availableSocialAccounts.length > 5 && (
-                            <div className="w-8 h-8 rounded-full border-2 border-[#0f0f0f] bg-neutral-800 flex items-center justify-center text-[10px] font-bold text-gray-400">
-                                +{availableSocialAccounts.length - 5}
-                            </div>
-                        )}
-                    </div>
-                </div>
-                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Gestionando {availableSocialAccounts.length} perfiles sociales</p>
-             </div>
-
-             <div className="bg-[#0f0f0f] p-6 rounded-[32px] border border-white/5 md:col-span-2 flex items-center justify-between">
-                <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="text-neon" size={16} />
-                        <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Generador Rápido</h3>
-                    </div>
-                    <p className="text-gray-500 text-[10px] font-medium leading-relaxed max-w-md">
-                        Crea contenido optimizado para tus redes usando inteligencia artificial entrenada con la voz de tu marca.
-                    </p>
-                </div>
-                <button 
-                  onClick={onOpenCreator}
-                  className="bg-white/5 hover:bg-white/10 text-white p-4 rounded-2xl transition-all group"
-                >
-                    <Plus className="group-hover:rotate-90 transition-transform" size={24} />
-                </button>
-             </div>
-          </div>
-
           {/* Input de Generación */}
-          <div className="bg-[#0f0f0f] p-8 rounded-[40px] border border-white/5 shadow-2xl relative">
+          <div className="bg-[#0f0f0f] p-8 rounded-[40px] border border-white/5 shadow-2xl relative mt-4">
             <div className="absolute top-0 right-0 p-8 opacity-5 overflow-hidden pointer-events-none">
                 <Zap size={120} />
             </div>
@@ -287,8 +284,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                         <Sparkles size={20} />
                     </div>
                     <div>
-                        <h3 className="text-lg font-oswald font-black text-white uppercase italic tracking-tight">Workbench IA</h3>
-                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Generación masiva de posteos</p>
+                        <h3 className="text-lg font-oswald font-black text-white uppercase italic tracking-tight">GENERAR POSTEO</h3>
                     </div>
                 </div>
 
@@ -366,7 +362,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                 </div>
                 <button 
                   onClick={() => onOpenCreator()} 
-                  className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:bg-white/10 transition-all"
+                  className="flex items-center gap-2 px-6 py-3 bg-white text-black text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-lg"
                 >
                   <Plus size={16} strokeWidth={3} /> <span className="hidden sm:inline">NUEVO MANUAL</span>
                 </button>
@@ -380,20 +376,31 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                 </div>
               ) : (
                 <>
-                  {socialGenerationQueue.map(task => (
+                  {socialGenerationQueue.map(task => {
+                    const taskAccount = task.accountId ? socialAccountMap.get(task.accountId) : null;
+                    return (
                     <div key={task.id} className={`bg-[#0f0f0f] p-6 rounded-3xl border transition-all ${task.status === 'completed' ? 'border-neon/20' : task.status === 'failed' ? 'border-red-500/20' : 'border-white/5 animate-pulse'}`}>
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                             <div className="flex items-start gap-4">
-                                <div className={`mt-1 flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center ${task.status === 'completed' ? 'bg-neon text-black' : task.status === 'failed' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-400'}`}>
-                                    {task.status === 'researching' && <Loader2 size={18} className="animate-spin" />}
-                                    {task.status === 'completed' && <CheckCircle2 size={18} strokeWidth={3} />}
-                                    {task.status === 'failed' && <AlertTriangle size={18} />}
+                                <div className={`mt-1 flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center overflow-hidden ${task.status === 'completed' ? 'bg-neon text-black' : task.status === 'failed' ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-400'}`}>
+                                    {taskAccount && taskAccount.profileImageUrl ? (
+                                        <img src={taskAccount.profileImageUrl} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <>
+                                            {task.status === 'researching' && <Loader2 size={18} className="animate-spin" />}
+                                            {task.status === 'completed' && <CheckCircle2 size={18} strokeWidth={3} />}
+                                            {task.status === 'failed' && <AlertTriangle size={18} />}
+                                        </>
+                                    )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-white font-bold text-sm truncate md:max-w-md">{task.prompt}</p>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        {taskAccount && <span className="text-[9px] font-black uppercase tracking-widest text-neon">{taskAccount.name}</span>}
+                                        <p className="text-white font-bold text-sm truncate md:max-w-md">{task.prompt}</p>
+                                    </div>
                                     {task.status === 'failed' && (
                                         <button 
-                                            onClick={() => onGenerateSocialFromTopic(task.prompt, aiSystemPrompt, DEFAULT_SOCIAL_COPY_PROMPT)}
+                                            onClick={() => onGenerateSocialFromTopic(task.prompt, aiSystemPrompt, DEFAULT_SOCIAL_COPY_PROMPT, task.accountId)}
                                             className="mt-2 text-[9px] font-black uppercase italic tracking-widest text-neon hover:text-white transition-colors flex items-center gap-1"
                                         >
                                             <Sparkles size={10} /> REGENERAR
@@ -435,11 +442,37 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                             </div>
                         </div>
                     </div>
-                ))}
+                  )})}
               {drafts.map(renderPostItem)}
               </>
               )}
             </div>
+          </div>
+        </div>
+      ) : activeSubTab === 'scheduled' ? (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="text-xl font-oswald font-black italic uppercase text-white tracking-tight flex items-center gap-2">
+                <Clock className="text-blue-500" size={20} /> Posteos Programados
+              </h3>
+              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mt-1">Contenido pendiente de publicación</p>
+            </div>
+            <button 
+              onClick={() => onOpenCreator()} 
+              className="flex items-center gap-2 px-6 py-3 bg-white text-black text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-lg"
+            >
+              <Plus size={16} strokeWidth={3} /> <span className="hidden sm:inline">NUEVO MANUAL</span>
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {scheduledPosts.length > 0 ? scheduledPosts.map(renderPostItem) : (
+              <div className="py-20 text-center border border-dashed border-white/5 rounded-[40px] bg-[#0f0f0f]">
+                <Clock className="w-12 h-12 text-gray-800 mx-auto mb-4 opacity-30" />
+                <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">No hay posteos programados</p>
+              </div>
+            )}
           </div>
         </div>
       ) : (

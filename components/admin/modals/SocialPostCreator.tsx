@@ -2,11 +2,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Article, User, Brand, SocialAccount, SocialPost, Source, SiteConfig } from '../../../types';
 import { generateSocialMediaContent, generateSocialMediaContentFromTopic, improveSocialMediaCopy, refineSocialMediaContent } from '../../../services/geminiService';
-import { X, ArrowRight, Loader2, AlertTriangle, CheckCircle2, UploadCloud, Sparkles, AtSign, Building, Check, Crop, Send, Save, Edit2, AlertCircle } from 'lucide-react';
+import { X, ArrowRight, Loader2, AlertTriangle, CheckCircle2, UploadCloud, Sparkles, AtSign, Building, Check, Crop, Send, Save, Edit2, AlertCircle, Calendar, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { storage } from '../../../services/firebase';
 import { ref, uploadString, getDownloadURL, uploadBytes } from 'firebase/storage';
 import { ImageCropper } from './ImageCropper';
 import { DEFAULT_SOCIAL_COPY_PROMPT } from '../../../constants';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 type PublicationStatus = 'idle' | 'generating' | 'creatingPreview' | 'preview' | 'publishing' | 'success' | 'error';
 
@@ -64,8 +66,20 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   const [isProcessingUrl, setIsProcessingUrl] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [showConfirmPublish, setShowConfirmPublish] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showAccountDropdown, setShowAccountDropdown] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
   
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState<string>('');
+  
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedTime, setSelectedTime] = useState<string>(
+    `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`
+  );
+
   const isInitialized = useRef(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   // FIX: Added useMemo to prevent re-creating the map on every render.
@@ -92,6 +106,11 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           setSelectedSponsors(draftPost.associatedSponsors || []);
           setLastGeneratedSponsors(draftPost.associatedSponsors || []);
           
+          if (draftPost.scheduledAt) {
+            setScheduledAt(draftPost.scheduledAt.slice(0, 16)); // Format for datetime-local
+            setIsScheduling(true);
+          }
+
           // Asegurar que las fuentes incluyan el artículo original si existe
           const originalArticle = articles.find(a => a.id === draftPost.originalArticleId);
           const draftSources = [...(draftPost.sources || [])];
@@ -118,6 +137,11 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         const targetAccount = socialAccounts.find(acc => acc.name.toLowerCase().includes((article.category || '').toLowerCase()));
         const systemPromptForAI = targetAccount?.systemPrompt || aiSystemPrompt;
         const copyPromptForAI = targetAccount?.copyPrompt || DEFAULT_SOCIAL_COPY_PROMPT;
+
+        if (targetAccount) {
+          setSelectedAccounts([targetAccount.id]);
+          setLastGeneratedAccounts([targetAccount.id]);
+        }
 
         try {
           const content = await generateSocialMediaContent(article.title, article.excerpt, systemPromptForAI, copyPromptForAI);
@@ -335,7 +359,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     }
   };
 
-  const buildWebhookPayload = (state: 'create' | 'approved') => {
+  const buildWebhookPayload = (state: 'create' | 'approved' | 'scheduled') => {
       const selectedAccountDetails = selectedAccounts
           .map(id => socialAccounts.find(acc => acc.id === id))
           .filter((acc): acc is SocialAccount => !!acc)
@@ -357,11 +381,13 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         accounts: selectedAccountDetails,
         author: authorName,
         publisher: currentUser.name,
-        imageUrl: state === 'approved' ? generatedImageUrl : imageUrl,
+        imageUrl: (state === 'approved' || state === 'scheduled') ? generatedImageUrl : imageUrl,
         title: shortTitle,
         copy: copy,
+        sponsorCount: selectedSponsors.length,
         ...sponsorPayload,
         articleUrl: article ? `https://a1toque.com/news/${article.id}` : undefined,
+        ...(state === 'scheduled' && scheduledAt ? { scheduledAt: new Date(scheduledAt).toISOString() } : {}),
       };
   };
 
@@ -420,6 +446,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         associatedSponsors: selectedSponsors,
         sources: sources,
         status: 'draft' as const,
+        ...(isScheduling && scheduledAt ? { scheduledAt: new Date(scheduledAt).toISOString() } : {}),
     };
 
     try {
@@ -438,8 +465,11 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   const handleFinalPublish = async () => {
     setStatus('publishing');
     setShowConfirmPublish(false);
-    const payload = buildWebhookPayload('approved');
+    
+    const isScheduled = isScheduling && scheduledAt;
+    const payload = buildWebhookPayload(isScheduled ? 'scheduled' : 'approved');
     const webhookUrl = "https://hook.us1.make.com/k1ju5hoo957qi7tasocjdpcso23egosw";
+    
     try {
       const response = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
@@ -455,7 +485,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         copy: copy,
         postedToAccounts: selectedAccounts,
         associatedSponsors: selectedSponsors,
-        status: 'success' as const,
+        status: isScheduled ? 'scheduled' as const : 'success' as const,
+        ...(isScheduled ? { scheduledAt: new Date(scheduledAt).toISOString() } : {}),
       };
 
       if (draftPost && draftPost.id) {
@@ -470,7 +501,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         onClose();
       }, 2000);
     } catch (error) {
-      console.error("Failed to publish:", error);
+      console.error("Failed to publish/schedule:", error);
       setStatus('error');
     }
   };
@@ -604,24 +635,177 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           </div>
        )}
 
+       {/* MODAL DE PROGRAMACIÓN */}
+       {showScheduleModal && (
+          <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] p-8 text-center shadow-2xl relative overflow-hidden flex flex-col">
+                <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 opacity-50" />
+                
+                <div className="flex items-center justify-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/30 rounded-full flex items-center justify-center text-blue-500">
+                    <Calendar size={24} />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-xl font-oswald font-black text-white uppercase italic tracking-tighter">PROGRAMAR POSTEO</h3>
+                    <p className="text-gray-500 text-[9px] font-bold uppercase tracking-[0.2em]">
+                       SELECCIONA LA FECHA Y HORA DE PUBLICACIÓN
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 mb-6">
+                  {/* Calendar Header */}
+                  <div className="flex justify-between items-center mb-4">
+                    <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white">
+                      <ChevronLeft size={18} />
+                    </button>
+                    <span className="text-white font-bold uppercase tracking-wider text-sm">
+                      {format(currentMonth, 'MMMM yyyy', { locale: es })}
+                    </span>
+                    <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white">
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
+
+                  {/* Calendar Grid */}
+                  <div className="grid grid-cols-7 mb-2">
+                    {['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa', 'Do'].map(day => (
+                      <div key={day} className="text-center text-[10px] font-bold text-gray-500 uppercase">{day}</div>
+                    ))}
+                  </div>
+                  
+                  <div className="flex flex-col gap-1">
+                    {(() => {
+                      const monthStart = startOfMonth(currentMonth);
+                      const monthEnd = endOfMonth(monthStart);
+                      const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+                      const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+
+                      const rows = [];
+                      let days = [];
+                      let day = startDate;
+                      let formattedDate = '';
+
+                      while (day <= endDate) {
+                        for (let i = 0; i < 7; i++) {
+                          formattedDate = format(day, 'd');
+                          const cloneDay = day;
+                          const isSelected = isSameDay(day, selectedDate);
+                          const isCurrentMonth = isSameMonth(day, monthStart);
+                          const isPast = day < new Date(new Date().setHours(0, 0, 0, 0));
+
+                          days.push(
+                            <button
+                              key={day.toString()}
+                              onClick={() => !isPast && setSelectedDate(cloneDay)}
+                              disabled={isPast}
+                              className={`p-2 w-8 h-8 mx-auto flex items-center justify-center rounded-full text-xs transition-all ${
+                                !isCurrentMonth ? 'text-gray-700' : 
+                                isPast ? 'text-gray-700 cursor-not-allowed opacity-50' :
+                                isSelected ? 'bg-blue-500 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 
+                                'text-gray-300 hover:bg-white/10 hover:text-white'
+                              }`}
+                            >
+                              {formattedDate}
+                            </button>
+                          );
+                          day = addDays(day, 1);
+                        }
+                        rows.push(
+                          <div className="grid grid-cols-7 gap-1" key={day.toString()}>
+                            {days}
+                          </div>
+                        );
+                        days = [];
+                      }
+                      return rows;
+                    })()}
+                  </div>
+                </div>
+
+                {/* Time Selector */}
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 mb-8 flex items-center justify-between">
+                  <div className="flex items-center gap-3 text-gray-400">
+                    <Clock size={18} />
+                    <span className="text-xs font-bold uppercase tracking-wider">Hora de publicación</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 bg-black border border-white/10 hover:border-blue-500/50 focus-within:border-blue-500 rounded-xl px-4 py-2 transition-all shadow-inner">
+                    <select 
+                      value={selectedTime.split(':')[0]} 
+                      onChange={(e) => setSelectedTime(`${e.target.value}:${selectedTime.split(':')[1]}`)}
+                      className="bg-transparent text-white font-mono text-lg outline-none cursor-pointer appearance-none text-center hover:text-blue-400 transition-colors"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+                    >
+                      {Array.from({ length: 24 }).map((_, i) => {
+                        const h = i.toString().padStart(2, '0');
+                        return <option key={`h-${h}`} value={h} className="bg-[#111] text-white">{h}</option>;
+                      })}
+                    </select>
+                    <span className="text-blue-500 font-mono text-lg font-bold animate-pulse">:</span>
+                    <select 
+                      value={selectedTime.split(':')[1]} 
+                      onChange={(e) => setSelectedTime(`${selectedTime.split(':')[0]}:${e.target.value}`)}
+                      className="bg-transparent text-white font-mono text-lg outline-none cursor-pointer appearance-none text-center hover:text-blue-400 transition-colors"
+                      style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+                    >
+                      {Array.from({ length: 12 }).map((_, i) => {
+                        const m = (i * 5).toString().padStart(2, '0');
+                        return <option key={`m-${m}`} value={m} className="bg-[#111] text-white">{m}</option>;
+                      })}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 mt-auto">
+                  <button 
+                    onClick={() => {
+                       const [hours, minutes] = selectedTime.split(':').map(Number);
+                       const scheduledDateTime = new Date(selectedDate);
+                       scheduledDateTime.setHours(hours, minutes, 0, 0);
+                       
+                       setScheduledAt(scheduledDateTime.toISOString());
+                       setIsScheduling(true);
+                       setShowScheduleModal(false);
+                       setShowConfirmPublish(true);
+                    }} 
+                    className="w-full py-4 bg-blue-500 text-white font-black uppercase italic text-[11px] tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_10px_20px_rgba(59,130,246,0.2)]"
+                  >
+                    CONFIRMAR FECHA Y HORA
+                  </button>
+                  <button 
+                    onClick={() => setShowScheduleModal(false)} 
+                    className="w-full py-3 bg-white/5 text-gray-500 font-black uppercase italic text-[9px] tracking-widest rounded-xl hover:text-white transition-all"
+                  >
+                    CANCELAR
+                  </button>
+                </div>
+            </div>
+          </div>
+       )}
+
        {/* MODAL DE CONFIRMACIÓN DE PUBLICACIÓN */}
        {showConfirmPublish && (
           <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
             <div className="max-w-sm w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] p-10 text-center shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-neon opacity-50" />
-                <div className="w-16 h-16 bg-neon/10 border border-neon/30 rounded-full flex items-center justify-center text-neon mx-auto mb-6">
-                  <AlertCircle size={32} className="animate-pulse" />
+                <div className={`absolute top-0 left-0 w-full h-1 opacity-50 ${isScheduling ? 'bg-blue-500' : 'bg-neon'}`} />
+                <div className={`w-16 h-16 border rounded-full flex items-center justify-center mx-auto mb-6 ${isScheduling ? 'bg-blue-500/10 border-blue-500/30 text-blue-500' : 'bg-neon/10 border-neon/30 text-neon'}`}>
+                  {isScheduling ? <Calendar size={32} className="animate-pulse" /> : <AlertCircle size={32} className="animate-pulse" />}
                 </div>
-                <h3 className="text-2xl font-oswald font-black text-white uppercase italic mb-3 tracking-tighter">¿CONFIRMAR ENVÍO?</h3>
+                <h3 className="text-2xl font-oswald font-black text-white uppercase italic mb-3 tracking-tighter">
+                   {isScheduling ? '¿CONFIRMAR PROGRAMACIÓN?' : '¿CONFIRMAR ENVÍO?'}
+                </h3>
                 <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-8 leading-relaxed">
-                   Se enviará a todas las plataformas seleccionadas.
+                   {isScheduling 
+                      ? `El posteo quedará programado para el ${new Date(scheduledAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}.` 
+                      : 'Se enviará a todas las plataformas seleccionadas.'}
                 </p>
                 <div className="flex flex-col gap-3">
                   <button 
                     onClick={handleFinalPublish} 
-                    className="w-full py-4 bg-neon text-black font-black uppercase italic text-[11px] tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_10px_20px_rgba(0,255,157,0.2)]"
+                    className={`w-full py-4 font-black uppercase italic text-[11px] tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all ${isScheduling ? 'bg-blue-500 text-white shadow-[0_10px_20px_rgba(59,130,246,0.2)]' : 'bg-neon text-black shadow-[0_10px_20px_rgba(0,255,157,0.2)]'}`}
                   >
-                    SÍ, PUBLICAR AHORA
+                    {isScheduling ? 'SÍ, PROGRAMAR POSTEO' : 'SÍ, PUBLICAR AHORA'}
                   </button>
                   <button 
                     onClick={() => setShowConfirmPublish(false)} 
@@ -641,26 +825,28 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                  <div className="relative w-32 h-32 mx-auto mb-10">
                     {status === 'publishing' ? (
                        <>
-                          <div className="absolute inset-0 border-4 border-neon/10 rounded-full" />
-                          <div className="absolute inset-0 border-4 border-neon rounded-full border-t-transparent animate-spin" />
-                          <div className="absolute inset-0 flex items-center justify-center text-neon">
-                             <Send size={40} className="animate-pulse" />
+                          <div className={`absolute inset-0 border-4 rounded-full ${isScheduling ? 'border-blue-500/10' : 'border-neon/10'}`} />
+                          <div className={`absolute inset-0 border-4 rounded-full border-t-transparent animate-spin ${isScheduling ? 'border-blue-500' : 'border-neon'}`} />
+                          <div className={`absolute inset-0 flex items-center justify-center ${isScheduling ? 'text-blue-500' : 'text-neon'}`}>
+                             {isScheduling ? <Calendar size={40} className="animate-pulse" /> : <Send size={40} className="animate-pulse" />}
                           </div>
                        </>
                     ) : (
-                       <div className="absolute inset-0 bg-neon rounded-full flex items-center justify-center text-black animate-in zoom-in duration-500">
+                       <div className={`absolute inset-0 rounded-full flex items-center justify-center text-black animate-in zoom-in duration-500 ${isScheduling ? 'bg-blue-500' : 'bg-neon'}`}>
                           <Check size={60} strokeWidth={4} />
                        </div>
                     )}
                  </div>
                  
                  <h3 className="text-3xl font-oswald font-black text-white uppercase italic mb-4 tracking-tighter">
-                    {status === 'publishing' ? 'PUBLICANDO...' : '¡PUBLICADO CON ÉXITO!'}
+                    {status === 'publishing' 
+                       ? (isScheduling ? 'PROGRAMANDO...' : 'PUBLICANDO...') 
+                       : (isScheduling ? '¡PROGRAMADO CON ÉXITO!' : '¡PUBLICADO CON ÉXITO!')}
                  </h3>
                  <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] leading-relaxed max-w-[250px] mx-auto">
                     {status === 'publishing' 
-                       ? 'Estamos enviando tu contenido a las redes sociales seleccionadas. Por favor, no cierres esta ventana.' 
-                       : 'Tu posteo ya está en camino. Volviendo al panel de control...'}
+                       ? (isScheduling ? 'Estamos guardando la programación de tu posteo. Por favor, no cierres esta ventana.' : 'Estamos enviando tu contenido a las redes sociales seleccionadas. Por favor, no cierres esta ventana.') 
+                       : (isScheduling ? 'Tu posteo ha sido programado correctamente. Volviendo al panel de control...' : 'Tu posteo ya está en camino. Volviendo al panel de control...')}
                  </p>
               </div>
            </div>
@@ -682,14 +868,76 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                       {draftPost ? 'REVISIÓN BORRADOR' : 'NUEVO POST SOCIAL'}
                    </h1>
                 </div>
-                <div className="h-4 w-px bg-white/10" />
-                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest truncate max-w-[300px]">
-                   {article?.title || draftPost?.originalArticleTitle || 'Entrada Manual'}
-                </p>
+                {article?.title || draftPost?.originalArticleTitle ? (
+                    <>
+                        <div className="h-4 w-px bg-white/10" />
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest truncate max-w-[300px]">
+                        {article?.title || draftPost?.originalArticleTitle}
+                        </p>
+                    </>
+                ) : null}
              </div>
-             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-all">
-                <X size={18} />
-             </button>
+             
+             <div className="flex items-center gap-4">
+                {/* Account Dropdown */}
+                <div className="relative">
+                   <button 
+                      onClick={() => setShowAccountDropdown(!showAccountDropdown)}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                   >
+                      <div className="flex -space-x-2">
+                         {selectedAccounts.length > 0 ? (
+                            selectedAccounts.slice(0, 1).map(id => {
+                               const acc = availableSocialAccounts.find(a => a.id === id);
+                               if (!acc) return null;
+                               return (
+                                  <div key={id} className="w-5 h-5 rounded-full border border-black overflow-hidden bg-neutral-800">
+                                     {acc.profileImageUrl ? <img src={acc.profileImageUrl} className="w-full h-full object-cover" /> : null}
+                                  </div>
+                               );
+                            })
+                         ) : (
+                            <div className="w-5 h-5 rounded-full border border-black overflow-hidden bg-neutral-800 flex items-center justify-center">
+                               <AtSign size={10} className="text-gray-500" />
+                            </div>
+                         )}
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white">
+                         {selectedAccounts.length === 0 ? 'SELECCIONAR CUENTA' : availableSocialAccounts.find(a => a.id === selectedAccounts[0])?.name || ''}
+                      </span>
+                   </button>
+
+                   {showAccountDropdown && (
+                      <div className="absolute top-full right-0 mt-2 w-64 bg-[#111] border border-white/10 rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
+                         <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest px-2 py-1 mb-1">PERSONALIDAD</div>
+                         <div className="flex flex-col gap-1 max-h-60 overflow-y-auto custom-scrollbar">
+                            {availableSocialAccounts.map(account => (
+                               <button 
+                                  key={account.id} 
+                                  onClick={() => {
+                                      setSelectedAccounts([account.id]);
+                                      setShowAccountDropdown(false);
+                                  }}
+                                  className={`flex items-center justify-between px-2 py-2 rounded-lg transition-all ${selectedAccounts.includes(account.id) ? 'bg-neon/10 text-neon' : 'hover:bg-white/5 text-gray-300'}`}
+                               >
+                                  <div className="flex items-center gap-2">
+                                     <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 bg-neutral-800">
+                                        {account.profileImageUrl && <img src={account.profileImageUrl} className="w-full h-full object-cover" />}
+                                     </div>
+                                     <span className="text-xs font-bold uppercase tracking-tight">{account.name}</span>
+                                  </div>
+                                  {selectedAccounts.includes(account.id) && <Check size={14} strokeWidth={3} />}
+                               </button>
+                            ))}
+                         </div>
+                      </div>
+                   )}
+                </div>
+
+                <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-all">
+                   <X size={18} />
+                </button>
+             </div>
           </header>
 
           {/* Main Content */}
@@ -709,6 +957,30 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                          </button>
                       </div>
                       <input type="file" ref={imageInputRef} onChange={handleImageUpload} hidden accept="image/*"/>
+                   </div>
+
+                   <div className="space-y-1.5">
+                      <label className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">Título en Imagen</label>
+                      <textarea 
+                        value={shortTitle} 
+                        onChange={e => setShortTitle(e.target.value)} 
+                        maxLength={26} 
+                        rows={1}
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-white text-xl font-oswald font-black uppercase italic outline-none resize-none leading-tight tracking-tighter focus:border-neon transition-all" 
+                        placeholder="ESCRIBE EL TÍTULO AQUÍ..." 
+                      />
+                   </div>
+
+                   <div className="space-y-1.5">
+                      <label className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">URL de Imagen</label>
+                      <input 
+                         type="text" 
+                         value={imageUrl || ''} 
+                         onChange={e => setImageUrl(e.target.value)} 
+                         onBlur={handleUrlProcessing}
+                         placeholder="https://..." 
+                         className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold text-blue-400 focus:border-neon outline-none transition-all" 
+                      />
                    </div>
 
                    <div 
@@ -750,29 +1022,48 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                       )}
                    </div>
 
-                   <div className="space-y-1.5">
-                      <label className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">Título en Imagen (Opcional)</label>
-                      <textarea 
-                        value={shortTitle} 
-                        onChange={e => setShortTitle(e.target.value)} 
-                        maxLength={26} 
-                        rows={1}
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-white text-xl font-oswald font-black uppercase italic outline-none resize-none leading-tight tracking-tighter focus:border-neon transition-all" 
-                        placeholder="ESCRIBE EL TÍTULO AQUÍ..." 
-                      />
+                   {/* Patrocinios (Moved to left column) */}
+                   <div className="pt-3 border-t border-white/5 mt-3">
+                      <div className="flex flex-col gap-2">
+                         <div className="flex items-center justify-between">
+                            <h3 className="text-[9px] font-black text-neon uppercase tracking-[0.4em]">03. PATROCINIOS</h3>
+                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{selectedSponsors.length} SELECCIONADOS</span>
+                         </div>
+                         
+                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {brands.map(brand => (
+                               <button 
+                                  key={brand.id} 
+                                  onClick={() => setSelectedSponsors(p => p.includes(brand.id) ? p.filter(id => id !== brand.id) : [...p, brand.id])}
+                                  className={`relative group flex flex-col items-center justify-center gap-2 p-2 rounded-xl border transition-all overflow-hidden ${
+                                     selectedSponsors.includes(brand.id) 
+                                        ? 'bg-neon/5 border-neon shadow-[0_0_20px_rgba(0,255,157,0.1)]' 
+                                        : 'bg-white/[0.02] border-white/5 hover:border-white/20 hover:bg-white/[0.04]'
+                                  }`}
+                               >
+                                  {selectedSponsors.includes(brand.id) && (
+                                     <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-neon flex items-center justify-center text-black shadow-[0_0_10px_rgba(0,255,157,0.5)]">
+                                        <Check size={8} strokeWidth={4} />
+                                     </div>
+                                  )}
+                                  
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${selectedSponsors.includes(brand.id) ? 'bg-white/10' : 'bg-black/50 group-hover:bg-white/5'}`}>
+                                     {brand.logoUrl ? (
+                                        <img src={brand.logoUrl} className={`w-5 h-5 object-contain transition-all ${selectedSponsors.includes(brand.id) ? 'scale-110' : 'grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100'}`} alt={brand.name} />
+                                     ) : (
+                                        <Building size={14} className={selectedSponsors.includes(brand.id) ? 'text-neon' : 'text-gray-600'} />
+                                     )}
+                                  </div>
+                                  
+                                  <span className={`text-[8px] font-black uppercase tracking-wider text-center line-clamp-1 w-full transition-colors ${selectedSponsors.includes(brand.id) ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>
+                                     {brand.name}
+                                  </span>
+                               </button>
+                            ))}
+                         </div>
+                      </div>
                    </div>
 
-                   <div className="space-y-1.5">
-                      <label className="text-[8px] font-black text-gray-600 uppercase tracking-[0.4em]">URL de Imagen</label>
-                      <input 
-                         type="text" 
-                         value={imageUrl || ''} 
-                         onChange={e => setImageUrl(e.target.value)} 
-                         onBlur={handleUrlProcessing}
-                         placeholder="https://..." 
-                         className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold text-blue-400 focus:border-neon outline-none transition-all" 
-                      />
-                   </div>
                 </div>
 
                 {/* Narrative (Right) */}
@@ -821,49 +1112,6 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                    )}
                 </div>
 
-                {/* Distribution Strategy (Bottom) */}
-                <div className="col-span-12 pt-3 border-t border-white/5">
-                   <div className="grid grid-cols-2 gap-5">
-                      {/* Accounts */}
-                      <div>
-                         <h3 className="text-[8px] font-black text-gray-600 uppercase tracking-[0.5em] mb-2">03. DISTRIBUCIÓN</h3>
-                         <div className="flex flex-wrap gap-1.5">
-                            {availableSocialAccounts.map(account => (
-                               <button 
-                                  key={account.id} 
-                                  onClick={() => setSelectedAccounts(p => p.includes(account.id) ? p.filter(id => id !== account.id) : [...p, account.id])}
-                                  className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-2 ${selectedAccounts.includes(account.id) ? 'bg-neon/10 border-neon text-neon' : 'bg-white/[0.02] border-white/5 text-gray-500 hover:border-white/20'}`}
-                               >
-                                  <div className="w-4 h-4 rounded-full overflow-hidden border border-white/10">
-                                     {account.profileImageUrl ? <img src={account.profileImageUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-neutral-800" />}
-                                  </div>
-                                  <span className="text-[9px] font-black uppercase tracking-tight">{account.name}</span>
-                                  {selectedAccounts.includes(account.id) && <Check size={10} strokeWidth={4} />}
-                               </button>
-                            ))}
-                         </div>
-                      </div>
-
-                      {/* Sponsors */}
-                      <div>
-                         <h3 className="text-[8px] font-black text-gray-600 uppercase tracking-[0.5em] mb-2">04. PATROCINIOS</h3>
-                         <div className="flex flex-wrap gap-1.5">
-                            {brands.map(brand => (
-                               <button 
-                                  key={brand.id} 
-                                  onClick={() => setSelectedSponsors(p => p.includes(brand.id) ? p.filter(id => id !== brand.id) : [...p, brand.id])}
-                                  className={`px-3 py-1.5 rounded-lg border transition-all flex items-center gap-2 ${selectedSponsors.includes(brand.id) ? 'bg-neon/10 border-neon text-neon' : 'bg-white/[0.02] border-white/5 text-gray-500 hover:border-white/20'}`}
-                               >
-                                  {brand.logoUrl && <img src={brand.logoUrl} className="w-3 h-3 object-contain grayscale brightness-200" />}
-                                  <span className="text-[9px] font-black uppercase tracking-tight">{brand.name}</span>
-                                  {selectedSponsors.includes(brand.id) && <Check size={10} strokeWidth={4} />}
-                               </button>
-                            ))}
-                         </div>
-                      </div>
-                   </div>
-                </div>
-
              </div>
           </main>
 
@@ -885,17 +1133,29 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                 </button>
                 
                 {status === 'preview' && !hasChangesSinceLastGeneration() ? (
-                   <button 
-                      onClick={() => setShowConfirmPublish(true)} 
-                      disabled={!copy.trim()}
-                      className="px-10 py-3 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                   >
-                      <Send size={18} strokeWidth={3} /> PUBLICAR
-                   </button>
+                   <div className="flex items-center gap-3">
+                      <button 
+                         onClick={() => setShowScheduleModal(true)} 
+                         disabled={!copy.trim() || !shortTitle.trim()}
+                         className="px-8 py-3 bg-blue-500 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(59,130,246,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                         <Calendar size={18} strokeWidth={3} /> PROGRAMAR
+                      </button>
+                      <button 
+                         onClick={() => {
+                            setIsScheduling(false);
+                            setShowConfirmPublish(true);
+                         }} 
+                         disabled={!copy.trim() || !shortTitle.trim()}
+                         className="px-10 py-3 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                         <Send size={18} strokeWidth={3} /> PUBLICAR
+                      </button>
+                   </div>
                 ) : (
                    <button 
                       onClick={handleGeneratePreview} 
-                      disabled={selectedAccounts.length === 0 || status === 'creatingPreview' || !copy.trim()} 
+                      disabled={selectedAccounts.length === 0 || status === 'creatingPreview' || !copy.trim() || !shortTitle.trim()} 
                       className="px-10 py-3 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                    >
                       {status === 'preview' ? 'RE-GENERAR' : 'GENERAR'} <ArrowRight size={18} strokeWidth={3} />

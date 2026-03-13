@@ -244,7 +244,8 @@ export interface SocialPost {
   copy: string;
   postedToAccounts: string[]; // Array de SocialAccount IDs
   associatedSponsors: string[]; // Array de Brand IDs
-  status: 'success' | 'failed' | 'draft';
+  status: 'success' | 'failed' | 'draft' | 'scheduled';
+  scheduledAt?: string; // ISO string para la fecha/hora programada
   sources?: Source[]; // Fuentes utilizadas por la IA
 }
 
@@ -282,6 +283,7 @@ export interface SocialGenerationTask {
   prompt: string;
   status: GenerationStatus;
   controller?: AbortController;
+  accountId?: string;
   result?: {
     shortTitle: string;
     copy: string;

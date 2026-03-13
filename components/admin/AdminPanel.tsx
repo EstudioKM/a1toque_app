@@ -236,12 +236,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     setNewsTaskBeingEdited(null);
   };
 
-  const handleGenerateSocialFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string) => {
+  const handleGenerateSocialFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string, accountId?: string) => {
     const controller = new AbortController();
     const taskId = await props.onAddAiSocialTask({ 
         userId: props.currentUser.id, 
         prompt: topic, 
-        status: 'researching' 
+        status: 'researching',
+        accountId
     });
     
     try {
@@ -266,7 +267,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         copy: task.result.copy,
         imageUrl: task.result.imageUrl || '',
         status: 'draft',
-        sources: task.result.sources || []
+        sources: task.result.sources || [],
+        postedToAccounts: task.accountId ? [task.accountId] : []
       };
       setEditingSocialPost(draftPost as SocialPost);
       setSocialTaskBeingEdited(task.id);

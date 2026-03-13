@@ -2,6 +2,33 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Bell, MessageSquare, CheckSquare, Clock } from 'lucide-react';
 import { ChatMessage, Task, User, ViewMode } from '../types';
 
+const playNotificationSound = () => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+    osc.frequency.setValueAtTime(1108.73, ctx.currentTime + 0.08); // C#6
+    
+    gainNode.gain.setValueAtTime(0, ctx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+  } catch (e) {
+    console.error("Audio play failed", e);
+  }
+};
+
 interface NotificationCenterProps {
   currentUser: User;
   chatMessages: ChatMessage[];
@@ -23,6 +50,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isInitialRender = useRef(true);
+  const prevUnreadCountRef = useRef(0);
 
   const notifications = useMemo(() => {
     const unreadChats = chatMessages.filter(m => m.receiverId === currentUser.id && !m.isRead);
@@ -70,6 +99,19 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   }, [chatMessages, tasks, currentUser, users]);
 
   const unreadCount = notifications.length;
+
+  useEffect(() => {
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      prevUnreadCountRef.current = unreadCount;
+      return;
+    }
+
+    if (unreadCount > prevUnreadCountRef.current) {
+      playNotificationSound();
+    }
+    prevUnreadCountRef.current = unreadCount;
+  }, [unreadCount]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
