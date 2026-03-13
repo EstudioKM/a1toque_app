@@ -240,6 +240,8 @@ export interface SocialPost {
   postedBy: string; // User ID
   imageUrl: string;
   imageUrls?: string[]; // Soporte para carrusel
+  videoUrl?: string; // Nuevo campo para video
+  postType?: 'post' | 'carousel' | 'reel'; // Tipo de posteo
   originalImageUrl?: string; // Imagen original cargada por el usuario
   originalImageUrls?: string[]; // Imágenes originales para carrusel
   titleOverlay: string;

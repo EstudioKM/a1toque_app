@@ -10,6 +10,8 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@google/genai": "1.38.0",
     "@tailwindcss/vite": "^4.2.1",
     "date-fns": "^4.1.0",

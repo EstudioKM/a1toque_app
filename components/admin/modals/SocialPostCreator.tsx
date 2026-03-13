@@ -45,6 +45,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   const [shortTitle, setShortTitle] = useState('');
   const [copy, setCopy] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [selectedSponsors, setSelectedSponsors] = useState<string[]>([]);
@@ -55,6 +56,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   const [lastGeneratedAccounts, setLastGeneratedAccounts] = useState<string[]>([]);
   const [lastGeneratedBaseImage, setLastGeneratedBaseImage] = useState<string | null>(null);
 
+  const [postType, setPostType] = useState<'post' | 'carousel' | 'reel'>('post');
   const [isUploading, setIsUploading] = useState(false);
   const [isImproving, setIsImproving] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
@@ -71,6 +73,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
+  const [pendingPostType, setPendingPostType] = useState<'post' | 'carousel' | 'reel' | null>(null);
   
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduledAt, setScheduledAt] = useState<string>('');
@@ -81,8 +84,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     `${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}`
   );
 
+  const unifiedInputRef = useRef<HTMLInputElement>(null);
   const isInitialized = useRef(false);
-  const imageInputRef = useRef<HTMLInputElement>(null);
   // FIX: Added useMemo to prevent re-creating the map on every render.
   const brandMap = useMemo(() => new Map<string, Brand>(brands.map(b => [b.id, b])), [brands]);
 
@@ -240,33 +243,52 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePostTypeChange = (type: 'post' | 'carousel' | 'reel') => {
+    if (type === postType) return;
+    
+    if (videoUrl && (type === 'post' || type === 'carousel')) {
+      setPendingPostType(type);
+    } else if (imageUrls.length > 0 && type === 'reel') {
+      setPendingPostType(type);
+    } else {
+      setPostType(type);
+    }
+  };
+
+  const handleUnifiedUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     setIsUploading(true);
     try {
       const newUrls: string[] = [];
+      let newVideoUrl: string | null = null;
+      
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = error => reject(error);
-        });
-        const storageRef = ref(storage, `social_images/${Date.now()}-${file.name}`);
-        const snapshot = await uploadString(storageRef, base64, 'data_url');
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        newUrls.push(downloadURL);
+        if (postType === 'reel' && !file.type.startsWith('video/')) continue;
+        if (postType !== 'reel' && file.type.startsWith('video/')) continue;
+
+        const folder = file.type.startsWith('video/') ? 'videos' : 'social_media';
+        const storageRef = ref(storage, `${folder}/${Date.now()}-${file.name}`);
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        
+        if (file.type.startsWith('video/')) {
+          newVideoUrl = downloadURL;
+        } else {
+          newUrls.push(downloadURL);
+        }
       }
       
-      // Si no había imágenes, la primera nueva será la base para generación
-      if (imageUrls.length === 0) {
-        setGeneratedImageUrl('');
+      if (newVideoUrl) {
+        setVideoUrl(newVideoUrl);
+        setImageUrls([]);
+      } else {
+        setImageUrls(prev => [...prev, ...newUrls]);
+        setVideoUrl(null);
       }
       
-      setImageUrls(prev => [...prev, ...newUrls]);
       if (imageUrls.length === 0 && newUrls.length > 0) {
         setCurrentImageIndex(0);
       }
@@ -462,7 +484,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         publisher: currentUser.name,
         imageUrl: ((state === 'approved' || state === 'scheduled') && generatedImageUrl) ? generatedImageUrl : (imageUrls[0] || ''),
         imageUrls: getFinalImageUrls(),
-        postType: imageUrls.length > 1 ? 'carousel' : 'single',
+        videoUrl: videoUrl,
+        postType: postType,
         imageCount: imageUrls.length,
         hasImages: imageUrls.length > 0,
         title: shortTitle,
@@ -475,9 +498,9 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   };
 
   const hasChangesSinceLastGeneration = () => {
-    if (shortTitle !== lastGeneratedTitle) return true;
+    if (postType !== 'reel' && shortTitle !== lastGeneratedTitle) return true;
     if (copy !== lastGeneratedCopy) return true;
-    if (imageUrls[0] !== lastGeneratedBaseImage) return true;
+    if ((imageUrls[0] || '') !== (lastGeneratedBaseImage || '')) return true;
     
     // Compare arrays
     if (selectedSponsors.length !== lastGeneratedSponsors.length) return true;
@@ -490,6 +513,20 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   };
 
   const handleGeneratePreview = async () => {
+    if (postType === 'reel') {
+        if (!videoUrl) {
+            alert("Por favor, carga un video primero.");
+            return;
+        }
+        setLastGeneratedTitle(shortTitle);
+        setLastGeneratedCopy(copy);
+        setLastGeneratedSponsors([...selectedSponsors]);
+        setLastGeneratedAccounts([...selectedAccounts]);
+        setLastGeneratedBaseImage(imageUrls[0] || '');
+        setStatus('preview');
+        return;
+    }
+
     if (imageUrls.length === 0) {
         alert("Por favor, carga una imagen primero.");
         return;
@@ -536,6 +573,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         postedBy: draftPost?.postedBy || currentUser.id,
         imageUrl: generatedImageUrl || imageUrls[0] || '',
         imageUrls: imageUrls,
+        videoUrl: videoUrl,
+        postType: postType,
         originalImageUrl: imageUrls[0] || '',
         titleOverlay: shortTitle,
         copy: copy,
@@ -590,6 +629,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         postedBy: draftPost?.postedBy || currentUser.id,
         imageUrl: generatedImageUrl || imageUrls[0] || '',
         imageUrls: imageUrls,
+        videoUrl: videoUrl,
+        postType: postType,
         originalImageUrl: imageUrls[0] || '',
         titleOverlay: shortTitle,
         copy: copy,
@@ -1057,7 +1098,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                 {/* Visual Identity (Left) */}
                 <div className="col-span-1 lg:col-span-5 flex flex-col space-y-4 h-full overflow-y-auto custom-scrollbar pr-2 pb-4">
                    <div className="flex items-center justify-between">
-                      <h2 className="text-[10px] font-black text-neon uppercase tracking-[0.4em]">01. IDENTIDAD VISUAL</h2>
+                      <h2 className="text-[10px] font-black text-neon uppercase tracking-[0.4em]">01. TIPO DE POSTEO</h2>
                       {article && (
                         <button 
                           onClick={handleLoadArticleImages}
@@ -1070,24 +1111,50 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                    </div>
 
                    <div className="space-y-1.5">
-                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em]">Título en Imagen</label>
-                      <textarea 
-                        value={shortTitle} 
-                        onChange={e => setShortTitle(e.target.value)} 
-                        maxLength={26} 
-                        rows={1}
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-white text-base font-oswald font-black uppercase italic outline-none resize-none leading-tight tracking-tighter focus:border-neon transition-all" 
-                        placeholder="ESCRIBE EL TÍTULO AQUÍ..." 
-                      />
+                      <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em]">Tipo de Posteo</label>
+                      <div className="flex gap-2">
+                        {(['post', 'carousel', 'reel'] as const).map((type) => (
+                          <button
+                            key={type}
+                            onClick={() => handlePostTypeChange(type)}
+                            className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg border transition-all ${
+                              postType === type 
+                                ? 'bg-neon text-black border-neon' 
+                                : 'bg-white/5 text-gray-400 border-white/10 hover:border-white/20'
+                            }`}
+                          >
+                            {type.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
                    </div>
 
+                   {postType !== 'reel' && (
+                     <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em]">Título en Imagen</label>
+                        <textarea 
+                          value={shortTitle} 
+                          onChange={e => setShortTitle(e.target.value)} 
+                          maxLength={26} 
+                          rows={1}
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-white text-base font-oswald font-black uppercase italic outline-none resize-none leading-tight tracking-tighter focus:border-neon transition-all" 
+                          placeholder="ESCRIBE EL TÍTULO AQUÍ..." 
+                        />
+                     </div>
+                   )}
+                   
                    <div 
                       className="relative flex-1 min-h-[200px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#050505] group shadow-2xl flex flex-col"
                    >
                       {/* Image Controls Overlay */}
                       <div className="absolute top-3 right-3 z-30 flex gap-2 opacity-70 hover:opacity-100 transition-opacity duration-200">
-                         <button onClick={(e) => { e.stopPropagation(); imageInputRef.current?.click(); }} className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-lg text-white transition-all border border-white/10 shadow-lg" title="Subir Imagen">
-                            <UploadCloud size={16} />
+                         <button 
+                            onClick={(e) => { e.stopPropagation(); unifiedInputRef.current?.click(); }} 
+                            className="p-2 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-lg text-white transition-all border border-white/10 shadow-lg" 
+                            title="Subir Archivo"
+                            disabled={isUploading}
+                          >
+                             {isUploading ? <Loader2 className="animate-spin" size={16} /> : <UploadCloud size={16} />}
                          </button>
                          {imageUrls.length > 0 && (
                            <>
@@ -1114,27 +1181,14 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                            </>
                          )}
                       </div>
-                      <input type="file" ref={imageInputRef} onChange={handleImageUpload} hidden accept="image/*" multiple />
+                      <input type="file" ref={unifiedInputRef} onChange={handleUnifiedUpload} hidden accept="image/*,video/*" multiple />
 
-                      {/* URL Input Overlay (Bottom) */}
-                      <div className="absolute bottom-3 left-3 right-3 z-30 opacity-70 hover:opacity-100 transition-opacity duration-200">
-                        <input 
-                           type="text" 
-                           value={imageUrls[currentImageIndex] || ''} 
-                           onChange={e => {
-                             const val = e.target.value;
-                             setImageUrls(prev => {
-                               const next = [...prev];
-                               next[currentImageIndex] = val;
-                               return next;
-                             });
-                           }} 
-                           onBlur={handleUrlProcessing}
-                           onClick={e => e.stopPropagation()}
-                           placeholder="Pegar URL de imagen..." 
-                           className="w-full bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold text-white focus:border-neon outline-none transition-all shadow-lg placeholder:text-gray-500" 
-                        />
-                      </div>
+                      {isUploading && (
+                         <div className="absolute inset-0 z-40 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl">
+                            <Loader2 className="animate-spin text-neon size-12 mb-4" />
+                            <p className="text-neon text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">SUBIENDO ARCHIVO...</p>
+                         </div>
+                      )}
 
                       {status === 'creatingPreview' && (
                          <div className="absolute inset-0 z-20 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center">
@@ -1143,16 +1197,20 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                          </div>
                       )}
                       
-                      {generatedImageUrl || imageUrls.length > 0 ? (
-                         <div className="w-full h-full flex items-center justify-center bg-[#050505] cursor-zoom-in relative" onClick={() => setShowFullImage(true)}>
-                            <img 
-                               src={(currentImageIndex === 0 && generatedImageUrl) ? generatedImageUrl : (imageUrls[currentImageIndex] || '')} 
-                               alt="Preview" 
-                               className="max-w-full max-h-full object-contain transition-transform duration-[20s] group-hover:scale-105" 
-                            />
+                      {generatedImageUrl || imageUrls.length > 0 || (postType === 'reel' && videoUrl) ? (
+                         <div className="w-full h-full flex items-center justify-center bg-[#050505] cursor-zoom-in relative" onClick={() => !(postType === 'reel' && videoUrl) && setShowFullImage(true)}>
+                            {postType === 'reel' && videoUrl ? (
+                               <video src={videoUrl} controls className="max-w-full max-h-full" />
+                            ) : (
+                               <img 
+                                 src={(currentImageIndex === 0 && generatedImageUrl) ? generatedImageUrl : (imageUrls[currentImageIndex] || '')} 
+                                 alt="Preview" 
+                                 className="max-w-full max-h-full object-contain transition-transform duration-[20s] group-hover:scale-105" 
+                               />
+                            )}
                              
                              {/* Carousel Controls */}
-                             {imageUrls.length > 1 && (
+                             {!(postType === 'reel' && videoUrl) && imageUrls.length > 1 && (
                                <>
                                  <button 
                                    onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev > 0 ? prev - 1 : imageUrls.length - 1)); }}
@@ -1175,7 +1233,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                              )}
                             
                             {/* OVERLAY BUTTONS */}
-                            {status !== 'creatingPreview' && currentImageIndex === 0 && (
+                            {status !== 'creatingPreview' && currentImageIndex === 0 && postType !== 'reel' && (
                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 pointer-events-none">
                                   <button 
                                      onClick={(e) => { 
@@ -1199,12 +1257,34 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                             )}
                          </div>
                       ) : (
-                         <div className="h-full flex flex-col items-center justify-center text-gray-800 cursor-pointer hover:text-gray-600 transition-colors" onClick={() => imageInputRef.current?.click()}>
-                            <UploadCloud size={40} className="mb-3 opacity-20" />
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Click para subir imágenes (Carrusel)</p>
+                         <div className="h-full flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:text-white transition-colors border-2 border-dashed border-white/10 hover:border-neon/50 rounded-2xl m-4" onClick={() => unifiedInputRef.current?.click()}>
+                            <UploadCloud size={48} className="mb-4 text-neon/50" />
+                            <p className="text-xs font-black uppercase tracking-widest text-white">Subir {postType === 'reel' ? 'Video' : 'Imágenes'}</p>
+                            <p className="text-[9px] font-bold uppercase tracking-widest opacity-50 mt-2">Click para seleccionar archivos</p>
                          </div>
                       )}
                    </div>
+
+                   {/* URL Input */}
+                   {postType !== 'reel' && (
+                     <div className="w-full">
+                       <input 
+                          type="text" 
+                          value={imageUrls[currentImageIndex] || ''} 
+                          onChange={e => {
+                            const val = e.target.value;
+                            setImageUrls(prev => {
+                              const next = [...prev];
+                              next[currentImageIndex] = val;
+                              return next;
+                            });
+                          }} 
+                          onBlur={handleUrlProcessing}
+                          placeholder="Pegar URL de imagen..." 
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold text-white focus:border-neon outline-none transition-all shadow-lg placeholder:text-gray-500" 
+                       />
+                     </div>
+                   )}
 
                    {/* Patrocinios */}
                    <div className="pt-4 border-t border-white/5">
@@ -1317,11 +1397,11 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                    <Save size={16} /> GUARDAR BORRADOR
                 </button>
                 
-                {status === 'preview' && !hasChangesSinceLastGeneration() ? (
+                {(status === 'preview' && !hasChangesSinceLastGeneration()) || postType === 'reel' ? (
                    <div className="flex items-center gap-3">
                       <button 
                          onClick={() => setShowScheduleModal(true)} 
-                         disabled={!copy.trim() || !shortTitle.trim()}
+                         disabled={postType === 'reel' ? (!copy.trim() || !videoUrl || selectedAccounts.length === 0) : (!copy.trim() || !shortTitle.trim() || selectedAccounts.length === 0)}
                          className="px-6 py-2 bg-blue-500 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(59,130,246,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                          <Calendar size={16} strokeWidth={3} /> PROGRAMAR
@@ -1331,7 +1411,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                             setIsScheduling(false);
                             setShowConfirmPublish(true);
                          }} 
-                         disabled={!copy.trim() || !shortTitle.trim()}
+                         disabled={postType === 'reel' ? (!copy.trim() || !videoUrl || selectedAccounts.length === 0) : (!copy.trim() || !shortTitle.trim() || selectedAccounts.length === 0)}
                          className="px-8 py-2 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                          <Send size={16} strokeWidth={3} /> PUBLICAR
@@ -1340,7 +1420,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                 ) : (
                    <button 
                       onClick={handleGeneratePreview} 
-                      disabled={selectedAccounts.length === 0 || status === 'creatingPreview' || !copy.trim() || !shortTitle.trim()} 
+                      disabled={selectedAccounts.length === 0 || status === 'creatingPreview' || !copy.trim() || !shortTitle.trim() || imageUrls.length === 0} 
                       className="px-8 py-2 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                    >
                       {status === 'preview' ? 'RE-GENERAR' : 'GENERAR'} <ArrowRight size={16} strokeWidth={3} />
@@ -1349,6 +1429,44 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
              </div>
           </footer>
        </div>
+       
+        {/* Type Change Confirmation Modal */}
+        {pendingPostType && (
+          <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-3xl p-8 text-center shadow-2xl">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle className="text-red-500 size-8" />
+              </div>
+              <h3 className="text-xl font-oswald font-black italic uppercase text-white mb-2">¿Descartar cambios?</h3>
+              <p className="text-gray-400 text-sm mb-8">
+                Cambiar a {pendingPostType.toUpperCase()} descartará {pendingPostType === 'reel' ? 'las imágenes actuales' : 'el video actual'}. ¿Deseas continuar?
+              </p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setPendingPostType(null)}
+                  className="flex-1 py-3 bg-white/5 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => {
+                    if (pendingPostType === 'reel') {
+                      setImageUrls([]);
+                      setGeneratedImageUrl('');
+                    } else {
+                      setVideoUrl(null);
+                    }
+                    setPostType(pendingPostType);
+                    setPendingPostType(null);
+                  }}
+                  className="flex-1 py-3 bg-red-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all"
+                >
+                  Descartar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 };
