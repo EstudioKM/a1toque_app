@@ -595,14 +595,15 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         copy: copy,
         postedToAccounts: selectedAccounts,
         associatedSponsors: selectedSponsors,
+        sources: sources,
         status: isScheduled ? 'scheduled' as const : 'success' as const,
         ...(isScheduled ? { scheduledAt: new Date(scheduledAt).toISOString() } : {}),
       };
 
       if (draftPost && draftPost.id) {
-        onUpdateSocialPost({ ...postData, id: draftPost.id });
+        await onUpdateSocialPost({ ...postData, id: draftPost.id });
       } else {
-        onAddSocialPost(postData);
+        await onAddSocialPost(postData);
       }
       setStatus('success');
       

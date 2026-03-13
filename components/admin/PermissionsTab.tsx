@@ -27,9 +27,9 @@ export const PermissionsTab: React.FC<PermissionsTabProps> = ({ roles, onAddRole
     setEditingRole({ ...editingRole, permissions: newPermissions });
   };
 
-  const handleSaveRole = () => {
+  const handleSaveRole = async () => {
     if (editingRole) {
-      onUpdateRole(editingRole);
+      await onUpdateRole(editingRole);
       setEditingRole(null);
     }
   };

@@ -556,6 +556,7 @@ const App: React.FC = () => {
       delete userToUpdate.password;
     }
     await setDoc(doc(db, 'users', user.id), userToUpdate, { merge: true });
+    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, ...userToUpdate } as User : u));
   };
   const deleteUser = async (id: string) => {
     try {
@@ -584,11 +585,14 @@ const App: React.FC = () => {
   const addSocialPost = async (post: Omit<SocialPost, 'id'>) => {
     const cleanPost = removeUndefinedFields(post);
     const docRef = await addDoc(collection(db, 'social_posts'), cleanPost);
-    return { ...cleanPost, id: docRef.id };
+    const newPost = { ...cleanPost, id: docRef.id } as SocialPost;
+    setSocialPosts(prev => [newPost, ...prev]);
+    return newPost;
   };
   const updateSocialPost = async (post: SocialPost) => {
     const cleanPost = removeUndefinedFields(post);
     await setDoc(doc(db, 'social_posts', post.id), cleanPost, { merge: true });
+    setSocialPosts(prev => prev.map(p => p.id === post.id ? cleanPost as SocialPost : p));
   };
   const deleteSocialPost = async (id: string) => {
     await deleteDoc(doc(db, 'social_posts', id));
@@ -637,6 +641,7 @@ const App: React.FC = () => {
   const updateSiteConfig = async (config: SiteConfig) => {
     const cleanConfig = removeUndefinedFields(config);
     await setDoc(doc(db, 'config', 'site'), cleanConfig);
+    setSiteConfig(cleanConfig);
   };
   
   const updateAdSlot = async (slot: AdSlotConfig) => {
@@ -662,11 +667,13 @@ const App: React.FC = () => {
 
   const addTask = async (task: Omit<Task, 'id'>) => {
     const cleanTask = removeUndefinedFields(task);
-    await addDoc(collection(db, 'tasks'), cleanTask);
+    const docRef = await addDoc(collection(db, 'tasks'), cleanTask);
+    setTasks(prev => [{ ...cleanTask, id: docRef.id } as Task, ...prev]);
   };
   const updateTask = async (task: Task) => {
     const cleanTask = removeUndefinedFields(task);
     await setDoc(doc(db, 'tasks', task.id), cleanTask, { merge: true });
+    setTasks(prev => prev.map(t => t.id === task.id ? cleanTask as Task : t));
   };
   const deleteTask = async (id: string) => {
     await deleteDoc(doc(db, 'tasks', id));
