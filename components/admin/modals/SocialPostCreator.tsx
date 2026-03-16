@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Article, User, Brand, SocialAccount, SocialPost, Source, SiteConfig } from '../../../types';
 import { generateSocialMediaContent, generateSocialMediaContentFromTopic, improveSocialMediaCopy, refineSocialMediaContent } from '../../../services/geminiService';
-import { X, ArrowRight, Loader2, AlertTriangle, CheckCircle2, UploadCloud, Sparkles, AtSign, Building, Check, Crop, Send, Save, Edit2, AlertCircle, Calendar, ChevronLeft, ChevronRight, Clock, Trash2, Plus } from 'lucide-react';
+import { X, ArrowRight, Loader2, AlertTriangle, CheckCircle2, UploadCloud, Sparkles, AtSign, Building, Check, Crop, Send, Save, Edit2, AlertCircle, Calendar, ChevronLeft, ChevronRight, Clock, Trash2, Plus, RotateCcw } from 'lucide-react';
 import { storage } from '../../../services/firebase';
 import { ref, uploadString, getDownloadURL, uploadBytes } from 'firebase/storage';
 import { ImageCropper } from './ImageCropper';
@@ -238,7 +238,13 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       const newImages = uniqueImages.filter(img => !imageUrls.includes(img));
       
       if (newImages.length > 0) {
-        setImageUrls(prev => [...prev, ...newImages]);
+        setImageUrls(prev => {
+          const updatedUrls = [...prev, ...newImages];
+          if (updatedUrls.length > 1 && postType !== 'reel') {
+            setPostType('carousel');
+          }
+          return updatedUrls;
+        });
       }
     }
   };
@@ -285,7 +291,13 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         setVideoUrl(newVideoUrl);
         setImageUrls([]);
       } else {
-        setImageUrls(prev => [...prev, ...newUrls]);
+        setImageUrls(prev => {
+          const updatedUrls = [...prev, ...newUrls];
+          if (updatedUrls.length > 1 && postType !== 'reel') {
+            setPostType('carousel');
+          }
+          return updatedUrls;
+        });
         setVideoUrl(null);
       }
       
@@ -1181,7 +1193,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                            </>
                          )}
                       </div>
-                      <input type="file" ref={unifiedInputRef} onChange={handleUnifiedUpload} hidden accept="image/*,video/*" multiple />
+                      <input type="file" ref={unifiedInputRef} onChange={handleUnifiedUpload} hidden accept={postType === 'reel' ? 'video/*' : 'image/*'} multiple />
 
                       {isUploading && (
                          <div className="absolute inset-0 z-40 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl">
@@ -1234,22 +1246,24 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                             
                             {/* OVERLAY BUTTONS */}
                             {status !== 'creatingPreview' && currentImageIndex === 0 && postType !== 'reel' && (
-                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 pointer-events-none">
+                               <div className="absolute bottom-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2 pointer-events-none z-30">
                                   <button 
                                      onClick={(e) => { 
                                         e.stopPropagation(); 
                                         if (selectedAccounts.length > 0 && copy.trim()) handleGeneratePreview(); 
                                      }}
                                      disabled={selectedAccounts.length === 0 || !copy.trim()}
-                                     className="pointer-events-auto px-6 py-3 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-110 active:scale-95 transition-all shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+                                     className="pointer-events-auto px-4 py-2.5 bg-black/60 backdrop-blur-md border border-neon/30 text-neon text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-neon/20 hover:border-neon hover:scale-105 active:scale-95 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                   >
+                                     <Sparkles size={14} />
                                      {generatedImageUrl ? 'RE-GENERAR PORTADA' : 'GENERAR PORTADA'}
                                   </button>
                                   {generatedImageUrl && (
                                     <button 
                                       onClick={(e) => { e.stopPropagation(); setGeneratedImageUrl(''); }}
-                                      className="pointer-events-auto px-4 py-3 bg-white/10 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-white/20 transition-all border border-white/10 backdrop-blur-sm"
+                                      className="pointer-events-auto px-4 py-2.5 bg-black/60 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white/20 transition-all border border-white/10 flex items-center gap-2 w-fit"
                                     >
+                                      <RotateCcw size={14} />
                                       VER ORIGINAL
                                     </button>
                                   )}
@@ -1264,6 +1278,29 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                          </div>
                       )}
                    </div>
+
+                   {/* Thumbnail Strip for Carousel */}
+                   {postType === 'carousel' && imageUrls.length > 0 && (
+                     <div className="flex gap-2 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                       {imageUrls.map((url, idx) => (
+                         <button
+                           key={idx}
+                           onClick={() => setCurrentImageIndex(idx)}
+                           className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                             idx === currentImageIndex ? 'border-neon' : 'border-transparent opacity-50 hover:opacity-100'
+                           }`}
+                         >
+                           <img src={(idx === 0 && generatedImageUrl) ? generatedImageUrl : url} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
+                         </button>
+                       ))}
+                       <button
+                         onClick={() => unifiedInputRef.current?.click()}
+                         className="flex-shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-white/10 hover:border-neon/50 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+                       >
+                         <Plus size={20} />
+                       </button>
+                     </div>
+                   )}
 
                    {/* URL Input */}
                    {postType !== 'reel' && (
@@ -1423,7 +1460,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                       disabled={selectedAccounts.length === 0 || status === 'creatingPreview' || !copy.trim() || !shortTitle.trim() || imageUrls.length === 0} 
                       className="px-8 py-2 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                    >
-                      {status === 'preview' ? 'RE-GENERAR' : 'GENERAR'} <ArrowRight size={16} strokeWidth={3} />
+                      {status === 'preview' ? 'RE-GENERAR PORTADA' : 'GENERAR PORTADA'} <ArrowRight size={16} strokeWidth={3} />
                    </button>
                 )}
              </div>
