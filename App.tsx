@@ -34,7 +34,10 @@ const DEFAULT_SITE_CONFIG: SiteConfig = {
 };
 
 const App: React.FC = () => {
-  const [view, setView] = useState<ViewMode>(ViewMode.HOME);
+  const [view, setView] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem('currentView');
+    return saved ? (saved as ViewMode) : ViewMode.HOME;
+  });
   const [articles, setArticles] = useState<Article[]>([]);
   const [sponsorships, setSponsorships] = useState<Sponsorship[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -48,7 +51,10 @@ const App: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [aiNewsTasks, setAiNewsTasks] = useState<GenerationTask[]>([]);
   const [aiSocialTasks, setAiSocialTasks] = useState<SocialGenerationTask[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('currentUser');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [siteConfig, setSiteConfig] = useState<SiteConfig>(DEFAULT_SITE_CONFIG);
   const [adSlots, setAdSlots] = useState<AdSlotConfig[]>([]);
   
@@ -63,6 +69,18 @@ const App: React.FC = () => {
   const [hasShownPersonalNotifications, setHasShownPersonalNotifications] = useState(false);
 
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('currentUser');
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem('currentView', view);
+  }, [view]);
   const [showPopup, setShowPopup] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
   const [adminTab, setAdminTab] = useState<string | undefined>(undefined);
