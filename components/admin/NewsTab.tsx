@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Article, Category, User, CategoryConfig } from '../../types';
+import { Article, Category, User, CategoryConfig, SocialAccount } from '../../types';
 import { Plus, Search, Send, Edit3, Trash2, Clock, CheckCircle, Upload, EyeOff, FilterX, AlertTriangle, X, Sparkles, Filter } from 'lucide-react';
 import { OptimizedImage } from '../OptimizedImage';
 
@@ -7,32 +7,40 @@ interface NewsTabProps {
   articles: Article[];
   users: User[];
   categories: CategoryConfig[];
+  socialAccounts: SocialAccount[];
   onOpenEditor: (article?: Article) => void;
-  onOpenSocialCreator: (article: Article) => void;
+  onOpenSocialCreator: (article: Article, accountId: string) => void;
   onDeleteArticle: (id: string) => void;
   onToggleArticleStatus: (id: string) => void;
   onViewArticle: (id: string) => void;
+  forcedFilterStatus?: 'Published' | 'Draft' | 'All';
+  hideHeader?: boolean;
 }
 
 export const NewsTab: React.FC<NewsTabProps> = ({
   articles,
   users,
   categories,
+  socialAccounts,
   onOpenEditor,
   onOpenSocialCreator,
   onDeleteArticle,
   onToggleArticleStatus,
   onViewArticle,
+  forcedFilterStatus,
+  hideHeader = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<Category | 'All'>('All');
-  const [filterStatus, setFilterStatus] = useState<'All' | 'Published' | 'Draft'>('Published'); // Por defecto publicadas
+  const [filterStatus, setFilterStatus] = useState<'All' | 'Published' | 'Draft'>(forcedFilterStatus || 'Published'); // Por defecto publicadas
   
   // Estados para modales de confirmación
   const [articleToDelete, setArticleToDelete] = useState<Article | null>(null);
   const [articleForSocialConfirm, setArticleForSocialConfirm] = useState<Article | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('');
 
   const filteredArticles = useMemo(() => {
+    const currentStatusFilter = forcedFilterStatus || filterStatus;
     return articles
       .filter(art => {
         const term = searchTerm.toLowerCase();
@@ -40,15 +48,17 @@ export const NewsTab: React.FC<NewsTabProps> = ({
       })
       .filter(art => filterCategory === 'All' || art.category === filterCategory)
       .filter(art => {
-        if (filterStatus === 'All') return true;
-        return filterStatus === 'Published' ? art.isPublished : !art.isPublished;
+        if (currentStatusFilter === 'All') return true;
+        return currentStatusFilter === 'Published' ? art.isPublished : !art.isPublished;
       });
-  }, [articles, searchTerm, filterCategory, filterStatus]);
+  }, [articles, searchTerm, filterCategory, filterStatus, forcedFilterStatus]);
 
   const handleResetFilters = () => {
     setSearchTerm('');
     setFilterCategory('All');
-    setFilterStatus('Published');
+    if (!forcedFilterStatus) {
+      setFilterStatus('Published');
+    }
   };
 
   const confirmDelete = (e: React.MouseEvent, article: Article) => {
@@ -64,9 +74,10 @@ export const NewsTab: React.FC<NewsTabProps> = ({
   };
 
   const handleConfirmSocial = () => {
-    if (articleForSocialConfirm) {
-      onOpenSocialCreator(articleForSocialConfirm);
+    if (articleForSocialConfirm && selectedAccountId) {
+      onOpenSocialCreator(articleForSocialConfirm, selectedAccountId);
       setArticleForSocialConfirm(null);
+      setSelectedAccountId('');
     }
   };
 
@@ -95,18 +106,20 @@ export const NewsTab: React.FC<NewsTabProps> = ({
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h2 className="text-3xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter">GESTOR DE NOTICIAS</h2>
-          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Control editorial y distribución A1TOQUE</p>
+      {!hideHeader && (
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter">GESTOR DE NOTICIAS</h2>
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Control editorial y distribución A1TOQUE</p>
+          </div>
+          <button 
+            onClick={() => onOpenEditor()} 
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_10px_30px_rgba(0,255,157,0.2)] active:scale-95"
+          >
+            <Plus size={18} strokeWidth={3} /> NUEVA NOTICIA
+          </button>
         </div>
-        <button 
-          onClick={() => onOpenEditor()} 
-          className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_10px_30px_rgba(0,255,157,0.2)] active:scale-95"
-        >
-          <Plus size={18} strokeWidth={3} /> NUEVA NOTICIA
-        </button>
-      </div>
+      )}
 
       {/* Buscador y Filtros */}
       <div className="flex flex-col md:flex-row gap-3 mb-8 p-3 bg-white/5 rounded-2xl border border-white/10">
@@ -122,15 +135,17 @@ export const NewsTab: React.FC<NewsTabProps> = ({
         </div>
         <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             {/* Filtro de Estado */}
-            <select 
-              value={filterStatus} 
-              onChange={e => setFilterStatus(e.target.value as any)} 
-              className="flex-1 md:flex-none bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black uppercase text-neon focus:border-neon/50 outline-none cursor-pointer"
-            >
-              <option value="Published">Publicadas</option>
-              <option value="Draft">Borradores</option>
-              <option value="All">Todos</option>
-            </select>
+            {!forcedFilterStatus && (
+              <select 
+                value={filterStatus} 
+                onChange={e => setFilterStatus(e.target.value as any)} 
+                className="flex-1 md:flex-none bg-black/50 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black uppercase text-neon focus:border-neon/50 outline-none cursor-pointer"
+              >
+                <option value="Published">Publicadas</option>
+                <option value="Draft">Borradores</option>
+                <option value="All">Todos</option>
+              </select>
+            )}
             
             <select 
               value={filterCategory} 
@@ -140,7 +155,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({
               <option value="All">Categoría</option>
               {categories.filter(c => c.visible).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
-            {(searchTerm || filterCategory !== 'All' || filterStatus !== 'Published') && (
+            {(searchTerm || filterCategory !== 'All' || (!forcedFilterStatus && filterStatus !== 'Published')) && (
               <button onClick={handleResetFilters} className="p-3 bg-white/5 text-gray-400 hover:text-white rounded-xl transition-colors">
                 <FilterX size={18} />
               </button>
@@ -334,10 +349,24 @@ export const NewsTab: React.FC<NewsTabProps> = ({
                 La IA analizará esta noticia para crear un titular de impacto y un copy optimizado para tus redes sociales.
               </p>
 
-              <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/5">
+              <div className="bg-white/5 p-4 rounded-2xl mb-4 border border-white/5">
                 <p className="text-white text-base font-oswald font-bold italic line-clamp-2">
                   "{articleForSocialConfirm.title}"
                 </p>
+              </div>
+              
+              <div className="mb-8">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block text-left">Selecciona la cuenta</label>
+                <select 
+                  value={selectedAccountId} 
+                  onChange={e => setSelectedAccountId(e.target.value)}
+                  className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-neon outline-none"
+                >
+                  <option value="">Selecciona una cuenta...</option>
+                  {socialAccounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.name} ({acc.platform})</option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex flex-col gap-3">

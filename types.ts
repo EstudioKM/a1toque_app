@@ -226,6 +226,10 @@ export interface SocialAccount {
   handle: string;
   platform: SocialPlatform;
   profileImageUrl: string;
+  accountId?: string; // ID de cuenta para webhook
+  placidId?: string; // ID de Placid para webhook
+  primaryColor?: string; // Color principal
+  secondaryColor?: string; // Color secundario
   systemPrompt?: string; // Prompt de personalidad de IA
   copyPrompt?: string;   // Prompt de instrucciones para el copy
 }

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Article, User, Brand, SocialAccount, SocialPost, Source, SiteConfig } from '../../../types';
-import { generateSocialMediaContent, generateSocialMediaContentFromTopic, improveSocialMediaCopy, refineSocialMediaContent } from '../../../services/geminiService';
+import { generateSocialMediaContentFast, generateSocialMediaContentFromTopic, improveSocialMediaCopy, refineSocialMediaContent } from '../../../services/geminiService';
 import { X, ArrowRight, Loader2, AlertTriangle, CheckCircle2, UploadCloud, Sparkles, AtSign, Building, Check, Crop, Send, Save, Edit2, AlertCircle, Calendar, ChevronLeft, ChevronRight, Clock, Trash2, Plus, RotateCcw } from 'lucide-react';
 import { storage } from '../../../services/firebase';
 import { ref, uploadString, getDownloadURL, uploadBytes } from 'firebase/storage';
@@ -14,6 +14,9 @@ type PublicationStatus = 'idle' | 'generating' | 'creatingPreview' | 'preview' |
 
 interface SocialPostCreatorProps {
   article: Article | null;
+  accountId?: string;
+  preGeneratedContent?: any;
+  skipGeneration?: boolean;
   draftPost?: SocialPost | null;
   currentUser: User;
   brands: Brand[];
@@ -29,6 +32,9 @@ interface SocialPostCreatorProps {
 
 export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   article,
+  accountId,
+  preGeneratedContent,
+  skipGeneration,
   draftPost,
   currentUser,
   brands,
@@ -41,7 +47,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   users,
   articles,
 }) => {
-  const [status, setStatus] = useState<PublicationStatus>('idle');
+  const [status, setStatus] = useState<PublicationStatus>(skipGeneration ? 'idle' : 'generating');
   const [shortTitle, setShortTitle] = useState('');
   const [copy, setCopy] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -97,6 +103,35 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   useEffect(() => {
     if (isInitialized.current) return;
 
+    if (skipGeneration && preGeneratedContent) {
+        setShortTitle(preGeneratedContent.shortTitle || '');
+        setLastGeneratedTitle(preGeneratedContent.shortTitle || '');
+        setCopy(preGeneratedContent.copy || '');
+        setLastGeneratedCopy(preGeneratedContent.copy || '');
+        
+        if (accountId) {
+            setSelectedAccounts([accountId]);
+            setLastGeneratedAccounts([accountId]);
+        }
+        
+        const articleSource = { 
+            uri: `https://a1toque.com/news/${article?.id}`, 
+            title: `Artículo: ${article?.title}` 
+        };
+        
+        const combinedSources = [articleSource];
+        if (preGeneratedContent.sources) {
+            preGeneratedContent.sources.forEach((s: Source) => {
+              if (!combinedSources.find(cs => cs.uri === s.uri)) combinedSources.push(s);
+            });
+        }
+        setSources(combinedSources);
+        
+        setStatus('idle');
+        isInitialized.current = true;
+        return;
+    }
+
     const initialize = async () => {
         if (draftPost) {
           setShortTitle(draftPost.titleOverlay || '');
@@ -148,7 +183,9 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           setLastGeneratedBaseImage(article.imageUrl);
           setStatus('generating');
 
-        const targetAccount = socialAccounts.find(acc => acc.name.toLowerCase().includes((article.category || '').toLowerCase()));
+        const targetAccount = accountId 
+            ? socialAccounts.find(acc => acc.id === accountId)
+            : socialAccounts.find(acc => acc.name.toLowerCase().includes((article.category || '').toLowerCase()));
         const systemPromptForAI = targetAccount?.systemPrompt || aiSystemPrompt;
         const copyPromptForAI = targetAccount?.copyPrompt || DEFAULT_SOCIAL_COPY_PROMPT;
 
@@ -158,7 +195,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         }
 
         try {
-          const content = await generateSocialMediaContent(article.title, article.excerpt, systemPromptForAI, copyPromptForAI);
+          const content = await generateSocialMediaContentFast(article.title, article.excerpt, systemPromptForAI, copyPromptForAI);
           setShortTitle(content.shortTitle || '');
           setLastGeneratedTitle(content.shortTitle || '');
           setCopy(content.copy || '');
@@ -190,7 +227,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       }
     };
     initialize();
-  }, [article, draftPost, aiSystemPrompt, socialAccounts]);
+  }, [article, accountId, draftPost, aiSystemPrompt, socialAccounts, skipGeneration, preGeneratedContent]);
   
   useEffect(() => {
     // Evitar que la lógica de sponsors borre el texto si estamos cargando un borrador o si ya estamos en preview
@@ -465,7 +502,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       const selectedAccountDetails = selectedAccounts
           .map(id => socialAccounts.find(acc => acc.id === id))
           .filter((acc): acc is SocialAccount => !!acc)
-          .map(acc => ({ name: acc.name, handle: acc.handle, platform: acc.platform }));
+          .map(acc => ({ name: acc.name, handle: acc.handle, platform: acc.platform, accountId: acc.accountId, placidId: acc.placidId, primaryColor: acc.primaryColor, secondaryColor: acc.secondaryColor }));
 
       const sponsorPayload: { [key: string]: { name: string; logoUrl: string } | null } = { sponsor_1: null, sponsor_2: null, sponsor_3: null, sponsor_4: null };
       

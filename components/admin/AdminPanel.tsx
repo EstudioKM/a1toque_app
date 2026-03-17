@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Article, Sponsorship, Brand, User, Role, SocialAccount, SocialPost, Source, CategoryConfig, GenerationTask, SocialGenerationTask, ContentBlock, SiteConfig, AdSlotConfig, WorkLog, Task, ChatMessage, ViewMode } from '../../types';
-import { LogOut, User as UserIcon, Settings, FileText, Send, BrainCircuit, ShoppingBag, BarChart3, Users, Shield, Menu, X, Clock, CheckSquare, MessageSquare, Bell, LayoutDashboard } from 'lucide-react';
+import { LogOut, User as UserIcon, Settings, FileText, Send, BrainCircuit, ShoppingBag, BarChart3, Users, Shield, Menu, X, Clock, CheckSquare, MessageSquare, Bell, LayoutDashboard, Loader2 } from 'lucide-react';
 import { NotificationCenter } from '../NotificationCenter';
 import { ArticleEditor } from './modals/ArticleEditor';
 import { SocialPostCreator } from './modals/SocialPostCreator';
@@ -11,9 +11,8 @@ import { SocialAccountEditorModal } from './modals/SocialAccountEditorModal';
 import { SourcesModal } from './modals/SourcesModal';
 import { SocialPostDetailModal } from './modals/SocialPostDetailModal';
 import { AdSlotEditorModal } from './modals/AdSlotEditorModal';
-import { NewsTab } from './NewsTab';
+import { ContentTab } from './ContentTab';
 import { SocialMediaTab } from './SocialMediaTab';
-import { ResearchTab } from './ResearchTab';
 import { AdsTab } from './AdsTab';
 import { UsersTab } from './UsersTab';
 import { ConfigTab } from './ConfigTab';
@@ -24,16 +23,15 @@ import { TasksTab } from './TasksTab';
 import { AdminTasksTab } from './AdminTasksTab';
 import { ChatTab } from './ChatTab';
 import { HomeTab } from './HomeTab';
-import { generateNewsFromUrl, generateNewsDraftFromTopic, generateSocialMediaContentFromTopic } from '../../services/geminiService';
+import { generateNewsFromUrl, generateNewsDraftFromTopic, generateSocialMediaContentFromTopic, generateSocialMediaContentFast } from '../../services/geminiService';
 
-type AdminTab = 'home' | 'news' | 'social' | 'users' | 'research' | 'ads' | 'metrics' | 'config' | 'profile' | 'permissions' | 'tasks' | 'admin_tasks' | 'chat';
+type AdminTab = 'home' | 'news' | 'social' | 'users' | 'ads' | 'metrics' | 'config' | 'profile' | 'permissions' | 'tasks' | 'admin_tasks' | 'chat';
 
 const TABS_CONFIG = [
     { id: 'home', icon: LayoutDashboard, label: 'Inicio' },
     { id: 'tasks', icon: CheckSquare, label: 'Mi Trabajo' },
     { id: 'news', icon: FileText, label: 'Noticias' },
     { id: 'social', icon: Send, label: 'Redes Sociales' },
-    { id: 'research', icon: BrainCircuit, label: 'Investigación IA' },
     { id: 'ads', icon: ShoppingBag, label: 'Ads' },
     { id: 'metrics', icon: BarChart3, label: 'Métricas' },
     { id: 'users', icon: Users, label: 'Usuarios' },
@@ -136,6 +134,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [newsTaskBeingEdited, setNewsTaskBeingEdited] = useState<string | null>(null);
   const [isSocialPostCreatorOpen, setIsSocialPostCreatorOpen] = useState(false);
   const [articleForSocial, setArticleForSocial] = useState<Article | null>(null);
+  const [selectedAccountIdForCreator, setSelectedAccountIdForCreator] = useState<string | undefined>(undefined);
+  const [isGeneratingSocial, setIsGeneratingSocial] = useState(false);
+  const [preGeneratedSocialContent, setPreGeneratedSocialContent] = useState<any | null>(null);
   const [editingSocialPost, setEditingSocialPost] = useState<SocialPost | null>(null);
   const [socialTaskBeingEdited, setSocialTaskBeingEdited] = useState<string | null>(null);
   const [isUserEditorOpen, setIsUserEditorOpen] = useState(false);
@@ -167,7 +168,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const rolesMap = useMemo(() => new Map(props.roles.map(r => [r.id, r])), [props.roles]);
 
   const handleOpenArticleEditor = (article?: Article) => { setEditingArticle(article || null); setIsArticleEditorOpen(true); };
-  const handleOpenSocialCreator = (article?: Article) => { setArticleForSocial(article || null); setEditingSocialPost(null); setIsSocialPostCreatorOpen(true); };
+  const handleOpenSocialCreator = async (article?: Article, accountId?: string) => { 
+    setArticleForSocial(article || null); 
+    setSelectedAccountIdForCreator(accountId);
+    setEditingSocialPost(null); 
+    
+    if (article && accountId) {
+        setIsGeneratingSocial(true);
+        try {
+            const account = props.socialAccounts.find(a => a.id === accountId);
+            if (account) {
+                const generated = await generateSocialMediaContentFast(
+                    article.title,
+                    article.excerpt,
+                    account.systemPrompt,
+                    account.copyPrompt
+                );
+                setPreGeneratedSocialContent(generated);
+            }
+        } catch (e) {
+            console.error("Error generating social content:", e);
+        } finally {
+            setIsGeneratingSocial(false);
+            setIsSocialPostCreatorOpen(true);
+        }
+    } else {
+        setIsSocialPostCreatorOpen(true);
+    }
+  };
   const handleOpenSocialEditor = (post: SocialPost) => { setArticleForSocial(null); setEditingSocialPost(post); setIsSocialPostCreatorOpen(true); };
   const handleOpenUserEditor = (user?: User) => { setEditingUser(user || null); setIsUserEditorOpen(true); };
   const handleOpenBrandEditor = (brand?: Brand) => { setEditingBrand(brand || null); setIsBrandEditorOpen(true); };
@@ -378,9 +406,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               onOpenAdminTab={(tab) => setActiveTab(tab as AdminTab)}
             />
           )}
-          {activeTab === 'news' && <NewsTab {...props} onOpenEditor={handleOpenArticleEditor} onOpenSocialCreator={handleOpenSocialCreator} onViewArticle={props.onViewArticle} />}
+          {activeTab === 'news' && (
+            <ContentTab 
+              {...props} 
+              onOpenEditor={handleOpenArticleEditor} 
+              onOpenSocialCreator={handleOpenSocialCreator} 
+              onViewArticle={props.onViewArticle}
+              generationQueue={generationQueue}
+              onGenerateFromUrl={handleGenerateFromUrl}
+              onGenerateFromTopic={handleGenerateFromTopic}
+              onOpenSources={handleOpenSourcesModal}
+              onLoadDraft={handleLoadDraftInEditor}
+              onSaveDraft={handleSaveDraftFromTask}
+              onRemoveTask={props.onDeleteAiNewsTask}
+            />
+          )}
           {activeTab === 'social' && <SocialMediaTab {...props} onOpenCreator={handleOpenSocialCreator} onOpenDetail={handleOpenSocialPostDetail} onOpenEditor={handleOpenSocialEditor} onDeletePost={props.onDeleteSocialPost} socialAccountMap={socialAccountMap} socialGenerationQueue={socialGenerationQueue} onGenerateSocialFromTopic={handleGenerateSocialFromTopic} onLoadSocialDraft={handleLoadSocialDraft} onRemoveSocialTask={props.onDeleteAiSocialTask} />}
-          {activeTab === 'research' && <ResearchTab generationQueue={generationQueue} onGenerateFromUrl={handleGenerateFromUrl} onGenerateFromTopic={handleGenerateFromTopic} onOpenSources={handleOpenSourcesModal} onLoadDraft={handleLoadDraftInEditor} onSaveDraft={handleSaveDraftFromTask} onRemoveTask={props.onDeleteAiNewsTask} socialAccounts={props.socialAccounts} aiSystemPrompt={props.aiSystemPrompt} siteConfig={props.siteConfig} />}
           {activeTab === 'ads' && <AdsTab {...props} brandMap={brandMap} onOpenBrandEditor={handleOpenBrandEditor} onOpenSponsorshipEditor={handleOpenSponsorshipEditor} onOpenAdSlotEditor={handleOpenAdSlotEditor} />}
           {activeTab === 'users' && <UsersTab {...props} onOpenEditor={handleOpenUserEditor} rolesMap={rolesMap} />}
           {activeTab === 'metrics' && <MetricsTab {...props} brands={props.brands} brandMap={brandMap} socialAccountMap={socialAccountMap} onOpenDetail={handleOpenSocialPostDetail} />}
@@ -407,7 +448,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         </div>
       </main>
       {isArticleEditorOpen && ( <ArticleEditor article={editingArticle} users={props.users} currentUser={props.currentUser} categories={props.categories} onClose={() => { setIsArticleEditorOpen(false); setNewsTaskBeingEdited(null); }} onSave={handleSaveArticleFromEditor}/>)}
-      {isSocialPostCreatorOpen && ( <SocialPostCreator key={editingSocialPost?.id || articleForSocial?.id || 'new'} article={articleForSocial} draftPost={editingSocialPost} currentUser={props.currentUser} brands={props.brands} socialAccounts={props.socialAccounts} aiSystemPrompt={props.aiSystemPrompt} siteConfig={props.siteConfig} onClose={() => { setIsSocialPostCreatorOpen(false); setArticleForSocial(null); setEditingSocialPost(null); setSocialTaskBeingEdited(null); }} onAddSocialPost={async (post) => { await props.onAddSocialPost(post); if (socialTaskBeingEdited) await props.onDeleteAiSocialTask(socialTaskBeingEdited); }} onUpdateSocialPost={async (post) => { await props.onUpdateSocialPost(post); if (socialTaskBeingEdited) await props.onDeleteAiSocialTask(socialTaskBeingEdited); }} users={props.users} articles={props.articles}/>)}
+      {isSocialPostCreatorOpen && ( <SocialPostCreator key={editingSocialPost?.id || articleForSocial?.id || 'new'} article={articleForSocial} accountId={selectedAccountIdForCreator} preGeneratedContent={preGeneratedSocialContent} skipGeneration={!!preGeneratedSocialContent} draftPost={editingSocialPost} currentUser={props.currentUser} brands={props.brands} socialAccounts={props.socialAccounts} aiSystemPrompt={props.aiSystemPrompt} siteConfig={props.siteConfig} onClose={() => { setIsSocialPostCreatorOpen(false); setArticleForSocial(null); setSelectedAccountIdForCreator(undefined); setPreGeneratedSocialContent(null); setEditingSocialPost(null); setSocialTaskBeingEdited(null); }} onAddSocialPost={async (post) => { await props.onAddSocialPost(post); if (socialTaskBeingEdited) await props.onDeleteAiSocialTask(socialTaskBeingEdited); }} onUpdateSocialPost={async (post) => { await props.onUpdateSocialPost(post); if (socialTaskBeingEdited) await props.onDeleteAiSocialTask(socialTaskBeingEdited); }} users={props.users} articles={props.articles}/>)}
+      {isGeneratingSocial && (
+        <div className="fixed inset-0 z-[300] bg-black/80 flex items-center justify-center">
+            <div className="text-white text-center">
+                <Loader2 size={48} className="animate-spin mx-auto mb-4" />
+                <p>Generando copy...</p>
+            </div>
+        </div>
+      )}
       {isUserEditorOpen && ( <UserEditorModal user={editingUser} roles={props.roles} socialAccounts={props.socialAccounts} onClose={() => setIsUserEditorOpen(false)} onSave={editingUser ? props.onUpdateUser : props.onAddUser}/>)}
       {isBrandEditorOpen && ( <BrandEditorModal brand={editingBrand} onClose={() => setIsBrandEditorOpen(false)} onSave={editingBrand ? props.onUpdateBrand : props.onAddBrand}/>)}
       {isSponsorshipEditorOpen && ( <SponsorshipEditorModal sponsorship={editingSponsorship} brands={props.brands} adSlots={props.adSlots} onClose={() => setIsSponsorshipEditorOpen(false)} onSave={editingSponsorship?.id ? props.onUpdateSponsorship as any : props.onAddSponsorship as any}/>)}

@@ -136,37 +136,31 @@ export const generateNewsFromUrl = async (url: string, systemInstruction: string
     } catch (error) { return null; }
 };
 
-export const generateSocialMediaContent = async (title: string, excerpt: string, systemInstruction: string, copyInstruction: string) => {
+export const generateSocialMediaContentFast = async (title: string, excerpt: string, systemInstruction: string, copyInstruction: string) => {
   const prompt = `Actúa como un Community Manager experto y estratega de contenido. 
-  Tu objetivo es crear un posteo de alto impacto para redes sociales basado en: "${title}".
-  Resumen del contexto: "${excerpt}".
+  Tu objetivo es crear un posteo de alto impacto para redes sociales basado EXCLUSIVAMENTE en la información proporcionada:
+  Título: "${title}"
+  Resumen: "${excerpt}"
   
   INSTRUCCIONES OBLIGATORIAS:
-  1. SIEMPRE utiliza la herramienta googleSearch para buscar información adicional, noticias de último momento y datos actualizados sobre este tema. No te limites solo al resumen proporcionado.
-  2. Enriquece el posteo con datos reales, resultados recientes o contexto de actualidad que encuentres en internet.
-  3. Adapta el tono según: ${systemInstruction}.
-  4. Sigue las reglas de copy: ${copyInstruction}.
-  5. Escribe de forma natural, con espacios correctos entre palabras.
-  6. El campo "shortTitle" NO PUEDE TENER MÁS DE 26 CARACTERES.
+  1. NO busques información adicional en internet. Usa solo el contexto dado.
+  2. Adapta el tono según: ${systemInstruction}.
+  3. Sigue las reglas de copy: ${copyInstruction}.
+  4. Escribe de forma natural, con espacios correctos entre palabras.
+  5. El campo "shortTitle" NO PUEDE TENER MÁS DE 26 CARACTERES.
   
-  JSON: { "shortTitle": "Título corto (máx 26 carac)", "copy": "Texto del posteo enriquecido con datos reales" }`;
+  JSON: { "shortTitle": "Título corto (máx 26 carac)", "copy": "Texto del posteo" }`;
   
   const res = await generateContentWithRetry({ 
-    model: POWERFUL_MODEL, 
+    model: FAST_MODEL, 
     contents: prompt,
     config: { 
-      tools: [{ googleSearch: {} }],
       responseMimeType: "application/json" 
     }
   });
   
   const data = cleanAndParseJSON(res.text, { shortTitle: "A1TOQUE", copy: "Posteo generado." });
-  
-  const groundingChunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks;
-  data.sources = groundingChunks ? groundingChunks
-        .map((chunk: any) => chunk.web ? { uri: chunk.web.uri, title: chunk.web.title } : null)
-        .filter((s): s is Source => !!s) : [];
-        
+  data.sources = [];
   return data;
 };
 

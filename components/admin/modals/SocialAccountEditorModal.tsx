@@ -14,6 +14,10 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
     handle: '', 
     platform: 'instagram', 
     profileImageUrl: '', 
+    accountId: '',
+    placidId: '',
+    primaryColor: '',
+    secondaryColor: '',
     systemPrompt: '', 
     copyPrompt: '' 
   });
@@ -25,11 +29,15 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
         handle: account.handle, 
         platform: account.platform, 
         profileImageUrl: account.profileImageUrl,
+        accountId: account.accountId || '',
+        placidId: account.placidId || '',
+        primaryColor: account.primaryColor || '#000000',
+        secondaryColor: account.secondaryColor || '#000000',
         systemPrompt: account.systemPrompt || '',
         copyPrompt: account.copyPrompt || '',
       });
     } else {
-      setFormData({ name: '', handle: '', platform: 'instagram', profileImageUrl: '', systemPrompt: '', copyPrompt: '' });
+      setFormData({ name: '', handle: '', platform: 'instagram', profileImageUrl: '', accountId: '', placidId: '', primaryColor: '#000000', secondaryColor: '#000000', systemPrompt: '', copyPrompt: '' });
     }
   }, [account]);
 
@@ -80,6 +88,40 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
                         onChange={e => setFormData(p => ({ ...p, handle: e.target.value }))} 
                         className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-blue-400 font-bold focus:border-neon outline-none" 
                     />
+                    <input 
+                        type="text" 
+                        placeholder="ID de Cuenta (para webhooks)" 
+                        value={formData.accountId || ''} 
+                        onChange={e => setFormData(p => ({ ...p, accountId: e.target.value }))} 
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:border-neon outline-none" 
+                    />
+                    <input 
+                        type="text" 
+                        placeholder="ID Placid" 
+                        value={formData.placidId || ''} 
+                        onChange={e => setFormData(p => ({ ...p, placidId: e.target.value }))} 
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:border-neon outline-none" 
+                    />
+                    <div className="flex gap-4">
+                        <div className="flex-1 space-y-2">
+                            <label className="text-[9px] font-black text-gray-500 uppercase">Color Principal</label>
+                            <input 
+                                type="color" 
+                                value={formData.primaryColor || '#000000'} 
+                                onChange={e => setFormData(p => ({ ...p, primaryColor: e.target.value }))} 
+                                className="w-full h-12 bg-white/[0.03] border border-white/10 rounded-2xl p-1 cursor-pointer" 
+                            />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                            <label className="text-[9px] font-black text-gray-500 uppercase">Color Secundario</label>
+                            <input 
+                                type="color" 
+                                value={formData.secondaryColor || '#000000'} 
+                                onChange={e => setFormData(p => ({ ...p, secondaryColor: e.target.value }))} 
+                                className="w-full h-12 bg-white/[0.03] border border-white/10 rounded-2xl p-1 cursor-pointer" 
+                            />
+                        </div>
+                    </div>
                     <select 
                         value={formData.platform || 'instagram'} 
                         onChange={e => setFormData(p => ({ ...p, platform: e.target.value as SocialPlatform }))} 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { GenerationTask, SocialAccount, Source, SiteConfig } from '../../types';
-import { Loader2, CheckCircle2, AlertTriangle, Globe, FileSignature, Save, Sparkles, Search, Zap, ArrowRight, Trash2 } from 'lucide-react';
+import { GenerationTask, SocialAccount, Source, SiteConfig, Article } from '../../types';
+import { Loader2, CheckCircle2, AlertTriangle, Globe, FileSignature, Save, Sparkles, Search, Zap, ArrowRight, Trash2, Plus } from 'lucide-react';
 
 interface ResearchTabProps {
   generationQueue: GenerationTask[];
@@ -13,6 +13,7 @@ interface ResearchTabProps {
   onLoadDraft: (task: GenerationTask) => void;
   onSaveDraft: (task: GenerationTask) => void;
   onRemoveTask: (id: string) => void;
+  onOpenEditor?: (article?: Article) => void;
 }
 
 export const ResearchTab: React.FC<ResearchTabProps> = ({ 
@@ -25,7 +26,8 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
   onOpenSources,
   onLoadDraft,
   onSaveDraft,
-  onRemoveTask
+  onRemoveTask,
+  onOpenEditor
 }) => {
   const [generationQuery, setGenerationQuery] = useState('');
   const [selectedAccountId, setSelectedAccountId] = useState('global');
@@ -51,11 +53,21 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
 
   return (
     <div className="max-w-5xl mx-auto pb-20">
-      <div className="mb-10">
-        <h2 className="text-3xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-3">
-          <Zap className="text-neon" size={32} /> INVESTIGACIÓN IA
-        </h2>
-        <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Motor de generación de contenido asistido</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+        <div>
+          <h2 className="text-3xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-3">
+            <Zap className="text-neon" size={32} /> REDACTAR NOTICIA
+          </h2>
+          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Motor de generación de contenido asistido y redacción manual</p>
+        </div>
+        {onOpenEditor && (
+          <button 
+            onClick={() => onOpenEditor()} 
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_10px_30px_rgba(0,255,157,0.2)] active:scale-95"
+          >
+            <Plus size={18} strokeWidth={3} /> NUEVA NOTICIA MANUAL
+          </button>
+        )}
       </div>
 
       <div className="bg-[#0f0f0f] p-6 md:p-8 rounded-[32px] border border-white/5 shadow-2xl mb-12">
