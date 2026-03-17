@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Article, Sponsorship, Brand, User, Role, SocialAccount, SocialPost, Source, CategoryConfig, GenerationTask, SocialGenerationTask, ContentBlock, SiteConfig, AdSlotConfig, WorkLog, Task, ChatMessage, ViewMode } from '../../types';
 import { LogOut, User as UserIcon, Settings, FileText, Send, BrainCircuit, ShoppingBag, BarChart3, Users, Shield, Menu, X, Clock, CheckSquare, MessageSquare, Bell, LayoutDashboard, Loader2 } from 'lucide-react';
 import { NotificationCenter } from '../NotificationCenter';
@@ -25,18 +25,16 @@ import { ChatTab } from './ChatTab';
 import { HomeTab } from './HomeTab';
 import { generateNewsFromUrl, generateNewsDraftFromTopic, generateSocialMediaContentFromTopic, generateSocialMediaContentFast } from '../../services/geminiService';
 
-type AdminTab = 'home' | 'news' | 'social' | 'users' | 'ads' | 'metrics' | 'config' | 'profile' | 'permissions' | 'tasks' | 'admin_tasks' | 'chat';
+type AdminTab = 'home' | 'news' | 'social' | 'users' | 'metrics' | 'config' | 'profile' | 'tasks' | 'admin_tasks' | 'chat';
 
 const TABS_CONFIG = [
     { id: 'home', icon: LayoutDashboard, label: 'Inicio' },
     { id: 'tasks', icon: CheckSquare, label: 'Mi Trabajo' },
     { id: 'news', icon: FileText, label: 'Noticias' },
     { id: 'social', icon: Send, label: 'Redes Sociales' },
-    { id: 'ads', icon: ShoppingBag, label: 'Ads' },
     { id: 'metrics', icon: BarChart3, label: 'Métricas' },
     { id: 'users', icon: Users, label: 'Usuarios' },
     { id: 'config', icon: Settings, label: 'Configuración' },
-    { id: 'permissions', icon: Shield, label: 'Permisos' },
     { id: 'admin_tasks', icon: Shield, label: 'Gestión Tareas' },
     { id: 'chat', icon: MessageSquare, label: 'Chat Interno' },
 ];
@@ -117,6 +115,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     const permissions = props.currentUserRole?.permissions || [];
     return TABS_CONFIG.filter(tab => permissions.includes(tab.id));
   }, [props.currentUserRole]);
+
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     if (props.initialTab) return props.initialTab;
@@ -370,14 +381,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               }}
               setView={() => {}}
             />
-            <div className="flex items-center gap-3 pl-6 border-l border-white/10">
-              <div className="text-right">
-                <p className="text-[11px] font-black text-white uppercase tracking-tight leading-none">{props.currentUser.name}</p>
-                <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1">{props.currentUserRole.name}</p>
+            <div className="relative" ref={userMenuRef}>
+              <div className="flex items-center gap-3 pl-6 border-l border-white/10 cursor-pointer" onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}>
+                <div className="text-right">
+                  <p className="text-[11px] font-black text-white uppercase tracking-tight leading-none">{props.currentUser.name}</p>
+                  <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1">{props.currentUserRole.name}</p>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-neon/20 border border-neon/30 flex items-center justify-center text-[10px] font-black text-neon">
+                  {props.currentUser.name.substring(0, 2).toUpperCase()}
+                </div>
               </div>
-              <div className="h-8 w-8 rounded-full bg-neon/20 border border-neon/30 flex items-center justify-center text-[10px] font-black text-neon">
-                {props.currentUser.name.substring(0, 2).toUpperCase()}
-              </div>
+              {isUserMenuOpen && (
+                <div className="absolute top-full right-0 mt-3 w-56 bg-[#111] border border-white/10 rounded-xl shadow-2xl z-[100] animate-in fade-in zoom-in duration-200">
+                  <button onClick={() => { setActiveTab('profile'); setIsUserMenuOpen(false); }} className="w-full text-left px-5 py-4 text-xs font-black uppercase text-white hover:bg-white/5 flex items-center gap-3 transition-colors rounded-t-xl">
+                    <UserIcon size={16} /> Mi Perfil
+                  </button>
+                  <button onClick={() => { props.onExit(); setIsUserMenuOpen(false); }} className="w-full text-left px-5 py-4 text-xs font-black uppercase text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors rounded-b-xl">
+                    <LogOut size={16} /> Salir del Panel
+                  </button>
+                </div>
+              )}
             </div>
           </div>
       </div>
@@ -389,7 +412,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-gray-500"><X size={20} /></button>
         </div>
         <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">{availableTabs.map(tab => (<NavButton key={tab.id} tab={tab.id as AdminTab} icon={tab.icon} label={tab.label} />))}</div>
-        <div className="space-y-2 border-t border-white/10 pt-6 mt-4"><NavButton tab="profile" icon={UserIcon} label="Mi Perfil" /><button onClick={props.onExit} className="flex items-center space-x-3 w-full text-left px-3 py-3 rounded-xl transition-all text-sm font-bold text-red-400 hover:bg-red-500/10"> <LogOut size={18} /> <span>Salir del Panel</span></button></div>
+        <div className="space-y-2 border-t border-white/10 pt-6 mt-4"><button onClick={props.onExit} className="flex items-center space-x-3 w-full text-left px-3 py-3 rounded-xl transition-all text-sm font-bold text-red-400 hover:bg-red-500/10"> <LogOut size={18} /> <span>Salir del Panel</span></button></div>
       </aside>
       <main className="flex-1 p-4 md:p-8 bg-black lg:ml-64 pt-20 lg:pt-24">
         <div className="max-w-7xl mx-auto">
@@ -423,8 +446,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           )}
           {activeTab === 'social' && <SocialMediaTab {...props} onOpenCreator={handleOpenSocialCreator} onOpenDetail={handleOpenSocialPostDetail} onOpenEditor={handleOpenSocialEditor} onDeletePost={props.onDeleteSocialPost} socialAccountMap={socialAccountMap} socialGenerationQueue={socialGenerationQueue} onGenerateSocialFromTopic={handleGenerateSocialFromTopic} onLoadSocialDraft={handleLoadSocialDraft} onRemoveSocialTask={props.onDeleteAiSocialTask} />}
           {activeTab === 'ads' && <AdsTab {...props} brandMap={brandMap} onOpenBrandEditor={handleOpenBrandEditor} onOpenSponsorshipEditor={handleOpenSponsorshipEditor} onOpenAdSlotEditor={handleOpenAdSlotEditor} />}
-          {activeTab === 'users' && <UsersTab {...props} onOpenEditor={handleOpenUserEditor} rolesMap={rolesMap} />}
-          {activeTab === 'metrics' && <MetricsTab {...props} brands={props.brands} brandMap={brandMap} socialAccountMap={socialAccountMap} onOpenDetail={handleOpenSocialPostDetail} />}
+          {activeTab === 'users' && <UsersTab {...props} onOpenEditor={handleOpenUserEditor} rolesMap={rolesMap} onAddRole={props.onAddRole} onUpdateRole={props.onUpdateRole} onDeleteRole={props.onDeleteRole} />}
+          {activeTab === 'metrics' && <MetricsTab {...props} brands={props.brands} brandMap={brandMap} socialAccountMap={socialAccountMap} onOpenDetail={handleOpenSocialPostDetail} adSlots={props.adSlots} onOpenBrandEditor={handleOpenBrandEditor} onOpenSponsorshipEditor={handleOpenSponsorshipEditor} onOpenAdSlotEditor={handleOpenAdSlotEditor} onDeleteBrand={props.onDeleteBrand} onDeleteSponsorship={props.onDeleteSponsorship} onToggleSponsorshipStatus={props.onToggleSponsorshipStatus} />}
           {activeTab === 'config' && <ConfigTab {...props} onOpenSocialAccountEditor={handleOpenSocialAccountEditor} />}
           {activeTab === 'profile' && <ProfileTab {...props} />}
           {activeTab === 'permissions' && <PermissionsTab {...props} />}

@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Article, Sponsorship, User, SocialPost, Brand, SocialAccount } from '../../types';
+import { Article, Sponsorship, User, SocialPost, Brand, SocialAccount, AdSlotConfig } from '../../types';
 import { formatArgentinaTimestamp, parseArgentinaDate } from '../../services/dateUtils';
-import { Newspaper, Users, MousePointerClick, Eye, Percent, ExternalLink, Send, Star, AtSign, Calendar, Filter, RotateCcw } from 'lucide-react';
+import { Newspaper, Users, MousePointerClick, Eye, Percent, ExternalLink, Send, Star, AtSign, Calendar, Filter, RotateCcw, ShoppingBag } from 'lucide-react';
+import { AdsTab } from './AdsTab';
 
 interface MetricsTabProps {
   articles: Article[];
@@ -11,10 +12,17 @@ interface MetricsTabProps {
   brands: Brand[];
   brandMap: Map<string, Brand>;
   socialAccountMap: Map<string, SocialAccount>;
+  adSlots: AdSlotConfig[];
   onOpenDetail: (post: SocialPost) => void;
+  onOpenBrandEditor: (brand?: Brand) => void;
+  onOpenSponsorshipEditor: (sponsorship?: Partial<Sponsorship>) => void;
+  onOpenAdSlotEditor: (slot: AdSlotConfig) => void;
+  onDeleteBrand: (id: string) => void;
+  onDeleteSponsorship: (id: string) => void;
+  onToggleSponsorshipStatus: (id: string) => void;
 }
 
-type MetricsView = 'sponsorships' | 'posts';
+type MetricsView = 'sponsorships' | 'posts' | 'ads';
 const DATE_PRESETS = [
     { label: '7D', days: 7 },
     { label: '14D', days: 14 },
@@ -35,7 +43,14 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
   brands,
   brandMap,
   socialAccountMap,
-  onOpenDetail
+  adSlots,
+  onOpenDetail,
+  onOpenBrandEditor,
+  onOpenSponsorshipEditor,
+  onOpenAdSlotEditor,
+  onDeleteBrand,
+  onDeleteSponsorship,
+  onToggleSponsorshipStatus
 }) => {
   const [view, setView] = useState<MetricsView>('posts');
 
@@ -135,7 +150,6 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
         return acc;
     }, {} as Record<string, number>);
 
-    // FIX: Explicitly type totalCount and use a standard reduce to ensure it is treated as a number.
     const totalCount = Object.values(counts).reduce((sum: number, val: number) => sum + val, 0);
     if (totalCount === 0) return [];
 
@@ -145,7 +159,6 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
             return {
                 name: account?.name || 'Desconocida',
                 count: count as number,
-                // FIX: Cast count and totalCount to number to prevent arithmetic type errors on line 146.
                 percentage: ((count as number) / (totalCount as number)) * 100,
             };
         })
@@ -167,7 +180,6 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
             return {
                 name: author?.name || 'Desconocido',
                 count: count as number,
-                // FIX: Ensure numeric division for percentage calculation.
                 percentage: ((count as number) / total) * 100,
             };
         })
@@ -218,9 +230,10 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
         <div className="flex items-center bg-black/50 border border-white/10 rounded-lg p-1">
           <button onClick={() => setView('sponsorships')} className={`px-4 py-1.5 text-xs font-black uppercase rounded-md transition ${view === 'sponsorships' ? 'bg-neon text-black' : 'text-gray-400 hover:bg-white/10'}`}>Campañas</button>
           <button onClick={() => setView('posts')} className={`px-4 py-1.5 text-xs font-black uppercase rounded-md transition ${view === 'posts' ? 'bg-neon text-black' : 'text-gray-400 hover:bg-white/10'}`}>Redes Sociales</button>
+          <button onClick={() => setView('ads')} className={`px-4 py-1.5 text-xs font-black uppercase rounded-md transition ${view === 'ads' ? 'bg-neon text-black' : 'text-gray-400 hover:bg-white/10'}`}>Ads</button>
         </div>
       </div>
-      {view === 'sponsorships' ? renderSponsorshipsView() : renderPostsView()}
+      {view === 'sponsorships' ? renderSponsorshipsView() : view === 'posts' ? renderPostsView() : <AdsTab brands={brands} sponsorships={sponsorships} adSlots={adSlots} brandMap={brandMap} onOpenBrandEditor={onOpenBrandEditor} onOpenSponsorshipEditor={onOpenSponsorshipEditor} onOpenAdSlotEditor={onOpenAdSlotEditor} onDeleteBrand={onDeleteBrand} onDeleteSponsorship={onDeleteSponsorship} onToggleSponsorshipStatus={onToggleSponsorshipStatus} />}
     </div>
   );
 };
