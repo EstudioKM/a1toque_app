@@ -41,8 +41,12 @@ export const UsersTab: React.FC<UsersTabProps> = ({ users, currentUser, roles, r
             {users.map(user => (
               <div key={user.id} className="bg-white/5 p-4 rounded-xl flex items-center justify-between border border-transparent hover:border-neon/50 transition-colors">
                 <div className="flex items-center gap-4">
-                  {user.avatar && (
+                  {user.avatar ? (
                     <img src={user.avatar} alt={user.name} className="w-10 h-10 object-cover rounded-full" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-neon/20 border border-neon/30 flex items-center justify-center text-xs font-black text-neon">
+                      {user.name.substring(0, 2).toUpperCase()}
+                    </div>
                   )}
                   <div>
                     <h3 className="text-white font-bold">{user.name}</h3>

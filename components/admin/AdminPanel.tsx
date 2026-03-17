@@ -387,8 +387,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                   <p className="text-[11px] font-black text-white uppercase tracking-tight leading-none">{props.currentUser.name}</p>
                   <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1">{props.currentUserRole.name}</p>
                 </div>
-                <div className="h-8 w-8 rounded-full bg-neon/20 border border-neon/30 flex items-center justify-center text-[10px] font-black text-neon">
-                  {props.currentUser.name.substring(0, 2).toUpperCase()}
+                <div className="h-8 w-8 rounded-full bg-neon/20 border border-neon/30 flex items-center justify-center text-[10px] font-black text-neon overflow-hidden">
+                  {props.currentUser.avatar ? (
+                    <img src={props.currentUser.avatar} alt={props.currentUser.name} className="h-full w-full object-cover" />
+                  ) : (
+                    props.currentUser.name.substring(0, 2).toUpperCase()
+                  )}
                 </div>
               </div>
               {isUserMenuOpen && (
