@@ -85,6 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
     } else {
       setView(ViewMode.HOME);
       setSelectedCategory('All');
+      window.scrollTo(0, 0);
       clickTimeoutRef.current = window.setTimeout(() => {
         setLogoClickCount(0);
       }, 2000);
@@ -99,6 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
     setView(ViewMode.HOME);
     setSelectedCategory(cat);
     setIsMobileMenuOpen(false);
+    window.scrollTo(0, 0);
   };
 
   return (
@@ -142,21 +144,24 @@ export const Header: React.FC<HeaderProps> = ({
             {clubs.map(club => {
               const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
               const clubSocial = socialAccounts.find(sa => normalize(sa.name).includes(normalize(club.name)));
+              const isActive = selectedCategory === club.name;
               return (
                 <button 
                   key={club.id}
                   onClick={() => handleNavClick(club.name)}
-                  className={`px-3 h-full flex items-center gap-2 font-oswald font-black text-[11px] uppercase italic tracking-[0.2em] transition-all relative group ${selectedCategory === club.name ? 'text-neon' : 'text-gray-500 hover:text-neon'}`}
+                  className={`px-3 h-full flex items-center gap-2 font-oswald font-black text-[11px] uppercase italic tracking-[0.2em] transition-all relative group ${isActive ? 'text-neon' : 'text-gray-500 hover:text-neon'}`}
                 >
                   {clubSocial?.profileImageUrl && (
                     <img 
                       src={clubSocial.profileImageUrl} 
                       alt={club.name} 
-                      className="w-4 h-4 rounded-full object-cover border border-white/10 group-hover:border-neon/50 transition-colors"
+                      className={`w-4 h-4 rounded-full object-cover border transition-colors ${isActive ? 'border-neon' : 'border-white/10 group-hover:border-neon/50'}`}
                     />
                   )}
                   {club.name}
-                  <span className={`absolute -bottom-2 left-0 h-0.5 bg-neon transition-all ${selectedCategory === club.name ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                  <span 
+                    className={`absolute -bottom-2 left-0 h-0.5 bg-neon transition-all ${isActive ? 'w-full' : 'w-0 group-hover:w-full'}`}
+                  ></span>
                 </button>
               );
             })}

@@ -379,6 +379,17 @@ const App: React.FC = () => {
   }, []);
   
   useEffect(() => {
+    const scroll = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTo(0, 0);
+      document.body.scrollTo(0, 0);
+    };
+    scroll();
+    const timer = setTimeout(scroll, 100);
+    return () => clearTimeout(timer);
+  }, [view, selectedCategory]);
+
+  useEffect(() => {
     if (view === ViewMode.HOME && !isLoading) {
       const hasSeen = sessionStorage.getItem('a1toque_popup_seen');
       if (!hasSeen) {
@@ -575,7 +586,6 @@ const App: React.FC = () => {
       delete userToUpdate.password;
     }
     await setDoc(doc(db, 'users', user.id), userToUpdate, { merge: true });
-    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, ...userToUpdate } as User : u));
   };
   const deleteUser = async (id: string) => {
     try {
@@ -604,14 +614,11 @@ const App: React.FC = () => {
   const addSocialPost = async (post: Omit<SocialPost, 'id'>) => {
     const cleanPost = removeUndefinedFields(post);
     const docRef = await addDoc(collection(db, 'social_posts'), cleanPost);
-    const newPost = { ...cleanPost, id: docRef.id } as SocialPost;
-    setSocialPosts(prev => [newPost, ...prev]);
-    return newPost;
+    return { ...cleanPost, id: docRef.id } as SocialPost;
   };
   const updateSocialPost = async (post: SocialPost) => {
     const cleanPost = removeUndefinedFields(post);
     await setDoc(doc(db, 'social_posts', post.id), cleanPost, { merge: true });
-    setSocialPosts(prev => prev.map(p => p.id === post.id ? cleanPost as SocialPost : p));
   };
   const deleteSocialPost = async (id: string) => {
     await deleteDoc(doc(db, 'social_posts', id));
@@ -686,13 +693,11 @@ const App: React.FC = () => {
 
   const addTask = async (task: Omit<Task, 'id'>) => {
     const cleanTask = removeUndefinedFields(task);
-    const docRef = await addDoc(collection(db, 'tasks'), cleanTask);
-    setTasks(prev => [{ ...cleanTask, id: docRef.id } as Task, ...prev]);
+    await addDoc(collection(db, 'tasks'), cleanTask);
   };
   const updateTask = async (task: Task) => {
     const cleanTask = removeUndefinedFields(task);
     await setDoc(doc(db, 'tasks', task.id), cleanTask, { merge: true });
-    setTasks(prev => prev.map(t => t.id === task.id ? cleanTask as Task : t));
   };
   const deleteTask = async (id: string) => {
     await deleteDoc(doc(db, 'tasks', id));
@@ -783,10 +788,23 @@ const App: React.FC = () => {
         .slice(0, 6);
   }, [publishedArticles]);
 
+  const activeSocialAccount = useMemo(() => {
+    if (selectedCategory === 'All') return null;
+    const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+    return socialAccounts.find(sa => normalize(sa.name).includes(normalize(selectedCategory)));
+  }, [selectedCategory, socialAccounts]);
+
+  const activeSecondaryColor = useMemo(() => {
+    if (selectedCategory === 'All') return CLUB_COLORS['Default'];
+    if (activeSocialAccount?.secondaryColor) return activeSocialAccount.secondaryColor;
+    return CLUB_COLORS['Default'];
+  }, [selectedCategory, activeSocialAccount]);
+
   const activeColor = useMemo(() => {
     if (selectedCategory === 'All') return CLUB_COLORS['Default'];
+    if (activeSocialAccount?.primaryColor) return activeSocialAccount.primaryColor;
     return CLUB_COLORS[selectedCategory] || CLUB_COLORS['Default'];
-  }, [selectedCategory]);
+  }, [selectedCategory, activeSocialAccount]);
   
   const getSponsorshipForPosition = (position: Sponsorship['position']) => {
     const candidates = sponsorships.filter(s => s.position === position && s.active);
@@ -1012,16 +1030,17 @@ const App: React.FC = () => {
                 <div className="lg:col-span-3">
                     <div className="mb-8">
                     {selectedCategory !== 'All' && (
-                        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                        <h2 className="text-3xl font-oswald font-black italic uppercase text-white tracking-tighter">
-                            NOTICIAS: {selectedCategory} <span style={{ color: activeColor }}>A1TOQUE</span>
-                        </h2>
-                        <button 
-                            onClick={() => setSelectedCategory('All')}
-                            className="px-4 py-1 bg-white/5 border border-white/10 text-white text-[9px] font-black uppercase italic tracking-widest hover:text-neon transition-colors"
-                        >
-                            Limpiar Filtro
-                        </button>
+                        <div className="flex items-center gap-8 border-b border-white/10 pb-8">
+                          {activeSocialAccount?.profileImageUrl && (
+                            <img 
+                              src={activeSocialAccount.profileImageUrl} 
+                              alt={selectedCategory} 
+                              className="w-20 h-20 rounded-full object-cover border-2 border-white/10 shadow-xl"
+                            />
+                          )}
+                          <h2 className="text-4xl md:text-5xl font-oswald font-black italic uppercase text-white tracking-tighter">
+                              {selectedCategory} A1TOQUE
+                          </h2>
                         </div>
                     )}
                     </div>
@@ -1039,32 +1058,6 @@ const App: React.FC = () => {
 
                 <aside className="lg:col-span-1 space-y-12">
                     <SponsorshipBanner sponsorship={homeLvl3Ad} onImpression={handleSponsorshipImpression} onClickEvent={handleSponsorshipClick} slotConfig={homeLvl3AdSlot} />
-                    <div>
-                    <h3 className="text-xs font-black uppercase tracking-[0.3em] mb-8" style={{ color: activeColor }}>Tendencias</h3>
-                    <div className="space-y-10">
-                        {trendingArticles.map((art, idx) => (
-                        <div 
-                            key={art.id} 
-                            onClick={() => handleArticleClick(art.id)}
-                            className="flex items-start space-x-6 cursor-pointer group"
-                        >
-                            <span className="text-3xl font-oswald font-black text-white/10 group-hover:text-neon/20 transition-colors">
-                            0{idx + 1}
-                            </span>
-                            <div>
-                            <h4 className="font-oswald font-bold text-white group-hover:text-neon transition-colors leading-tight uppercase italic text-base">
-                                {art.title}
-                            </h4>
-                            <div className="flex items-center gap-2 mt-2">
-                                <span className="text-[9px] text-gray-500 uppercase font-bold tracking-widest">{art.category}</span>
-                                <span className="text-gray-700 text-[10px]">•</span>
-                                <span className="text-[9px] text-neon/40 font-black uppercase tracking-widest">{art.views || 0} LECTURAS</span>
-                            </div>
-                            </div>
-                        </div>
-                        ))}
-                    </div>
-                    </div>
                 </aside>
                 </div>
             </main>
@@ -1102,7 +1095,10 @@ const App: React.FC = () => {
                       {['Unión', 'Colón', 'Central', 'Newell\'s'].map(club => (
                         <li key={club}>
                           <button 
-                            onClick={() => setSelectedCategory(club)} 
+                            onClick={() => {
+                              setSelectedCategory(club as Category);
+                              window.scrollTo(0, 0);
+                            }} 
                             className="hover:text-neon transition-all flex items-center gap-2 group"
                           >
                             <span className="w-0 group-hover:w-2 h-px bg-neon transition-all"></span> 
@@ -1122,7 +1118,10 @@ const App: React.FC = () => {
                       {['Noticias', 'Entrevistas', 'Programas', 'Virales'].map(section => (
                         <li key={section}>
                           <button 
-                            onClick={() => setSelectedCategory(section as Category)} 
+                            onClick={() => {
+                              setSelectedCategory(section as Category);
+                              window.scrollTo(0, 0);
+                            }} 
                             className="hover:text-neon transition-all flex items-center gap-2 group"
                           >
                             <span className="w-0 group-hover:w-2 h-px bg-neon transition-all"></span> 

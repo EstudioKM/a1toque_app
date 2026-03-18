@@ -47,6 +47,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
   const [modalTaskFilter, setModalTaskFilter] = useState<'all' | 'pending' | 'completed'>('all');
   const [modalTaskSort, setModalTaskSort] = useState<'date-desc' | 'date-asc' | 'time-desc' | 'time-asc'>('date-desc');
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCompletedTasksModal, setShowCompletedTasksModal] = useState(false);
 
   const setQuickRange = (range: 'all' | 'thisMonth' | 'lastMonth' | 'last7Days' | 'today') => {
@@ -178,37 +179,46 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
 
   const COLORS = ['#00FF9D', '#00D1FF', '#FF00FF', '#FFD700', '#FF4500', '#8A2BE2'];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!title || assignedUserIds.length === 0) return;
 
-    const taskData = {
-      title,
-      description,
-      assignedUserIds,
-      status: editingTask ? editingTask.status : 'pending',
-      createdBy: editingTask ? editingTask.createdBy : 'admin',
-      createdAt: editingTask ? editingTask.createdAt : new Date().toISOString(),
-      date,
-      account,
-      hours: hours + (minutes / 60)
-    };
+    setIsSubmitting(true);
+    try {
+      const taskData = {
+        title,
+        description,
+        assignedUserIds,
+        status: editingTask ? editingTask.status : 'pending',
+        createdBy: editingTask ? editingTask.createdBy : 'admin',
+        createdAt: editingTask ? editingTask.createdAt : new Date().toISOString(),
+        date,
+        account,
+        hours: hours + (minutes / 60)
+      };
 
-    if (editingTask) {
-      onUpdateTask({ ...editingTask, ...taskData } as Task);
-    } else {
-      onAddTask(taskData as Task);
+      if (editingTask) {
+        await onUpdateTask({ ...editingTask, ...taskData } as Task);
+      } else {
+        await onAddTask(taskData as Task);
+      }
+
+      setTitle('');
+      setDescription('');
+      setAssignedUserIds([]);
+      setDate(new Date().toISOString().split('T')[0]);
+      setAccount('');
+      setHours(0);
+      setMinutes(0);
+      setIsCreating(false);
+      setEditingTask(null);
+    } catch (error) {
+      console.error("Error saving task:", error);
+      alert("Error al guardar la tarea.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setTitle('');
-    setDescription('');
-    setAssignedUserIds([]);
-    setDate(new Date().toISOString().split('T')[0]);
-    setAccount('');
-    setHours(0);
-    setMinutes(0);
-    setIsCreating(false);
-    setEditingTask(null);
   };
 
   const handleEditTask = (task: Task) => {
@@ -254,16 +264,16 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
           
           <div className="flex flex-wrap items-center gap-4">
             {/* Tabs */}
-            <div className="bg-black/40 p-1.5 rounded-2xl flex gap-1 border border-white/5">
+            <div className="bg-black/40 p-1 rounded-xl flex gap-1 border border-white/5">
               <button 
                 onClick={() => setActiveTab('overview')}
-                className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase italic flex items-center gap-2 transition-all ${activeTab === 'overview' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase italic flex items-center gap-2 transition-all ${activeTab === 'overview' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
               >
                 <BarChart3 size={14} /> ANALÍTICA
               </button>
               <button 
                 onClick={() => setActiveTab('management')}
-                className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase italic flex items-center gap-2 transition-all ${activeTab === 'management' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase italic flex items-center gap-2 transition-all ${activeTab === 'management' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
               >
                 <Users size={14} /> GESTIÓN
               </button>
@@ -271,9 +281,9 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
 
             <button 
               onClick={() => { setIsCreating(true); setEditingTask(null); }}
-              className="flex items-center justify-center gap-2 px-8 py-4 bg-neon text-black text-xs font-black uppercase italic tracking-widest rounded-2xl hover:scale-105 transition shadow-[0_0_20px_rgba(0,255,157,0.3)]"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-neon text-black text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition shadow-[0_0_20px_rgba(0,255,157,0.3)]"
             >
-              <Plus size={18} /> NUEVA TAREA
+              <Plus size={16} /> NUEVA TAREA
             </button>
           </div>
         </div>
@@ -335,6 +345,43 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
 
       {activeTab === 'overview' && (
         <div className="space-y-8">
+          {/* Top 3 Ranking Highlight */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {userStats.slice(0, 3).map((user, index) => (
+              <div 
+                key={user.id} 
+                className={`relative p-4 rounded-3xl border overflow-hidden group transition-all hover:scale-[1.02] cursor-pointer ${
+                  index === 0 ? 'bg-neon/10 border-neon/30' : 'bg-white/[0.02] border-white/5'
+                }`}
+                onClick={() => setSelectedUserId(user.id)}
+              >
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                  {index === 0 ? <TrendingUp size={40} className="text-neon" /> : <Activity size={40} className="text-white" />}
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <img 
+                      src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} 
+                      className={`w-10 h-10 rounded-xl object-cover border ${index === 0 ? 'border-neon' : 'border-white/10'}`} 
+                    />
+                    <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                      index === 0 ? 'bg-neon text-black' : 'bg-white/10 text-white'
+                    }`}>
+                      {index + 1}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-oswald font-black italic uppercase text-white leading-none mb-1">{user.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-neon uppercase">{user.totalHours.toFixed(1)}h</span>
+                      <span className="text-[10px] text-gray-600 font-bold uppercase tracking-tighter">{user.completedTasks} tareas</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Global Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white/5 border border-white/10 p-6 rounded-[32px] relative overflow-hidden group">
@@ -544,72 +591,94 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden mb-6"
               >
-                <div className="bg-black/40 p-6 rounded-3xl border border-neon/30 relative">
-                  <div className="absolute top-0 right-0 p-4">
+                <div className="bg-black/40 p-4 rounded-2xl border border-neon/30 relative">
+                  <div className="absolute top-0 right-0 p-3">
                     <button onClick={() => setIsAddingGlobalAlert(false)} className="text-gray-500 hover:text-white transition-colors">
-                      <X size={20} />
+                      <X size={16} />
                     </button>
                   </div>
-                  <h4 className="text-white font-oswald font-black italic uppercase mb-4 flex items-center gap-2">
-                    <BellRing size={16} className="text-neon" /> Enviar Alerta a Usuarios
+                  <h4 className="text-white font-oswald font-black italic uppercase text-xs mb-3 flex items-center gap-2">
+                    <BellRing size={14} className="text-neon" /> Enviar Alerta a Usuarios
                   </h4>
                   
-                  <div className="mb-4">
-                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1 mb-2 block">Seleccionar Destinatarios</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[120px] overflow-y-auto custom-scrollbar pr-1">
-                      <button
-                        onClick={() => setGlobalAlertUserIds(globalAlertUserIds.length === users.length ? [] : users.map(u => u.id))}
-                        className={`flex items-center justify-center gap-2 p-2 rounded-xl border transition-all ${globalAlertUserIds.length === users.length ? 'bg-neon/10 border-neon text-neon' : 'bg-black border-white/5 text-gray-600 hover:border-white/20'}`}
-                      >
-                        <span className="text-[10px] font-black uppercase">Todos</span>
-                      </button>
-                      {users.map(user => (
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    <div className="lg:col-span-4">
+                      <label className="text-[8px] font-black text-gray-500 uppercase tracking-widest pl-1 mb-1.5 block">Seleccionar Destinatarios</label>
+                      <div className="grid grid-cols-2 gap-1.5 max-h-[100px] overflow-y-auto custom-scrollbar pr-1">
                         <button
-                          key={user.id}
-                          onClick={() => setGlobalAlertUserIds(prev => prev.includes(user.id) ? prev.filter(id => id !== user.id) : [...prev, user.id])}
-                          className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${globalAlertUserIds.includes(user.id) ? 'bg-neon/10 border-neon text-neon' : 'bg-black border-white/5 text-gray-600 hover:border-white/20'}`}
+                          onClick={() => setGlobalAlertUserIds(globalAlertUserIds.length === users.length ? [] : users.map(u => u.id))}
+                          className={`flex items-center justify-center gap-2 p-1.5 rounded-lg border transition-all ${globalAlertUserIds.length === users.length ? 'bg-neon/10 border-neon text-neon' : 'bg-black border-white/5 text-gray-600 hover:border-white/20'}`}
                         >
-                          <img src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} className="w-5 h-5 rounded-md object-cover" />
-                          <span className="text-[9px] font-black uppercase truncate">{user.name.split(' ')[0]}</span>
+                          <span className="text-[9px] font-black uppercase">Todos</span>
                         </button>
-                      ))}
+                        {users.map(user => (
+                          <button
+                            key={user.id}
+                            onClick={() => setGlobalAlertUserIds(prev => prev.includes(user.id) ? prev.filter(id => id !== user.id) : [...prev, user.id])}
+                            className={`flex items-center gap-2 p-1.5 rounded-lg border transition-all ${globalAlertUserIds.includes(user.id) ? 'bg-neon/10 border-neon text-neon' : 'bg-black border-white/5 text-gray-600 hover:border-white/20'}`}
+                          >
+                            <img src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} className="w-4 h-4 rounded-md object-cover" />
+                            <span className="text-[8px] font-black uppercase truncate">{user.name.split(' ')[0]}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <textarea 
-                    value={globalAlertMessage}
-                    onChange={(e) => setGlobalAlertMessage(e.target.value)}
-                    placeholder="Escribe un mensaje importante..."
-                    className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-sm text-white outline-none focus:border-neon placeholder:text-gray-700 resize-none mb-4"
-                    rows={3}
-                  />
-                  <div className="flex justify-end">
-                    <button 
-                      onClick={() => {
-                        if (!globalAlertMessage.trim() || globalAlertUserIds.length === 0) return;
-                        const newAlert = {
-                          id: Math.random().toString(36).substr(2, 9),
-                          message: globalAlertMessage,
-                          seen: false,
-                          createdAt: new Date().toISOString()
-                        };
-                        users.forEach(user => {
-                          if (globalAlertUserIds.includes(user.id)) {
-                            const currentMessages = user.alertMessages || [];
-                            onUpdateUser({ 
-                              ...user, 
-                              alertMessages: [newAlert, ...currentMessages] 
-                            });
-                          }
-                        });
-                        setGlobalAlertMessage('');
-                        setIsAddingGlobalAlert(false);
-                        setGlobalAlertUserIds([]);
-                      }}
-                      className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-transform ${(!globalAlertMessage.trim() || globalAlertUserIds.length === 0) ? 'bg-white/5 text-gray-500 cursor-not-allowed' : 'bg-neon text-black hover:scale-105'}`}
-                    >
-                      <Save size={16} /> Enviar Alerta
-                    </button>
+                    <div className="lg:col-span-8 flex flex-col gap-3">
+                      <textarea 
+                        value={globalAlertMessage}
+                        onChange={(e) => setGlobalAlertMessage(e.target.value)}
+                        placeholder="Escribe un mensaje importante..."
+                        className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-xs text-white outline-none focus:border-neon placeholder:text-gray-700 resize-none flex-1"
+                        rows={2}
+                      />
+                      <div className="flex justify-end">
+                        <button 
+                          onClick={async () => {
+                            if (!globalAlertMessage.trim() || globalAlertUserIds.length === 0 || isSubmitting) return;
+                            setIsSubmitting(true);
+                            try {
+                              const newAlert = {
+                                id: Math.random().toString(36).substr(2, 9),
+                                message: globalAlertMessage,
+                                seen: false,
+                                createdAt: new Date().toISOString()
+                              };
+                              
+                              const updatePromises = users
+                                .filter(user => globalAlertUserIds.includes(user.id))
+                                .map(user => {
+                                  const currentMessages = user.alertMessages || [];
+                                  return onUpdateUser({ 
+                                    ...user, 
+                                    alertMessages: [newAlert, ...currentMessages] 
+                                  });
+                                });
+                              
+                              await Promise.all(updatePromises);
+                              
+                              setGlobalAlertMessage('');
+                              setIsAddingGlobalAlert(false);
+                              setGlobalAlertUserIds([]);
+                            } catch (error) {
+                              console.error("Error sending global alert:", error);
+                              alert("Error al enviar la alerta.");
+                            } finally {
+                              setIsSubmitting(false);
+                            }
+                          }}
+                          disabled={!globalAlertMessage.trim() || globalAlertUserIds.length === 0 || isSubmitting}
+                          className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${(!globalAlertMessage.trim() || globalAlertUserIds.length === 0 || isSubmitting) ? 'bg-white/5 text-gray-500 cursor-not-allowed' : 'bg-neon text-black hover:scale-105 shadow-[0_0_15px_rgba(0,255,157,0.2)]'}`}
+                        >
+                          {isSubmitting ? (
+                            <div className="w-3 h-3 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                          ) : (
+                            <Save size={14} />
+                          )}
+                          {isSubmitting ? 'ENVIANDO...' : 'ENVIAR ALERTA'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -828,9 +897,12 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                         </span>
                                       )}
                                       <button 
-                                        onClick={() => {
-                                          const newMessages = user.alertMessages?.filter(a => a.id !== alert.id);
-                                          onUpdateUser({ ...user, alertMessages: newMessages });
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (window.confirm('¿Estás seguro de que quieres eliminar esta alerta?')) {
+                                            const newMessages = user.alertMessages?.filter(a => a.id !== alert.id);
+                                            onUpdateUser({ ...user, alertMessages: newMessages });
+                                          }
                                         }}
                                         className="text-gray-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                                       >
@@ -1067,7 +1139,9 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                                 <button 
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    onDeleteTask(task.id);
+                                                    if (window.confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+                                                      onDeleteTask(task.id);
+                                                    }
                                                   }}
                                                   className="p-2 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
                                                   title="Eliminar Tarea"
@@ -1224,8 +1298,17 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                     </div>
                   </div>
                   
-                  <button type="submit" className="w-full py-4 bg-neon text-black font-black uppercase italic text-xs tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition shadow-lg shadow-neon/20 flex items-center justify-center gap-2 mt-4">
-                    <Save size={16} /> {editingTask ? 'GUARDAR CAMBIOS' : 'CREAR Y ASIGNAR'}
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className={`w-full py-4 bg-neon text-black font-black uppercase italic text-xs tracking-widest rounded-xl transition shadow-lg shadow-neon/20 flex items-center justify-center gap-2 mt-4 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'}`}
+                  >
+                    {isSubmitting ? (
+                      <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                    ) : (
+                      <Save size={16} />
+                    )}
+                    {isSubmitting ? 'GUARDANDO...' : (editingTask ? 'GUARDAR CAMBIOS' : 'CREAR Y ASIGNAR')}
                   </button>
                 </div>
               </form>

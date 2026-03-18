@@ -36,6 +36,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({
   const [completeTaskOnSave, setCompleteTaskOnSave] = useState(false);
   const [isGeneralLogging, setIsGeneralLogging] = useState(false);
   const [isQuickCompleting, setIsQuickCompleting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   
   const [hours, setHours] = useState(0);
@@ -120,8 +121,9 @@ export const TasksTab: React.FC<TasksTabProps> = ({
     });
   }, [pendingTasks, currentUser.id, onMarkAsViewed]);
 
-  const handleLogTime = (e: React.FormEvent) => {
+  const handleLogTime = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     
     // Validation: for new tasks we need account and some text. 
     // For existing tasks we just need a date (which has a default).
@@ -136,48 +138,56 @@ export const TasksTab: React.FC<TasksTabProps> = ({
       return;
     }
 
-    const totalHours = hours + (minutes / 60);
+    setIsSubmitting(true);
+    try {
+      const totalHours = hours + (minutes / 60);
 
-    if (loggingTimeTaskId) {
-      // Updating an existing assigned task with time
-      const task = tasks.find(t => t.id === loggingTimeTaskId);
-      if (task) {
-        onUpdateTask({
-          ...task,
-          title: title || task.title,
-          date: date || task.date,
-          account: account || task.account,
-          hours: totalHours,
-          description: detail || task.description,
-          status: completeTaskOnSave ? 'completed' : 'pending'
+      if (loggingTimeTaskId) {
+        // Updating an existing assigned task with time
+        const task = tasks.find(t => t.id === loggingTimeTaskId);
+        if (task) {
+          await onUpdateTask({
+            ...task,
+            title: title || task.title,
+            date: date || task.date,
+            account: account || task.account,
+            hours: totalHours,
+            description: detail || task.description,
+            status: completeTaskOnSave ? 'completed' : 'pending'
+          });
+        }
+      } else {
+        // Creating a new task (which is the same as logging time)
+        await onAddTask({
+          title: title || detail.substring(0, 50),
+          description: detail,
+          assignedUserIds: [currentUser.id],
+          status: totalHours > 0 ? 'completed' : 'pending',
+          createdBy: currentUser.id,
+          createdAt: new Date().toISOString(),
+          date,
+          account,
+          hours: totalHours
         });
       }
-    } else {
-      // Creating a new task (which is the same as logging time)
-      onAddTask({
-        title: title || detail.substring(0, 50),
-        description: detail,
-        assignedUserIds: [currentUser.id],
-        status: totalHours > 0 ? 'completed' : 'pending',
-        createdBy: currentUser.id,
-        createdAt: new Date().toISOString(),
-        date,
-        account,
-        hours: totalHours
-      });
-    }
 
-    setLoggingTimeTaskId(null);
-    setCompleteTaskOnSave(false);
-    setIsGeneralLogging(false);
-    setIsQuickCompleting(false);
-    setEditingLogId(null);
-    setHours(0);
-    setMinutes(0);
-    setTitle('');
-    setAccount('');
-    setDetail('');
-    setDate(new Date().toISOString().split('T')[0]);
+      setIsGeneralLogging(false);
+      setIsQuickCompleting(false);
+      setLoggingTimeTaskId(null);
+      setCompleteTaskOnSave(false);
+      setEditingLogId(null);
+      setHours(0);
+      setMinutes(0);
+      setTitle('');
+      setAccount('');
+      setDetail('');
+      setDate(new Date().toISOString().split('T')[0]);
+    } catch (error) {
+      console.error("Error saving task:", error);
+      alert("Error al guardar la tarea.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEditTask = (task: Task) => {
@@ -384,8 +394,17 @@ export const TasksTab: React.FC<TasksTabProps> = ({
                   >
                     Cancelar
                   </button>
-                  <button type="submit" className="flex-[2] bg-neon text-black py-3 rounded-xl font-black text-[10px] uppercase italic tracking-widest hover:scale-[1.02] active:scale-95 transition shadow-xl shadow-neon/10 flex items-center justify-center gap-2">
-                    <Save size={16} /> {isQuickCompleting ? 'FINALIZAR Y COMPLETAR' : (loggingTimeTaskId ? 'GUARDAR CAMBIOS' : 'REGISTRAR ACTIVIDAD')}
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className={`flex-[2] bg-neon text-black py-3 rounded-xl font-black text-[10px] uppercase italic tracking-widest transition shadow-xl shadow-neon/10 flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-95'}`}
+                  >
+                    {isSubmitting ? (
+                      <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                    ) : (
+                      <Save size={16} />
+                    )}
+                    {isSubmitting ? 'GUARDANDO...' : (isQuickCompleting ? 'FINALIZAR Y COMPLETAR' : (loggingTimeTaskId ? 'GUARDAR CAMBIOS' : 'REGISTRAR ACTIVIDAD'))}
                   </button>
                 </div>
               </form>
