@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Article } from '../types';
 import { OptimizedImage } from './OptimizedImage';
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Youtube } from 'lucide-react';
 
 interface HeroSliderProps {
   articles: Article[];
@@ -66,18 +66,18 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ articles, onArticleClick
               
               {/* Title (No line clamp, relies on optimal character count) */}
               <h2 
-                className="text-3xl md:text-5xl lg:text-6xl font-oswald font-black text-white leading-[1.1] mb-4 md:mb-6 uppercase italic tracking-tighter drop-shadow-lg"
+                className="text-4xl md:text-6xl lg:text-7xl font-oswald font-black text-white leading-[0.95] mb-6 uppercase italic tracking-tighter drop-shadow-2xl max-w-4xl"
               >
                 {cleanTitle}
               </h2>
               
               {/* Excerpt with line clamp */}
-              <p className="text-sm md:text-lg text-gray-300 font-medium border-l-2 border-neon pl-4 py-1 italic mb-6 md:mb-8 opacity-90 line-clamp-2 md:line-clamp-3">
+              <p className="text-xs md:text-base text-gray-300 font-medium border-l-2 border-neon pl-4 py-1 italic mb-6 md:mb-8 opacity-90 line-clamp-2 md:line-clamp-3">
                 {art.excerpt}
               </p>
 
               {/* Action Button */}
-              <div>
+              <div className="flex items-center gap-6">
                 <button className="flex items-center gap-3 px-6 py-3 md:px-8 md:py-4 bg-white/10 backdrop-blur-md border border-white/20 text-white font-black uppercase italic text-[10px] md:text-xs tracking-[0.2em] rounded-xl hover:bg-neon hover:text-black hover:border-neon transition-all group/btn shadow-xl">
                    Leer Noticia <ArrowRight size={16} className="group-hover/btn:translate-x-2 transition-transform" />
                 </button>
@@ -86,34 +86,6 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({ articles, onArticleClick
           </div>
         </div>
       )})}
-
-      {/* Navigation Controls */}
-      <div className="absolute bottom-6 right-6 md:bottom-12 md:right-12 z-30 flex items-center gap-4">
-        <div className="flex gap-2 mr-4 hidden md:flex">
-          {articles.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={(e) => { e.stopPropagation(); setCurrent(idx); }}
-              className={`h-1.5 transition-all duration-500 rounded-full ${idx === current ? 'w-8 bg-neon shadow-[0_0_10px_rgba(0,255,157,0.5)]' : 'w-2 bg-white/30 hover:bg-white/50'}`}
-              aria-label={`Go to slide ${idx + 1}`}
-            />
-          ))}
-        </div>
-        <button 
-          onClick={handlePrev}
-          className="p-3 md:p-4 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-neon hover:text-black transition-all shadow-xl"
-          aria-label="Previous slide"
-        >
-          <ChevronLeft size={20} strokeWidth={2.5} />
-        </button>
-        <button 
-          onClick={handleNext}
-          className="p-3 md:p-4 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:bg-neon hover:text-black transition-all shadow-xl"
-          aria-label="Next slide"
-        >
-          <ChevronRight size={20} strokeWidth={2.5} />
-        </button>
-      </div>
     </div>
   );
 };

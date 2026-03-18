@@ -14,6 +14,7 @@ import { PersonalNotificationsModal } from './components/PersonalNotificationsMo
 import { db } from './services/firebase';
 import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc, onSnapshot } from 'firebase/firestore';
 import { A1ToqueLoader } from './components/A1ToqueLoader';
+import { Youtube, Instagram, Twitter, Facebook, ArrowUpRight } from 'lucide-react';
 
 const CLUB_COLORS: Record<string, string> = {
   'Unión': '#ef4444', 
@@ -987,6 +988,7 @@ const App: React.FC = () => {
               chatMessages={chatMessages}
               tasks={tasks}
               users={users}
+              socialAccounts={socialAccounts}
               onOpenAdminTab={handleOpenAdminTab}
             />
           )}
@@ -996,10 +998,12 @@ const App: React.FC = () => {
           ) : (
             <main className="max-w-7xl mx-auto px-4 py-8">
                 {selectedCategory === 'All' && (
-                    <HeroSlider 
-                        articles={publishedArticles.filter(a => !a.isPublinota).slice(0, 4)} 
-                        onArticleClick={handleArticleClick}
-                    />
+                    <div className="space-y-12">
+                      <HeroSlider 
+                          articles={publishedArticles.filter(a => !a.isPublinota).slice(0, 4)} 
+                          onArticleClick={handleArticleClick}
+                      />
+                    </div>
                 )}
 
                 <SponsorshipBanner sponsorship={homeLvl1Ad} onImpression={handleSponsorshipImpression} onClickEvent={handleSponsorshipClick} slotConfig={homeLvl1AdSlot} />
@@ -1067,37 +1071,124 @@ const App: React.FC = () => {
           )}
           
           {view !== ViewMode.LANDING && !isLoading && (
-            <footer className="bg-black border-t border-white/10 py-20 mt-32">
-              <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-16">
-                <div className="col-span-1 md:col-span-2">
-                  {siteConfig.logoUrl && (
-                    <img 
-                      src={siteConfig.logoUrl} 
-                      alt={siteConfig.siteName} 
-                      className="h-20 w-auto object-contain mb-8 opacity-90"
-                    />
-                  )}
-                  <p className="mt-8 text-gray-500 text-sm max-w-sm font-medium uppercase tracking-widest leading-relaxed">
-                    {siteConfig.footerText}
-                  </p>
+            <footer className="bg-black border-t border-white/10 pt-24 pb-12 mt-32 relative overflow-hidden">
+              {/* Background Accents */}
+              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-neon/50 to-transparent opacity-20"></div>
+              
+              <div className="max-w-7xl mx-auto px-6 relative z-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-20">
+                  
+                  {/* Column 1: Brand */}
+                  <div className="space-y-8">
+                    {siteConfig.logoUrl && (
+                      <img 
+                        src={siteConfig.logoUrl} 
+                        alt={siteConfig.siteName} 
+                        className="h-12 w-auto object-contain opacity-90 hover:scale-105 transition-all duration-500"
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                    <h3 className="text-white font-oswald font-black italic text-3xl uppercase tracking-tighter leading-none">
+                      10 AÑOS JUNTO <br /> AL HINCHA
+                    </h3>
+                  </div>
+                  
+                  {/* Column 2: Clubs */}
+                  <div>
+                    <h4 className="font-oswald font-black text-white uppercase italic text-sm tracking-widest mb-8 flex items-center gap-2">
+                      <span className="w-4 h-0.5 bg-neon"></span> Clubes
+                    </h4>
+                    <ul className="space-y-4 text-gray-500 text-[10px] font-black uppercase tracking-[0.2em]">
+                      {['Unión', 'Colón', 'Central', 'Newell\'s'].map(club => (
+                        <li key={club}>
+                          <button 
+                            onClick={() => setSelectedCategory(club)} 
+                            className="hover:text-neon transition-all flex items-center gap-2 group"
+                          >
+                            <span className="w-0 group-hover:w-2 h-px bg-neon transition-all"></span> 
+                            {club}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Column 3: Sections */}
+                  <div>
+                    <h4 className="font-oswald font-black text-white uppercase italic text-sm tracking-widest mb-8 flex items-center gap-2">
+                      <span className="w-4 h-0.5 bg-neon"></span> Secciones
+                    </h4>
+                    <ul className="space-y-4 text-gray-500 text-[10px] font-black uppercase tracking-[0.2em]">
+                      {['Noticias', 'Entrevistas', 'Programas', 'Virales'].map(section => (
+                        <li key={section}>
+                          <button 
+                            onClick={() => setSelectedCategory(section as Category)} 
+                            className="hover:text-neon transition-all flex items-center gap-2 group"
+                          >
+                            <span className="w-0 group-hover:w-2 h-px bg-neon transition-all"></span> 
+                            {section}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Column 4: YouTube */}
+                  <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex flex-col items-center text-center justify-center group hover:bg-white/[0.04] transition-all">
+                    <Youtube size={40} className="text-red-600 mb-4 group-hover:scale-110 transition-transform" />
+                    <h4 className="font-oswald font-black text-white uppercase italic text-lg tracking-tighter mb-4">
+                      A1TOQUE TV
+                    </h4>
+                    <a 
+                      href="https://www.youtube.com/@A1ToqueOficial" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-full py-3 bg-red-600 text-white font-black uppercase italic text-[9px] tracking-[0.2em] rounded-lg hover:bg-red-700 transition-all flex items-center justify-center gap-2"
+                    >
+                      Suscribirse <ArrowUpRight size={12} />
+                    </a>
+                  </div>
                 </div>
-                <div className="space-y-4">
-                  <h4 className="font-black text-white uppercase text-xs tracking-[0.4em] mb-6">Navegación</h4>
-                  <ul className="text-gray-500 space-y-4 text-[10px] font-black uppercase tracking-widest">
-                    <li><button onClick={() => setSelectedCategory('Unión')} className="hover:text-neon transition">Unión</button></li>
-                    <li><button onClick={() => setSelectedCategory('Colón')} className="hover:text-neon transition">Colón</button></li>
-                    <li><button onClick={() => setSelectedCategory('Central')} className="hover:text-neon transition">Central</button></li>
-                    <li><button onClick={() => setSelectedCategory('Newell\'s')} className="hover:text-neon transition">Newell's</button></li>
-                    <li><button onClick={() => setView(ViewMode.LANDING)} className="hover:text-neon transition">Inner Circle</button></li>
-                  </ul>
+
+                {/* Social Bar */}
+                <div className="py-12 border-y border-white/5 flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="flex items-center gap-4">
+                    <span className="text-[9px] text-gray-600 font-black uppercase tracking-[0.3em]">Seguinos</span>
+                    <div className="h-px w-8 bg-white/10"></div>
+                    <div className="flex gap-4">
+                      {socialAccounts.map(acc => (
+                        <a 
+                          key={acc.id} 
+                          href={`https://instagram.com/${acc.handle.replace('@', '')}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="w-10 h-10 rounded-full overflow-hidden border border-white/10 hover:border-neon transition-all p-0.5 bg-black"
+                          title={acc.name}
+                        >
+                          <img 
+                            src={acc.profileImageUrl || 'https://placehold.co/100'} 
+                            alt={acc.name} 
+                            className="w-full h-full object-cover rounded-full"
+                            referrerPolicy="no-referrer"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-neon/40 italic font-oswald text-lg tracking-tighter uppercase">
+                    10 Años Junto al Hincha
+                  </div>
                 </div>
-                <div className="space-y-4">
-                  <h4 className="font-black text-white uppercase text-xs tracking-[0.4em] mb-6">Legal</h4>
-                  <ul className="text-gray-500 space-y-4 text-[10px] font-black uppercase tracking-widest">
-                    <li><a href="#" className="hover:text-neon transition">Privacidad</a></li>
-                    <li><a href="#" className="hover:text-neon transition">Términos</a></li>
-                    <li><a href="#" className="hover:text-neon transition">Cookies</a></li>
-                  </ul>
+
+                {/* Bottom Bar */}
+                <div className="mt-12 flex flex-col md:flex-row justify-between items-center gap-4">
+                  <div className="text-[9px] text-gray-700 font-black uppercase tracking-[0.4em]">
+                    © {new Date().getFullYear()} A1TOQUE.
+                  </div>
+                  <div className="flex gap-6 text-[9px] text-gray-700 font-black uppercase tracking-[0.4em]">
+                    <button className="hover:text-white transition-colors">Términos</button>
+                    <button className="hover:text-white transition-colors">Privacidad</button>
+                  </div>
                 </div>
               </div>
             </footer>

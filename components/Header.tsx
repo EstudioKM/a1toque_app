@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ViewMode, Category, User, Role, CategoryConfig, Article, SiteConfig, ChatMessage, Task } from '../types';
+import { ViewMode, Category, User, Role, CategoryConfig, Article, SiteConfig, ChatMessage, Task, SocialAccount } from '../types';
 import { LogOut, User as UserIcon, Menu, X as CloseIcon, Bell, MessageSquare, CheckSquare, Clock } from 'lucide-react';
 
 import { NotificationCenter } from './NotificationCenter';
@@ -22,6 +22,7 @@ interface HeaderProps {
   chatMessages?: ChatMessage[];
   tasks?: Task[];
   users?: User[];
+  socialAccounts?: SocialAccount[];
   onOpenAdminTab?: (tab: string, targetId?: string) => void;
 }
 
@@ -43,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   chatMessages = [],
   tasks = [],
   users = [],
+  socialAccounts = [],
   onOpenAdminTab
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -100,19 +102,20 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-50">
-      <div className="bg-black/90 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 h-24 flex items-center justify-between gap-8">
+    <header className="sticky top-0 z-50 bg-black">
+      {/* Top Bar: Logo & User Actions */}
+      <div className="border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-4 h-16 md:h-20 flex items-center justify-between gap-8">
           
           {/* Menu Mobile Button */}
           <button 
             onClick={() => setIsMobileMenuOpen(true)}
             className="lg:hidden text-white hover:text-neon transition-colors"
           >
-            <Menu size={28} />
+            <Menu size={24} />
           </button>
 
-          {/* Logo Container - High Hierarchy */}
+          {/* Logo Container */}
           <div 
             className="flex-shrink-0 cursor-pointer group"
             onClick={handleLogoClick}
@@ -121,37 +124,54 @@ export const Header: React.FC<HeaderProps> = ({
               <img 
                 src={siteConfig.logoUrl} 
                 alt={siteConfig.siteName} 
-                className="h-16 md:h-20 w-auto object-contain hover:scale-105 transition-transform duration-500 drop-shadow-[0_0_20px_rgba(0,255,157,0.3)]"
+                className="h-10 md:h-12 w-auto object-contain hover:scale-105 transition-transform duration-500 drop-shadow-[0_0_15px_rgba(0,255,157,0.2)]"
               />
             )}
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex flex-1 items-center justify-center space-x-1 font-oswald font-black text-[11px] tracking-[0.15em] uppercase italic">
+          {/* Desktop Navigation: Integrated in Header Row */}
+          <nav className="hidden lg:flex flex-1 items-center justify-center space-x-1">
             <button 
               onClick={() => handleNavClick('All')} 
-              className={`px-4 py-2 hover:text-neon transition border-b-4 ${selectedCategory === 'All' && currentView === ViewMode.HOME ? 'text-neon border-neon' : 'border-transparent text-gray-400'}`}
+              className={`px-3 h-full flex items-center font-oswald font-black text-[11px] uppercase italic tracking-[0.2em] transition-all relative group ${selectedCategory === 'All' && currentView === ViewMode.HOME ? 'text-neon' : 'text-gray-500 hover:text-neon'}`}
             >
               Inicio
+              <span className={`absolute -bottom-2 left-0 h-0.5 bg-neon transition-all ${selectedCategory === 'All' && currentView === ViewMode.HOME ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
             </button>
-            {clubs.map(club => (
+            
+            {clubs.map(club => {
+              const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+              const clubSocial = socialAccounts.find(sa => normalize(sa.name).includes(normalize(club.name)));
+              return (
+                <button 
+                  key={club.id}
+                  onClick={() => handleNavClick(club.name)}
+                  className={`px-3 h-full flex items-center gap-2 font-oswald font-black text-[11px] uppercase italic tracking-[0.2em] transition-all relative group ${selectedCategory === club.name ? 'text-neon' : 'text-gray-500 hover:text-neon'}`}
+                >
+                  {clubSocial?.profileImageUrl && (
+                    <img 
+                      src={clubSocial.profileImageUrl} 
+                      alt={club.name} 
+                      className="w-4 h-4 rounded-full object-cover border border-white/10 group-hover:border-neon/50 transition-colors"
+                    />
+                  )}
+                  {club.name}
+                  <span className={`absolute -bottom-2 left-0 h-0.5 bg-neon transition-all ${selectedCategory === club.name ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                </button>
+              );
+            })}
+
+            <div className="h-4 w-px bg-white/10 mx-2"></div>
+
+            {sections.map(section => (
               <button 
-                key={club.id}
-                onClick={() => handleNavClick(club.name)}
-                className={`px-4 py-2 hover:text-neon transition border-b-4 ${selectedCategory === club.name ? 'text-neon border-neon' : 'border-transparent text-gray-400'}`}
+                key={section.id}
+                onClick={() => handleNavClick(section.name)}
+                className={`px-3 h-full flex items-center font-oswald font-black text-[11px] uppercase italic tracking-[0.2em] transition-all relative group ${selectedCategory === section.name ? 'text-neon' : 'text-gray-500 hover:text-neon'}`}
               >
-                {club.name}
+                {section.name}
+                <span className={`absolute -bottom-2 left-0 h-0.5 bg-neon transition-all ${selectedCategory === section.name ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
               </button>
-            ))}
-            <div className="h-6 w-px bg-white/10 self-center mx-4"></div>
-            {sections.map(cat => (
-               <button 
-                key={cat.id}
-                onClick={() => handleNavClick(cat.name)}
-                className={`px-4 py-2 hover:text-neon transition border-b-4 ${selectedCategory === cat.name ? 'text-neon border-neon' : 'border-transparent text-gray-400'}`}
-               >
-                 {cat.name}
-               </button>
             ))}
           </nav>
 
@@ -171,19 +191,19 @@ export const Header: React.FC<HeaderProps> = ({
             {canAccessControlPanel && (
               <button 
                 onClick={() => setView(ViewMode.ADMIN)}
-                className={`hidden md:block px-5 py-2.5 rounded-sm font-black text-[10px] uppercase italic tracking-widest transition shadow-lg ${currentView === ViewMode.ADMIN ? 'bg-white text-black' : 'bg-neon/10 text-neon border border-neon/30 hover:bg-neon hover:text-black'}`}
+                className={`hidden md:block px-4 py-2 rounded-sm font-black text-[10px] uppercase italic tracking-widest transition shadow-lg ${currentView === ViewMode.ADMIN ? 'bg-white text-black' : 'bg-neon/10 text-neon border border-neon/30 hover:bg-neon hover:text-black'}`}
               >
-                PANEL A1TOQUE
+                PANEL
               </button>
             )}
             
             {currentUser ? (
               <div className="relative" ref={userMenuRef}>
                 <div 
-                  className="h-10 w-10 rounded-full bg-gradient-to-tr from-neon to-blue-400 p-[2px] cursor-pointer shadow-xl hover:scale-105 transition-transform"
+                  className="h-9 w-9 rounded-full bg-gradient-to-tr from-neon to-blue-400 p-[2px] cursor-pointer shadow-xl hover:scale-105 transition-transform"
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 >
-                  <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-black text-white">
+                  <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[9px] font-black text-white">
                     {currentUser.name.substring(0, 2).toUpperCase()}
                   </div>
                 </div>
@@ -209,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
                <button 
                 onClick={onLoginClick}
-                className="px-6 py-2.5 rounded-sm font-black text-[10px] uppercase tracking-widest transition text-white border border-white/80 hover:bg-white hover:text-black"
+                className="px-5 py-2 rounded-sm font-black text-[9px] uppercase tracking-widest transition text-white border border-white/80 hover:bg-white hover:text-black"
               >
                 Acceso
               </button>
@@ -218,8 +238,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
       
-      {/* Dynamic Ticker - High Legibility */}
-      <div className="bg-neon text-black text-[10px] font-black py-2.5 overflow-hidden whitespace-nowrap uppercase italic tracking-[0.15em] border-b border-black/10">
+      {/* Dynamic Ticker */}
+      <div className="bg-neon text-black text-[9px] font-black py-2 overflow-hidden whitespace-nowrap uppercase italic tracking-[0.15em] border-b border-black/10">
         <div className="animate-marquee inline-flex items-center">
           {tickerContent.length > 0 ? (
             tickerContent.map((art, idx) => (
@@ -228,7 +248,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => onArticleClick(art.id)}
                 className="mx-12 flex items-center gap-4 hover:opacity-70 transition-opacity"
               >
-                <span className="w-2 h-2 bg-black rounded-full shrink-0"></span>
+                <span className="w-1.5 h-1.5 bg-black rounded-full shrink-0"></span>
                 <span className="whitespace-nowrap">{art.title.replace(/"/g, '')}</span>
               </button>
             ))
@@ -254,9 +274,26 @@ export const Header: React.FC<HeaderProps> = ({
                   <button onClick={() => handleNavClick('All')} className={`block w-full text-left ${selectedCategory === 'All' ? 'text-neon' : ''}`}>Inicio</button>
                   <div className="space-y-4">
                       <p className="text-[10px] font-black text-gray-500 tracking-[0.4em] uppercase mb-4">// CLUBES</p>
-                      {clubs.map(c => (
-                        <button key={c.id} onClick={() => handleNavClick(c.name)} className={`block w-full text-left ${selectedCategory === c.name ? 'text-neon' : ''}`}>{c.name}</button>
-                      ))}
+                      {clubs.map(c => {
+                        const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+                        const clubSocial = socialAccounts.find(sa => normalize(sa.name).includes(normalize(c.name)));
+                        return (
+                          <button 
+                            key={c.id} 
+                            onClick={() => handleNavClick(c.name)} 
+                            className={`flex items-center gap-4 w-full text-left ${selectedCategory === c.name ? 'text-neon' : ''}`}
+                          >
+                            {clubSocial?.profileImageUrl && (
+                              <img 
+                                src={clubSocial.profileImageUrl} 
+                                alt={c.name} 
+                                className="w-8 h-8 rounded-full object-cover border border-white/10"
+                              />
+                            )}
+                            {c.name}
+                          </button>
+                        );
+                      })}
                   </div>
                   <div className="space-y-4">
                       <p className="text-[10px] font-black text-gray-500 tracking-[0.4em] uppercase mb-4">// SECCIONES</p>
