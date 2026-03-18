@@ -49,7 +49,7 @@ export const AdSlotEditorModal: React.FC<AdSlotEditorModalProps> = ({ slot, onCl
                 <label className="text-xs font-bold text-gray-500 mb-2 block">Ancho (px)</label>
                 <input 
                   type="number" 
-                  value={formData.width} 
+                  value={formData.width || 0} 
                   onChange={e => handleNumericChange('width', e.target.value)}
                   className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-sm text-white font-bold focus:border-neon outline-none" 
                 />
@@ -58,7 +58,7 @@ export const AdSlotEditorModal: React.FC<AdSlotEditorModalProps> = ({ slot, onCl
                 <label className="text-xs font-bold text-gray-500 mb-2 block">Alto (px)</label>
                 <input 
                   type="number" 
-                  value={formData.height} 
+                  value={formData.height || 0} 
                   onChange={e => handleNumericChange('height', e.target.value)}
                   className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-sm text-white font-bold focus:border-neon outline-none" 
                 />

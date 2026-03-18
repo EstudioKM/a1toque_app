@@ -25,6 +25,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack, spons
 
   const author = users.find(u => u.id === article.author);
   const authorName = author ? author.name : 'Redacción';
+  const cleanTitle = article.title.replace(/^["'“‘]+|["'”’]+$/g, '');
 
   const handleSummarize = async () => {
     setLoadingSummary(true);
@@ -38,7 +39,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack, spons
   };
 
   const shareOnTwitter = () => {
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(window.location.href)}`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(cleanTitle)}&url=${encodeURIComponent(window.location.href)}`;
     window.open(url, '_blank');
   };
 
@@ -116,7 +117,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack, spons
             </div>
             
             <h1 className="text-5xl md:text-7xl font-oswald font-black text-white mb-8 leading-none uppercase italic">
-              {article.title}
+              {cleanTitle}
             </h1>
             
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12 border-b border-white/10 pb-8 gap-6">
@@ -151,7 +152,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack, spons
                 </button>
                 {canNativeShare && (
                   <button 
-                    onClick={() => navigator.share({ title: article.title, url: window.location.href })}
+                    onClick={() => navigator.share({ title: cleanTitle, url: window.location.href })}
                     className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-gray-400 hover:text-neon hover:border-neon transition-colors"
                   >
                     <Share2 size={14} />
@@ -162,7 +163,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack, spons
 
             <div className="relative rounded-3xl overflow-hidden shadow-2xl mb-12">
               {article.imageUrl && (
-                <img src={article.imageUrl} alt={article.title} className="w-full h-auto" />
+                <img src={article.imageUrl} alt={cleanTitle} className="w-full h-auto" />
               )}
               {article.isPublinota && (
                 <div className="absolute inset-0 border-8 border-neon/20 pointer-events-none"></div>

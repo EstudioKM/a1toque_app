@@ -362,9 +362,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       {/* Desktop Top Bar (New) */}
       <div className="hidden lg:flex fixed top-0 right-0 left-64 h-16 bg-black/50 backdrop-blur-md border-b border-white/5 z-30 items-center justify-between px-8">
           <div className="flex items-center gap-4">
-            <h1 className="text-xs font-black uppercase tracking-[0.3em] text-gray-500 italic">
-              A1TOQUE <span className="text-neon">ADMIN</span> // {TABS_CONFIG.find(t => t.id === activeTab)?.label}
-            </h1>
+            {/* Breadcrumb removed */}
           </div>
           <div className="flex items-center gap-6">
             <NotificationCenter

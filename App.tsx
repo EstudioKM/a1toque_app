@@ -952,9 +952,11 @@ const App: React.FC = () => {
           {selectedArticle && (
             <ArticleModal 
               article={selectedArticle} 
+              articles={articles}
               users={users}
               currentUser={currentUser}
               onClose={closeArticleModal} 
+              onArticleClick={handleArticleClick}
               sponsorships={sponsorships} 
               adSlots={adSlots}
               onSponsorshipImpression={handleSponsorshipImpression}

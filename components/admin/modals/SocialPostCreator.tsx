@@ -360,24 +360,34 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     
     try {
         // Intentamos usar un proxy más robusto para imágenes
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(currentUrl)}`;
-        const response = await fetch(proxyUrl);
+        let response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(currentUrl)}`).catch(() => null);
         
-        if (!response.ok) {
+        if (!response || !response.ok) {
             // Fallback a corsproxy.io si el primero falla
-            const fallbackUrl = `https://corsproxy.io/?${encodeURIComponent(currentUrl)}`;
-            const fallbackResponse = await fetch(fallbackUrl);
-            if (!fallbackResponse.ok) throw new Error('No se pudo acceder a la imagen externa');
-            
-            const blob = await fallbackResponse.blob();
-            await uploadAndSetImage(blob);
-        } else {
-            const blob = await response.blob();
-            await uploadAndSetImage(blob);
+            response = await fetch(`https://corsproxy.io/?${encodeURIComponent(currentUrl)}`).catch(() => null);
         }
+
+        if (!response || !response.ok) {
+            // Si ambos fallan, usar la URL original
+            setImageUrls(prev => {
+                const newUrls = [...prev];
+                newUrls[currentImageIndex] = currentUrl;
+                return newUrls;
+            });
+            setIsProcessingUrl(false);
+            return;
+        }
+        
+        const blob = await response.blob();
+        await uploadAndSetImage(blob);
     } catch (error) {
         console.error("Error al procesar URL de imagen externa:", error);
-        setUrlError("Error de carga externa. Intenta subirla manualmente.");
+        // Fallback final: usar la URL original
+        setImageUrls(prev => {
+            const newUrls = [...prev];
+            newUrls[currentImageIndex] = currentUrl;
+            return newUrls;
+        });
     } finally {
         setIsProcessingUrl(false);
     }
@@ -414,7 +424,9 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
 
     try {
       const result = await improveSocialMediaCopy(copy, systemPromptForAI, copyPromptForAI);
-      setCopy(result.copy);
+      if (result) {
+        setCopy(result.copy || '');
+      }
     } catch (error) {
       console.error(error);
     } finally {

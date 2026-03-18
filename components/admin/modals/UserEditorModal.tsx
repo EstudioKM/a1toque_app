@@ -59,7 +59,7 @@ export const UserEditorModal: React.FC<UserEditorModalProps> = ({ user, roles, s
                         <input 
                             type="checkbox"
                             className="w-4 h-4 accent-neon"
-                            checked={formData.managedSocialAccountIds?.includes(account.id)}
+                            checked={formData.managedSocialAccountIds?.includes(account.id) || false}
                             onChange={() => handleSocialAccountToggle(account.id)}
                         />
                          {account.profileImageUrl && <img src={account.profileImageUrl} alt={account.name} className="w-6 h-6 rounded-full" />}

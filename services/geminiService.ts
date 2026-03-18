@@ -78,6 +78,12 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
           2. Prioriza los hechos confirmados. Si hay rumores, identifícalos como tales.
           3. Busca múltiples fuentes para validar los datos clave (fechas, nombres, resultados).
           
+          REGLAS ESTRICTAS PARA EL TÍTULO (CRÍTICO PARA EL DISEÑO):
+          1. LONGITUD MÁXIMA: El título DEBE tener entre 50 y un MÁXIMO ABSOLUTO de 80 caracteres (contando espacios).
+          2. ESTILO DIRECTO: Ve al grano. Usa voz activa. Elimina palabras de relleno, artículos innecesarios o introducciones largas.
+          3. IMPACTO VISUAL: Debe ser un título "punchy", con gancho, pero sin caer en el clickbait barato.
+          4. FORMATO: No incluyas punto final. No uses comillas en los títulos bajo ninguna circunstancia.
+          
           REGLAS DE ESTILO: ${systemInstruction}.
           CRÍTICO: Debes escribir el texto de forma natural, con espacios en blanco separando cada palabra. NUNCA escribas palabras pegadas (ejemplo incorrecto: "Elpróximo27demarzo").
           
@@ -85,7 +91,7 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
           
           SALIDA REQUERIDA (JSON):
           { 
-            "title": "Título impactante", 
+            "title": "Título impactante (50-80 caracteres)", 
             "excerpt": "Resumen breve", 
             "category": "Categoría adecuada", 
             "imageUrl": "Palabra clave para imagen", 
@@ -120,8 +126,15 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
 export const generateNewsFromUrl = async (url: string, systemInstruction: string, signal?: AbortSignal) => {
     try {
         const prompt = `Reversiona esta noticia: ${url}. Estilo: ${systemInstruction}. 
+        
+        REGLAS ESTRICTAS PARA EL TÍTULO (CRÍTICO PARA EL DISEÑO):
+        1. LONGITUD MÁXIMA: El título DEBE tener entre 50 y un MÁXIMO ABSOLUTO de 80 caracteres (contando espacios).
+        2. ESTILO DIRECTO: Ve al grano. Usa voz activa. Elimina palabras de relleno, artículos innecesarios o introducciones largas.
+        3. IMPACTO VISUAL: Debe ser un título "punchy", con gancho, pero sin caer en el clickbait barato.
+        4. FORMATO: No incluyas punto final. No uses comillas en los títulos bajo ninguna circunstancia.
+        
         CRÍTICO: Escribe el texto de forma natural, con espacios en blanco separando cada palabra. NUNCA escribas palabras pegadas.
-        Salida: JSON { title, excerpt, category, imageUrl, blocks }`;
+        Salida: JSON { "title": "Título (50-80 caracteres)", "excerpt": "Resumen", "category": "Categoría", "imageUrl": "Palabra clave", "blocks": [...] }`;
         const response = await generateContentWithRetry({
             model: POWERFUL_MODEL,
             contents: prompt,

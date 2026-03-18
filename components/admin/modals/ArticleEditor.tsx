@@ -135,9 +135,19 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
     setUrlError(null);
     
     try {
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error('La respuesta de la red no fue correcta.');
+        let response = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`).catch(() => null);
+        
+        if (!response || !response.ok) {
+            response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`).catch(() => null);
+        }
+
+        if (!response || !response.ok) {
+            // Si ambos proxies fallan, usar la URL original directamente
+            setMetaData(p => ({ ...p, imageUrl: url }));
+            setErrors(prev => prev.filter(e => e !== "La noticia debe tener una imagen de portada."));
+            setIsProcessingUrl(false);
+            return;
+        }
         
         const blob = await response.blob();
         if (!blob.type.startsWith('image/')) {
@@ -152,7 +162,9 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
         setErrors(prev => prev.filter(e => e !== "La noticia debe tener una imagen de portada."));
     } catch (error) {
         console.error("Error al procesar URL de imagen externa:", error);
-        setUrlError("No se pudo importar la imagen. Revisa la URL.");
+        // Fallback final: usar la URL original
+        setMetaData(p => ({ ...p, imageUrl: url }));
+        setErrors(prev => prev.filter(e => e !== "La noticia debe tener una imagen de portada."));
     } finally {
         setIsProcessingUrl(false);
     }
@@ -475,7 +487,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                         <div className="relative flex items-center">
                             <input 
                                 type="checkbox" 
-                                checked={metaData.isPremium} 
+                                checked={metaData.isPremium || false} 
                                 onChange={e => setMetaData(p => ({...p, isPremium: e.target.checked}))} 
                                 className="w-5 h-5 rounded border-white/20 bg-black accent-neon cursor-pointer" 
                             />
@@ -487,7 +499,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                         <div className="relative flex items-center">
                             <input 
                                 type="checkbox" 
-                                checked={metaData.isPublinota} 
+                                checked={metaData.isPublinota || false} 
                                 onChange={e => setMetaData(p => ({...p, isPublinota: e.target.checked}))} 
                                 className="w-5 h-5 rounded border-white/20 bg-black accent-neon cursor-pointer" 
                             />

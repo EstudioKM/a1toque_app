@@ -103,13 +103,23 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         <div className="absolute top-0 right-0 w-64 h-64 bg-neon/5 blur-[100px] rounded-full -mr-32 -mt-32" />
         <div className="relative z-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-            <div>
-              <h1 className="text-5xl font-oswald font-black italic uppercase text-white mb-2 tracking-tighter">
-                ¡Hola, <span className="text-neon">{currentUser.name.split(' ')[0]}</span>!
-              </h1>
-              <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.3em]">
-                Panel Operativo // {currentUserRole.name}
-              </p>
+            <div className="flex items-center gap-6">
+              {currentUser.avatar ? (
+                <img 
+                  src={currentUser.avatar} 
+                  alt={currentUser.name} 
+                  className="w-20 h-20 rounded-full object-cover border-2 border-neon"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-neon/10 border-2 border-neon flex items-center justify-center text-neon text-3xl font-oswald font-black italic">
+                  {currentUser.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <h1 className="text-5xl font-oswald font-black italic uppercase text-white mb-2 tracking-tighter">
+                  ¡Hola, <span className="text-neon">{currentUser.name.split(' ')[0]}</span>!
+                </h1>
+              </div>
             </div>
             
             <button 
@@ -167,12 +177,12 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                   </table>
                 </div>
               ) : (
-                <div className="py-12 text-center bg-white/[0.01] rounded-[40px] border border-dashed border-white/5">
-                  <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckSquare size={24} className="text-gray-800" />
+                <div className="py-8 text-center bg-white/[0.01] rounded-2xl border border-dashed border-white/5 flex flex-col items-center justify-center">
+                  <div className="flex items-center gap-3">
+                    <CheckSquare size={20} className="text-gray-800" />
+                    <h4 className="text-gray-500 font-oswald font-black italic uppercase text-lg tracking-widest">Todo al día</h4>
                   </div>
-                  <h4 className="text-gray-500 font-oswald font-black italic uppercase text-xl tracking-widest">Todo al día</h4>
-                  <p className="text-gray-700 text-[9px] font-black uppercase tracking-widest mt-2">No tienes tareas pendientes</p>
+                  <p className="text-gray-700 text-[9px] font-black uppercase tracking-widest mt-1">No tienes tareas pendientes</p>
                 </div>
               )}
             </div>

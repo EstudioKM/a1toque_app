@@ -408,12 +408,12 @@ export const TasksTab: React.FC<TasksTabProps> = ({
 
           <div className="grid gap-4">
             {pendingTasks.length === 0 ? (
-              <div className="py-24 text-center bg-white/[0.01] rounded-[40px] border border-dashed border-white/5">
-                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CheckSquare size={32} className="text-gray-800" />
+              <div className="py-8 text-center bg-white/[0.01] rounded-2xl border border-dashed border-white/5 flex flex-col items-center justify-center">
+                <div className="flex items-center gap-3">
+                  <CheckSquare size={20} className="text-gray-800" />
+                  <h4 className="text-gray-500 font-oswald font-black italic uppercase text-lg tracking-widest">Todo al día</h4>
                 </div>
-                <h4 className="text-gray-500 font-oswald font-black italic uppercase text-2xl tracking-widest">Todo al día</h4>
-                <p className="text-gray-700 text-[10px] font-black uppercase tracking-widest mt-2">No hay tareas pendientes en este momento</p>
+                <p className="text-gray-700 text-[9px] font-black uppercase tracking-widest mt-1">No hay tareas pendientes en este momento</p>
               </div>
             ) : (
               pendingTasks.map((task) => {
