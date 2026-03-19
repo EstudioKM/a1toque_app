@@ -186,6 +186,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     
     if (article && accountId) {
         setIsGeneratingSocial(true);
+        const controller = new AbortController();
         try {
             const account = props.socialAccounts.find(a => a.id === accountId);
             if (account) {
@@ -193,12 +194,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                     article.title,
                     article.excerpt,
                     account.systemPrompt,
-                    account.copyPrompt
+                    account.copyPrompt,
+                    controller.signal
                 );
                 setPreGeneratedSocialContent(generated);
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error("Error generating social content:", e);
+            if (e.message === "TIMEOUT_ERROR") {
+                // Podríamos mostrar un toast o mensaje de error en el modal
+            }
         } finally {
             setIsGeneratingSocial(false);
             setIsSocialPostCreatorOpen(true);
@@ -224,12 +229,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         status: 'researching' 
     });
     
-    const draft = await generateNewsFromUrl(url, systemInstruction, controller.signal);
-    await props.onUpdateAiNewsTask(taskId, { 
-        status: draft ? 'completed' : 'failed', 
-        result: draft || undefined, 
-        error: draft ? undefined : "Error en URL." 
-    });
+    try {
+        const draft = await generateNewsFromUrl(url, systemInstruction, controller.signal);
+        await props.onUpdateAiNewsTask(taskId, { 
+            status: 'completed', 
+            result: draft, 
+            error: undefined 
+        });
+    } catch (error: any) {
+        console.error("Error en handleGenerateFromUrl:", error);
+        const errorMessage = error.message === "TIMEOUT_ERROR" 
+            ? "La búsqueda tomó demasiado tiempo. Intenta de nuevo."
+            : "Error al procesar la URL.";
+            
+        await props.onUpdateAiNewsTask(taskId, { 
+            status: 'failed', 
+            error: errorMessage
+        });
+    }
   };
   
   const handleGenerateFromTopic = async (topic: string, systemInstruction: string) => {
@@ -240,12 +257,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         status: 'researching' 
     });
     
-    const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], controller.signal);
-    await props.onUpdateAiNewsTask(taskId, { 
-        status: draft ? 'completed' : 'failed', 
-        result: draft || undefined, 
-        error: draft ? undefined : "Error en tema." 
-    });
+    try {
+        const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], controller.signal);
+        await props.onUpdateAiNewsTask(taskId, { 
+            status: 'completed', 
+            result: draft, 
+            error: undefined 
+        });
+    } catch (error: any) {
+        console.error("Error en handleGenerateFromTopic:", error);
+        const errorMessage = error.message === "TIMEOUT_ERROR" 
+            ? "La investigación tomó demasiado tiempo. Intenta con un tema más específico."
+            : "Error en la investigación del tema.";
+
+        await props.onUpdateAiNewsTask(taskId, { 
+            status: 'failed', 
+            error: errorMessage
+        });
+    }
   };
 
   const handleLoadDraftInEditor = (task: GenerationTask) => {
@@ -285,16 +314,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     });
     
     try {
-        const result = await generateSocialMediaContentFromTopic(topic, systemInstruction, copyInstruction);
+        const result = await generateSocialMediaContentFromTopic(topic, systemInstruction, copyInstruction, controller.signal);
         await props.onUpdateAiSocialTask(taskId, { 
-            status: result ? 'completed' : 'failed', 
-            result: result || undefined, 
-            error: result ? undefined : "Error en generación social." 
+            status: 'completed', 
+            result: result, 
+            error: undefined 
         });
-    } catch (error) {
+    } catch (error: any) {
+        console.error("Error en handleGenerateSocialFromTopic:", error);
+        const errorMessage = error.message === "TIMEOUT_ERROR" 
+            ? "La generación tomó demasiado tiempo. Intenta de nuevo."
+            : "Error al generar contenido social.";
+
         await props.onUpdateAiSocialTask(taskId, { 
             status: 'failed', 
-            error: "Error de red." 
+            error: errorMessage
         });
     }
   };

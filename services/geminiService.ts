@@ -15,20 +15,20 @@ const getAI = () => {
   return aiInstance;
 };
 
-const FAST_MODEL = 'gemini-3.1-flash-lite-preview';
+const FAST_MODEL = 'gemini-3-flash-preview';
 const POWERFUL_MODEL = 'gemini-3.1-pro-preview';
 
 const cleanAndParseJSON = (text: any, defaultValue: any) => {
   try {
-    if (!text || typeof text !== 'string') {
-      return defaultValue;
-    }
+    if (!text) return defaultValue;
     
-    let cleanedText = text.replace(/```json\n?|```/g, '').trim();
-    if (!cleanedText || typeof cleanedText !== 'string') return defaultValue;
+    let cleanedText = typeof text === 'string' ? text : String(text);
+    cleanedText = cleanedText.replace(/```json\n?|```/g, '').trim();
+    
+    if (!cleanedText) return defaultValue;
 
-    const start = (cleanedText || '').indexOf('{');
-    const end = (cleanedText || '').lastIndexOf('}');
+    const start = cleanedText.indexOf('{');
+    const end = cleanedText.lastIndexOf('}');
     
     if (start !== -1 && end !== -1 && end > start) {
         cleanedText = cleanedText.substring(start, end + 1);
@@ -38,7 +38,7 @@ const cleanAndParseJSON = (text: any, defaultValue: any) => {
 
     return JSON.parse(cleanedText);
   } catch (e) {
-    console.error("JSON Parse Error:", e);
+    console.error("JSON Parse Error:", e, "Text:", text);
     return defaultValue;
   }
 };
@@ -46,22 +46,45 @@ const cleanAndParseJSON = (text: any, defaultValue: any) => {
 const generateContentWithRetry = async (
   request: GenerateContentParameters,
   signal?: AbortSignal,
-  maxRetries: number = 2
+  maxRetries: number = 2,
+  timeoutMs: number = 60000 // 60s default
 ): Promise<GenerateContentResponse> => {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const ai = getAI();
-      if (!ai) throw new Error("GoogleGenAI: API Key not set");
-      return await ai.models.generateContent(request);
+      if (!ai) throw new Error("GoogleGenAI: API Key no configurada");
+      
+      // Promesa de timeout para evitar bloqueos infinitos
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        const timer = setTimeout(() => reject(new Error("TIMEOUT_ERROR")), timeoutMs);
+        signal?.addEventListener('abort', () => clearTimeout(timer));
+      });
+
+      const response = await Promise.race([
+        ai.models.generateContent(request),
+        timeoutPromise
+      ]) as GenerateContentResponse;
+      
+      return response;
     } catch (error: any) {
-      if (signal?.aborted) {
-        throw error;
-      }
-      if (attempt === maxRetries - 1) throw error;
+      if (signal?.aborted) throw error;
+      
+      const isTimeout = error.message === "TIMEOUT_ERROR";
+      const isRetryable = 
+        isTimeout ||
+        error.message?.includes("503") || 
+        error.message?.includes("overloaded") || 
+        error.message?.includes("rate limit");
+
+      console.error(`Error en intento ${attempt + 1} (${isTimeout ? 'TIMEOUT' : 'API'}):`, error);
+
+      if (attempt === maxRetries - 1 || !isRetryable) throw error;
+      
+      // Espera exponencial
       await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, attempt)));
     }
   }
-  throw new Error("API Fatal Error");
+  throw new Error("Error fatal de API tras reintentos");
 };
 
 export const generateNewsDraftFromTopic = async (topic: string, systemInstruction: string, searchDomains: string[] = [], signal?: AbortSignal) => {
@@ -109,10 +132,10 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
               tools: [{ googleSearch: {} }],
               responseMimeType: "application/json"
             }
-        }, signal);
+        }, signal, 2, 90000); // 90s para investigación profunda
         
         const draft = cleanAndParseJSON(response.text, null);
-        if (!draft) throw new Error("IA JSON fail");
+        if (!draft) throw new Error("La IA no devolvió un formato válido.");
 
         const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
         draft.sources = groundingChunks ? groundingChunks
@@ -120,7 +143,10 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
               .filter((s): s is Source => !!s) : [];
         
         return draft;
-    } catch (error) { return null; }
+    } catch (error: any) { 
+        console.error("Error generando borrador desde tema:", error);
+        throw error; 
+    }
 };
 
 export const generateNewsFromUrl = async (url: string, systemInstruction: string, signal?: AbortSignal) => {
@@ -142,14 +168,18 @@ export const generateNewsFromUrl = async (url: string, systemInstruction: string
               tools: [{ googleSearch: {} }],
               responseMimeType: "application/json"
             }
-        }, signal);
+        }, signal, 2, 60000); // 60s para URL con búsqueda
         const draft = cleanAndParseJSON(response.text, null);
+        if (!draft) throw new Error("La IA no devolvió un formato válido.");
         if (draft) draft.sources = [{ uri: url, title: 'Original' }];
         return draft;
-    } catch (error) { return null; }
+    } catch (error: any) { 
+        console.error("Error generando noticia desde URL:", error);
+        throw error; 
+    }
 };
 
-export const generateSocialMediaContentFast = async (title: string, excerpt: string, systemInstruction: string, copyInstruction: string) => {
+export const generateSocialMediaContentFast = async (title: string, excerpt: string, systemInstruction: string, copyInstruction: string, signal?: AbortSignal) => {
   const prompt = `Actúa como un Community Manager experto y estratega de contenido. 
   Tu objetivo es crear un posteo de alto impacto para redes sociales basado EXCLUSIVAMENTE en la información proporcionada:
   Título: "${title}"
@@ -164,20 +194,26 @@ export const generateSocialMediaContentFast = async (title: string, excerpt: str
   
   JSON: { "shortTitle": "Título corto (máx 26 carac)", "copy": "Texto del posteo" }`;
   
-  const res = await generateContentWithRetry({ 
-    model: FAST_MODEL, 
-    contents: prompt,
-    config: { 
-      responseMimeType: "application/json" 
-    }
-  });
-  
-  const data = cleanAndParseJSON(res.text, { shortTitle: "A1TOQUE", copy: "Posteo generado." });
-  data.sources = [];
-  return data;
+  try {
+    const response = await generateContentWithRetry({
+      model: FAST_MODEL,
+      contents: prompt,
+      config: { 
+        responseMimeType: "application/json"
+      }
+    }, signal, 2, 30000); // 30s para posteo rápido
+
+    const data = cleanAndParseJSON(response.text, null);
+    if (!data) throw new Error("La IA no devolvió un formato válido.");
+    data.sources = [];
+    return data;
+  } catch (error: any) { 
+    console.error("Error en generación rápida de redes:", error);
+    throw error; 
+  }
 };
 
-export const generateSocialMediaContentFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string) => {
+export const generateSocialMediaContentFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string, signal?: AbortSignal) => {
   const prompt = `Actúa como un Community Manager experto y estratega de contenido. 
   Tu objetivo es crear un posteo de alto impacto para redes sociales sobre: "${topic}".
   
@@ -191,23 +227,29 @@ export const generateSocialMediaContentFromTopic = async (topic: string, systemI
 
   JSON: { "shortTitle": "Título corto (máx 26 carac)", "copy": "Texto del posteo con datos reales, emojis y hashtags" }`;
   
-  const res = await generateContentWithRetry({ 
-    model: POWERFUL_MODEL, 
-    contents: prompt, 
-    config: { 
-      tools: [{ googleSearch: {} }],
-      responseMimeType: "application/json"
-    } 
-  });
-  
-  const data = cleanAndParseJSON(res.text, { shortTitle: "A1TOQUE", copy: "Posteo generado." });
-  
-  const groundingChunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks;
-  data.sources = groundingChunks ? groundingChunks
-        .map((chunk: any) => chunk.web ? { uri: chunk.web.uri, title: chunk.web.title } : null)
-        .filter((s): s is Source => !!s) : [];
-        
-  return data;
+  try {
+    const res = await generateContentWithRetry({ 
+      model: POWERFUL_MODEL, 
+      contents: prompt, 
+      config: { 
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json"
+      } 
+    }, signal, 2, 75000); // 75s para investigación de redes
+    
+    const data = cleanAndParseJSON(res.text, null);
+    if (!data) throw new Error("La IA no devolvió un formato válido.");
+    
+    const groundingChunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    data.sources = groundingChunks ? groundingChunks
+          .map((chunk: any) => chunk.web ? { uri: chunk.web.uri, title: chunk.web.title } : null)
+          .filter((s): s is Source => !!s) : [];
+          
+    return data;
+  } catch (error: any) {
+    console.error("Error generando redes desde tema:", error);
+    throw error;
+  }
 };
 
 export const refineSocialMediaContent = async (currentTitle: string, currentCopy: string, instructions: string, systemInstruction: string, copyInstruction: string) => {
@@ -234,7 +276,7 @@ export const refineSocialMediaContent = async (currentTitle: string, currentCopy
       tools: [{ googleSearch: {} }],
       responseMimeType: "application/json" 
     }
-  });
+  }, undefined, 2, 60000); // 60s para refinamiento con búsqueda
   
   const data = cleanAndParseJSON(res.text, { shortTitle: currentTitle, copy: currentCopy });
   
@@ -254,7 +296,7 @@ export const improveSocialMediaCopy = async (currentCopy: string, systemInstruct
     model: FAST_MODEL, 
     contents: prompt,
     config: { responseMimeType: "application/json" }
-  });
+  }, undefined, 2, 20000); // 20s para mejora de copy
   return cleanAndParseJSON(res.text, { copy: currentCopy });
 };
 
