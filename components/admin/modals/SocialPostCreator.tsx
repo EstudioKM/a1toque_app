@@ -48,7 +48,6 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   articles,
 }) => {
   const [status, setStatus] = useState<PublicationStatus>(skipGeneration ? 'idle' : 'generating');
-  const [lastError, setLastError] = useState<string | null>(null);
   const [shortTitle, setShortTitle] = useState('');
   const [copy, setCopy] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -612,23 +611,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         throw new Error(errorMessage);
       }
 
-      const responseText = await response.text();
-      let newImageUrl = responseText.trim();
-      
-      // Intentar parsear como JSON por si el webhook devuelve un objeto
-      try {
-        const json = JSON.parse(responseText);
-        if (json.url) newImageUrl = json.url;
-        else if (json.imageUrl) newImageUrl = json.imageUrl;
-        else if (json.image) newImageUrl = json.image;
-      } catch (e) {
-        // No es JSON, asumimos que es texto plano
-      }
-
-      if (!newImageUrl.startsWith('http')) {
-        throw new Error(`Respuesta inválida del webhook: ${newImageUrl.substring(0, 100)}`);
-      }
-      
+      const newImageUrl = await response.text();
+      if (!newImageUrl.startsWith('http')) throw new Error(`Invalid URL from webhook: ${newImageUrl}`);
       setGeneratedImageUrl(newImageUrl);
       setLastGeneratedTitle(shortTitle);
       setLastGeneratedCopy(copy);
@@ -638,7 +622,6 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       setStatus('preview');
     } catch (error) {
       console.error("Failed to generate preview:", error);
-      setLastError(error instanceof Error ? error.message : String(error));
       setStatus('error');
     }
   };
@@ -732,7 +715,6 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       }, 2000);
     } catch (error) {
       console.error("Failed to publish/schedule:", error);
-      setLastError(error instanceof Error ? error.message : String(error));
       setStatus('error');
     }
   };
@@ -1273,20 +1255,6 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                          <div className="absolute inset-0 z-20 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center">
                             <Loader2 className="animate-spin text-neon size-8 mb-3" />
                             <p className="text-neon text-[9px] font-black uppercase tracking-[0.5em] animate-pulse">GENERANDO...</p>
-                         </div>
-                      )}
-
-                      {status === 'error' && (
-                         <div className="absolute inset-0 z-20 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center rounded-2xl">
-                            <AlertCircle className="text-red-500 size-8 mb-3" />
-                            <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.3em] mb-2">ERROR DE GENERACIÓN</p>
-                            <p className="text-gray-400 text-[9px] font-medium leading-relaxed max-w-[200px] mb-4">{lastError || 'Ocurrió un error inesperado'}</p>
-                            <button 
-                              onClick={() => setStatus('idle')}
-                              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition-all"
-                            >
-                              REINTENTAR
-                            </button>
                          </div>
                       )}
                       

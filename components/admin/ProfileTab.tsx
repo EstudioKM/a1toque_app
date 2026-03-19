@@ -68,10 +68,9 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ currentUser, onUpdateUse
   };
 
   return (
-    <div className="pt-4 md:pt-8">
+    <div>
       <h2 className="text-3xl font-oswald font-black italic uppercase text-white mb-6">Mi Perfil</h2>
-      <div className="pt-14 md:pt-18">
-        <div className="bg-white/5 p-8 rounded-xl border border-white/10 max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="bg-white/5 p-8 rounded-xl border border-white/10 max-w-4xl grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-1 flex flex-col items-center text-center">
             <div className="relative group mb-4">
                 {formData.avatar ? <img src={formData.avatar} alt={formData.name} className="w-32 h-32 object-cover rounded-full" /> : <div className="w-32 h-32 rounded-full bg-neutral-800" />}
@@ -121,7 +120,6 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ currentUser, onUpdateUse
                     {isSaving ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
             </div>
-        </div>
         </div>
       </div>
     </div>

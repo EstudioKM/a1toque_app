@@ -14,7 +14,6 @@ interface ResearchTabProps {
   onSaveDraft: (task: GenerationTask) => void;
   onRemoveTask: (id: string) => void;
   onOpenEditor?: (article?: Article) => void;
-  hideHeader?: boolean;
 }
 
 export const ResearchTab: React.FC<ResearchTabProps> = ({ 
@@ -28,8 +27,7 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
   onLoadDraft,
   onSaveDraft,
   onRemoveTask,
-  onOpenEditor,
-  hideHeader = false
+  onOpenEditor
 }) => {
   const [generationQuery, setGenerationQuery] = useState('');
   const [selectedAccountId, setSelectedAccountId] = useState('global');
@@ -55,31 +53,29 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
 
   return (
     <div className="max-w-5xl mx-auto pb-20">
-      {!hideHeader && (
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
-          <div>
-            <h2 className="text-3xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-3">
-              <Zap className="text-neon" size={32} /> REDACTAR NOTICIA
-            </h2>
-            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Motor de generación de contenido asistido y redacción manual</p>
-          </div>
-          {onOpenEditor && (
-            <button 
-              onClick={() => onOpenEditor()} 
-              className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_10px_30px_rgba(0,255,157,0.2)] active:scale-95"
-            >
-              <Plus size={18} strokeWidth={3} /> NUEVA NOTICIA MANUAL
-            </button>
-          )}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+        <div>
+          <h2 className="text-3xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-3">
+            <Zap className="text-neon" size={32} /> REDACTAR NOTICIA
+          </h2>
+          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Motor de generación de contenido asistido y redacción manual</p>
         </div>
-      )}
+        {onOpenEditor && (
+          <button 
+            onClick={() => onOpenEditor()} 
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-4 bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_10px_30px_rgba(0,255,157,0.2)] active:scale-95"
+          >
+            <Plus size={18} strokeWidth={3} /> NUEVA NOTICIA MANUAL
+          </button>
+        )}
+      </div>
 
       <div className="bg-[#0f0f0f] p-6 md:p-8 rounded-[32px] border border-white/5 shadow-2xl mb-12">
         <div className="flex items-center gap-2 mb-6">
             <div className="w-8 h-8 bg-neon/10 rounded-full flex items-center justify-center text-neon">
                 <Sparkles size={16} />
             </div>
-            <h3 className="text-sm font-black text-white uppercase tracking-widest">GENERAR BORRADOR CON IA</h3>
+            <h3 className="text-sm font-black text-white uppercase tracking-widest">Generar Borrador</h3>
         </div>
 
         <div className="flex flex-col gap-4">

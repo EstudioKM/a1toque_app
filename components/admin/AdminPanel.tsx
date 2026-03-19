@@ -224,20 +224,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         status: 'researching' 
     });
     
-    try {
-        const draft = await generateNewsFromUrl(url, systemInstruction, controller.signal);
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: draft ? 'completed' : 'failed', 
-            result: draft || undefined, 
-            error: draft ? undefined : "Error en URL." 
-        });
-    } catch (error: any) {
-        console.error("Error generating from URL:", error);
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: 'failed', 
-            error: error.message || "Error inesperado." 
-        });
-    }
+    const draft = await generateNewsFromUrl(url, systemInstruction, controller.signal);
+    await props.onUpdateAiNewsTask(taskId, { 
+        status: draft ? 'completed' : 'failed', 
+        result: draft || undefined, 
+        error: draft ? undefined : "Error en URL." 
+    });
   };
   
   const handleGenerateFromTopic = async (topic: string, systemInstruction: string) => {
@@ -248,20 +240,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         status: 'researching' 
     });
     
-    try {
-        const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], controller.signal);
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: draft ? 'completed' : 'failed', 
-            result: draft || undefined, 
-            error: draft ? undefined : "Error en tema." 
-        });
-    } catch (error: any) {
-        console.error("Error generating from topic:", error);
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: 'failed', 
-            error: error.message || "Error inesperado." 
-        });
-    }
+    const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], controller.signal);
+    await props.onUpdateAiNewsTask(taskId, { 
+        status: draft ? 'completed' : 'failed', 
+        result: draft || undefined, 
+        error: draft ? undefined : "Error en tema." 
+    });
   };
 
   const handleLoadDraftInEditor = (task: GenerationTask) => {
@@ -307,11 +291,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
             result: result || undefined, 
             error: result ? undefined : "Error en generación social." 
         });
-    } catch (error: any) {
-        console.error("Error generating social from topic:", error);
+    } catch (error) {
         await props.onUpdateAiSocialTask(taskId, { 
             status: 'failed', 
-            error: error.message || "Error inesperado." 
+            error: "Error de red." 
         });
     }
   };
@@ -433,7 +416,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">{availableTabs.map(tab => (<NavButton key={tab.id} tab={tab.id as AdminTab} icon={tab.icon} label={tab.label} />))}</div>
         <div className="space-y-2 border-t border-white/10 pt-6 mt-4"><button onClick={props.onExit} className="flex items-center space-x-3 w-full text-left px-3 py-3 rounded-xl transition-all text-sm font-bold text-red-400 hover:bg-red-500/10"> <LogOut size={18} /> <span>Salir del Panel</span></button></div>
       </aside>
-      <main className="flex-1 p-4 md:p-8 bg-black lg:ml-64 pt-20 lg:pt-24">
+      <main className="flex-1 p-4 md:p-8 bg-black lg:ml-64 pt-20 lg:pt-24 overflow-x-hidden">
         <div className="max-w-7xl mx-auto">
           {activeTab === 'home' && (
             <HomeTab 
