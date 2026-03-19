@@ -611,8 +611,24 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         throw new Error(errorMessage);
       }
 
-      const newImageUrl = await response.text();
-      if (!newImageUrl.startsWith('http')) throw new Error(`Invalid URL from webhook: ${newImageUrl}`);
+      const responseText = await response.text();
+      let newImageUrl = responseText.trim();
+      
+      // Try to parse as JSON if it doesn't look like a direct URL
+      if (!newImageUrl.startsWith('http')) {
+        try {
+          const json = JSON.parse(responseText);
+          // Common Make.com response patterns: { url: "..." } or { imageUrl: "..." }
+          newImageUrl = json.url || json.imageUrl || json.image || json.data || responseText;
+        } catch (e) {
+          // Not JSON, keep as is
+        }
+      }
+
+      if (!newImageUrl.startsWith('http')) {
+        throw new Error(`Invalid URL from webhook: ${newImageUrl.substring(0, 100)}`);
+      }
+      
       setGeneratedImageUrl(newImageUrl);
       setLastGeneratedTitle(shortTitle);
       setLastGeneratedCopy(copy);
@@ -668,10 +684,12 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     const webhookUrl = "/api/webhook/publish";
     
     try {
+      console.log(`[Publish] Sending payload to webhook: ${webhookUrl}`, payload);
       const response = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`[Publish] Webhook error response: ${response.status}`, errorText);
         let errorMessage = `Webhook failed: ${response.status}`;
         try {
           const errorJson = JSON.parse(errorText);
@@ -682,6 +700,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         }
         throw new Error(errorMessage);
       }
+      
+      console.log("[Publish] Webhook success");
       
       const postData = {
         originalArticleId: article?.id || draftPost?.originalArticleId || 'standalone',

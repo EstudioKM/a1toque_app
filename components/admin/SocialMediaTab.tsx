@@ -271,17 +271,17 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-24 px-3 md:px-0">
+    <div className="max-w-6xl mx-auto pb-24 px-3 md:px-0 pt-4 md:pt-8">
       {/* Header Superior */}
-      <div className="sticky top-16 lg:top-16 z-40 bg-black pt-2 md:pt-4 pb-4 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6">
+      <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-4 pb-2 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-3 px-3 md:mx-0 md:px-0">
         <div className="w-full md:w-auto">
-          <h2 className="text-2xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-2 md:gap-3">
-            <Send className="text-neon w-6 h-6 md:w-8 md:h-8" /> REDES SOCIALES
+          <h2 className="text-xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-2 md:gap-3">
+            <Send className="text-neon w-5 h-5 md:w-8 md:h-8" /> REDES
           </h2>
-          <p className="text-gray-500 text-[8px] md:text-[10px] font-bold uppercase tracking-widest mt-0.5 md:mt-1">Gestión de comunidad y automatización IA</p>
+          <p className="hidden md:block text-gray-500 text-[8px] md:text-[10px] font-bold uppercase tracking-widest mt-0.5 md:mt-1">Gestión de comunidad y automatización IA</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-6 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-6 w-full md:w-auto">
           <div className="hidden lg:flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/10">
             <div className="flex items-center gap-2">
                 <AtSign className="text-neon" size={14} />
@@ -325,7 +325,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
       </div>
 
       {activeSubTab === 'posteos' ? (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-14 md:pt-18">
           {/* Input de Generación */}
           <div className="bg-[#0f0f0f] p-5 md:p-8 rounded-3xl md:rounded-[40px] border border-white/5 shadow-2xl relative mt-2 md:mt-4">
             <div className="absolute top-0 right-0 p-4 md:p-8 opacity-5 overflow-hidden pointer-events-none">
@@ -498,15 +498,15 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
           </div>
         </div>
       ) : activeSubTab === 'scheduled' ? (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex justify-between items-center mb-8">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-6 md:pt-10">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 md:mb-8">
             <div>
-              <h3 className="text-xl font-oswald font-black italic uppercase text-white tracking-tight flex items-center gap-2">
-                <Clock className="text-blue-500" size={20} /> Posteos Programados
+              <h3 className="text-lg md:text-xl font-oswald font-black italic uppercase text-white tracking-tight flex items-center gap-2">
+                <Clock className="text-blue-500 w-5 h-5 md:w-6 md:h-6" /> POSTEOS PROGRAMADOS
               </h3>
-              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mt-1">Contenido pendiente de publicación</p>
+              <p className="text-gray-500 text-[8px] md:text-[9px] font-bold uppercase tracking-widest mt-0.5 md:mt-1">Contenido pendiente de publicación</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between md:justify-end gap-3 md:gap-4 w-full md:w-auto">
               <div className="flex bg-black/40 p-1 rounded-xl border border-white/5">
                 <button 
                   onClick={() => setScheduledViewMode('list')}
@@ -525,9 +525,9 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
               </div>
               <button 
                 onClick={() => onOpenCreator()} 
-                className="flex items-center gap-2 px-6 py-3 bg-white text-black text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-lg"
+                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-white text-black text-[9px] md:text-[10px] font-black uppercase italic tracking-widest rounded-lg md:rounded-xl hover:scale-105 transition-all shadow-lg"
               >
-                <Plus size={16} strokeWidth={3} /> <span className="hidden sm:inline">NUEVO MANUAL</span>
+                <Plus size={14} className="md:w-4 md:h-4" strokeWidth={3} /> <span className="hidden sm:inline">NUEVO MANUAL</span><span className="sm:hidden">NUEVO</span>
               </button>
             </div>
           </div>
@@ -618,11 +618,11 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
           )}
         </div>
       ) : (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex justify-between items-center mb-8">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-10 md:pt-14">
+          <div className="flex justify-between items-center mb-6 md:mb-8">
             <div>
-              <h3 className="text-xl font-oswald font-black italic uppercase text-white tracking-tight">Posteos Publicados</h3>
-              <p className="text-gray-500 text-[9px] font-bold uppercase tracking-widest">Registro de actividad en redes</p>
+              <h3 className="text-lg md:text-xl font-oswald font-black italic uppercase text-white tracking-tight">POSTEOS PUBLICADOS</h3>
+              <p className="text-gray-500 text-[8px] md:text-[9px] font-bold uppercase tracking-widest mt-0.5 md:mt-1">Registro de actividad en redes</p>
             </div>
           </div>
 
@@ -639,18 +639,18 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
 
       {/* Modal de eliminación simplificado */}
       {postToDelete && (
-        <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4">
-           <div className="max-w-xs w-full bg-[#111] border border-white/10 rounded-[40px] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto mb-6">
-                <Trash2 size={32} strokeWidth={2.5} />
+        <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+           <div className="max-w-xs w-full bg-[#111] border border-white/10 rounded-2xl md:rounded-[40px] p-6 md:p-10 text-center shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto mb-4 md:mb-6">
+                <Trash2 size={24} className="md:w-8 md:h-8" strokeWidth={2.5} />
               </div>
-              <h3 className="text-2xl font-oswald font-black text-white uppercase italic mb-3 tracking-tighter">¿BORRAR POSTEO?</h3>
-              <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-10 px-2 leading-relaxed">
+              <h3 className="text-xl md:text-2xl font-oswald font-black text-white uppercase italic mb-2 md:mb-3 tracking-tighter">¿BORRAR POSTEO?</h3>
+              <p className="text-gray-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest mb-6 md:mb-10 px-2 leading-relaxed">
                 Esta acción es irreversible y eliminará el registro de tus publicaciones.
               </p>
-              <div className="flex flex-col gap-3">
-                <button onClick={executeDelete} className="w-full py-4 bg-red-600 text-white font-black uppercase italic text-[11px] tracking-widest rounded-xl hover:bg-red-500 transition-colors">ELIMINAR AHORA</button>
-                <button onClick={() => setPostToDelete(null)} className="w-full py-4 bg-white/5 text-gray-400 font-black uppercase italic text-[11px] tracking-widest rounded-xl">CANCELAR</button>
+              <div className="flex flex-col gap-2 md:gap-3">
+                <button onClick={executeDelete} className="w-full py-3 md:py-4 bg-red-600 text-white font-black uppercase italic text-[10px] md:text-[11px] tracking-widest rounded-lg md:rounded-xl hover:bg-red-500 transition-colors">ELIMINAR AHORA</button>
+                <button onClick={() => setPostToDelete(null)} className="w-full py-3 md:py-4 bg-white/5 text-gray-400 font-black uppercase italic text-[10px] md:text-[11px] tracking-widest rounded-lg md:rounded-xl">CANCELAR</button>
               </div>
            </div>
         </div>

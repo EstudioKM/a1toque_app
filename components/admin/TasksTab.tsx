@@ -205,7 +205,8 @@ export const TasksTab: React.FC<TasksTabProps> = ({
   };
 
   return (
-    <div className="space-y-10">
+    <div className="pt-4 md:pt-8">
+      <div className="pt-14 md:pt-18 space-y-10">
       {/* Header & Stats */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8">
         <div>
@@ -553,6 +554,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
