@@ -249,8 +249,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
   };
 
   return (
-    <div className="pt-4 md:pt-8">
-      <div className="pt-14 md:pt-18 space-y-8">
+    <div className="space-y-8">
       {/* Control Center Header */}
       <div className="flex flex-col gap-6 bg-white/[0.02] border border-white/5 p-8 rounded-[40px]">
         {/* Top Row: Title, Tabs and Primary Action */}
@@ -1393,7 +1392,6 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
           </div>
         )}
       </AnimatePresence>
-      </div>
     </div>
   );
 };

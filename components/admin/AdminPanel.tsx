@@ -186,7 +186,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     
     if (article && accountId) {
         setIsGeneratingSocial(true);
-        const controller = new AbortController();
         try {
             const account = props.socialAccounts.find(a => a.id === accountId);
             if (account) {
@@ -194,16 +193,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                     article.title,
                     article.excerpt,
                     account.systemPrompt,
-                    account.copyPrompt,
-                    controller.signal
+                    account.copyPrompt
                 );
                 setPreGeneratedSocialContent(generated);
             }
-        } catch (e: any) {
+        } catch (e) {
             console.error("Error generating social content:", e);
-            if (e.message === "TIMEOUT_ERROR") {
-                // Podríamos mostrar un toast o mensaje de error en el modal
-            }
         } finally {
             setIsGeneratingSocial(false);
             setIsSocialPostCreatorOpen(true);
@@ -229,24 +224,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         status: 'researching' 
     });
     
-    try {
-        const draft = await generateNewsFromUrl(url, systemInstruction, controller.signal);
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: 'completed', 
-            result: draft, 
-            error: undefined 
-        });
-    } catch (error: any) {
-        console.error("Error en handleGenerateFromUrl:", error);
-        const errorMessage = error.message === "TIMEOUT_ERROR" 
-            ? "La búsqueda tomó demasiado tiempo. Intenta de nuevo."
-            : "Error al procesar la URL.";
-            
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: 'failed', 
-            error: errorMessage
-        });
-    }
+    const draft = await generateNewsFromUrl(url, systemInstruction, controller.signal);
+    await props.onUpdateAiNewsTask(taskId, { 
+        status: draft ? 'completed' : 'failed', 
+        result: draft || undefined, 
+        error: draft ? undefined : "Error en URL." 
+    });
   };
   
   const handleGenerateFromTopic = async (topic: string, systemInstruction: string) => {
@@ -257,24 +240,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         status: 'researching' 
     });
     
-    try {
-        const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], controller.signal);
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: 'completed', 
-            result: draft, 
-            error: undefined 
-        });
-    } catch (error: any) {
-        console.error("Error en handleGenerateFromTopic:", error);
-        const errorMessage = error.message === "TIMEOUT_ERROR" 
-            ? "La investigación tomó demasiado tiempo. Intenta con un tema más específico."
-            : "Error en la investigación del tema.";
-
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: 'failed', 
-            error: errorMessage
-        });
-    }
+    const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], controller.signal);
+    await props.onUpdateAiNewsTask(taskId, { 
+        status: draft ? 'completed' : 'failed', 
+        result: draft || undefined, 
+        error: draft ? undefined : "Error en tema." 
+    });
   };
 
   const handleLoadDraftInEditor = (task: GenerationTask) => {
@@ -314,21 +285,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     });
     
     try {
-        const result = await generateSocialMediaContentFromTopic(topic, systemInstruction, copyInstruction, controller.signal);
+        const result = await generateSocialMediaContentFromTopic(topic, systemInstruction, copyInstruction);
         await props.onUpdateAiSocialTask(taskId, { 
-            status: 'completed', 
-            result: result, 
-            error: undefined 
+            status: result ? 'completed' : 'failed', 
+            result: result || undefined, 
+            error: result ? undefined : "Error en generación social." 
         });
-    } catch (error: any) {
-        console.error("Error en handleGenerateSocialFromTopic:", error);
-        const errorMessage = error.message === "TIMEOUT_ERROR" 
-            ? "La generación tomó demasiado tiempo. Intenta de nuevo."
-            : "Error al generar contenido social.";
-
+    } catch (error) {
         await props.onUpdateAiSocialTask(taskId, { 
             status: 'failed', 
-            error: errorMessage
+            error: "Error de red." 
         });
     }
   };
@@ -394,7 +360,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       </div>
 
       {/* Desktop Top Bar (New) */}
-      <div className="hidden lg:flex fixed top-0 right-0 left-64 h-16 bg-black/50 backdrop-blur-md border-b border-white/5 z-50 items-center justify-between px-8">
+      <div className="hidden lg:flex fixed top-0 right-0 left-64 h-16 bg-black/50 backdrop-blur-md border-b border-white/5 z-30 items-center justify-between px-8">
           <div className="flex items-center gap-4">
             {/* Breadcrumb removed */}
           </div>
@@ -450,7 +416,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">{availableTabs.map(tab => (<NavButton key={tab.id} tab={tab.id as AdminTab} icon={tab.icon} label={tab.label} />))}</div>
         <div className="space-y-2 border-t border-white/10 pt-6 mt-4"><button onClick={props.onExit} className="flex items-center space-x-3 w-full text-left px-3 py-3 rounded-xl transition-all text-sm font-bold text-red-400 hover:bg-red-500/10"> <LogOut size={18} /> <span>Salir del Panel</span></button></div>
       </aside>
-      <main className="flex-1 p-4 md:p-8 bg-black lg:ml-64 pt-24 lg:pt-28 overflow-x-hidden">
+      <main className="flex-1 p-4 md:p-8 bg-black lg:ml-64 pt-20 lg:pt-24">
         <div className="max-w-7xl mx-auto">
           {activeTab === 'home' && (
             <HomeTab 
