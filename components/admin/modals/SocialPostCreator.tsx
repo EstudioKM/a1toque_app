@@ -594,7 +594,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     }
     setStatus('creatingPreview');
     const payload = buildWebhookPayload('create');
-    const webhookUrl = "/api/webhook/publish";
+    const webhookUrl = "/api/publish";
     try {
       const response = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       
@@ -706,7 +706,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     
     const isScheduled = isScheduling && scheduledAt;
     const payload = buildWebhookPayload(isScheduled ? 'scheduled' : 'approved');
-    const webhookUrl = "/api/webhook/publish";
+    const webhookUrl = "/api/publish";
     
     try {
       console.log(`[Publish] Sending payload to webhook: ${webhookUrl}`, payload);

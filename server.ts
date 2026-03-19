@@ -12,12 +12,11 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
 
   // Proxy route for Make.com webhook to avoid CORS issues
-  app.post("/api/webhook/publish", async (req, res) => {
+  app.post("/api/publish", async (req, res) => {
     const webhookUrl = "https://hook.us1.make.com/k1ju5hoo957qi7tasocjdpcso23egosw";
     
     try {
       console.log(`[Webhook Proxy] Forwarding request to Make.com: ${webhookUrl}`);
-      console.log(`[Webhook Proxy] Payload state: ${req.body?.state}`);
       
       const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -36,7 +35,6 @@ async function startServer() {
         return res.status(response.status).send(data);
       }
 
-      // Forward the content type if possible, or default to text/plain
       const contentType = response.headers.get('content-type');
       if (contentType) {
         res.setHeader('Content-Type', contentType);
