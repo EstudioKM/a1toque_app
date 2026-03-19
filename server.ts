@@ -1,4 +1,5 @@
 import express from "express";
+import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -16,39 +17,26 @@ async function startServer() {
     const webhookUrl = "https://hook.us1.make.com/k1ju5hoo957qi7tasocjdpcso23egosw";
     
     try {
-      console.log(`[Webhook Proxy] Forwarding request to Make.com: ${webhookUrl}`);
-      console.log(`[Webhook Proxy] Payload state: ${req.body?.state}`);
-      
+      console.log("Proxying request to Make.com...");
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'A1Toque-App/1.0',
         },
         body: JSON.stringify(req.body),
       });
 
       const data = await response.text();
-      console.log(`[Webhook Proxy] Make.com response status: ${response.status}`);
       
       if (!response.ok) {
-        console.error(`[Webhook Proxy] Error from Make.com: ${response.status} - ${data}`);
+        console.error(`Webhook error: ${response.status} - ${data}`);
         return res.status(response.status).send(data);
       }
 
-      // Forward the content type if possible, or default to text/plain
-      const contentType = response.headers.get('content-type');
-      if (contentType) {
-        res.setHeader('Content-Type', contentType);
-      }
-      
       res.send(data);
     } catch (error) {
-      console.error("[Webhook Proxy] Critical error:", error);
-      res.status(500).json({ 
-        error: "Failed to reach webhook", 
-        details: error instanceof Error ? error.message : String(error) 
-      });
+      console.error("Proxy error:", error);
+      res.status(500).json({ error: "Failed to reach webhook", details: error instanceof Error ? error.message : String(error) });
     }
   });
 
@@ -58,7 +46,6 @@ async function startServer() {
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
-    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -67,7 +54,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*all', (req, res) => {
+    app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

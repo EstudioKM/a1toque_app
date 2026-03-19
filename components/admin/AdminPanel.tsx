@@ -224,20 +224,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         status: 'researching' 
     });
     
-    try {
-        const draft = await generateNewsFromUrl(url, systemInstruction, controller.signal);
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: draft ? 'completed' : 'failed', 
-            result: draft || undefined, 
-            error: draft ? undefined : "Error en URL." 
-        });
-    } catch (error: any) {
-        console.error("Error generating from URL:", error);
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: 'failed', 
-            error: error.message || "Error inesperado." 
-        });
-    }
+    const draft = await generateNewsFromUrl(url, systemInstruction, controller.signal);
+    await props.onUpdateAiNewsTask(taskId, { 
+        status: draft ? 'completed' : 'failed', 
+        result: draft || undefined, 
+        error: draft ? undefined : "Error en URL." 
+    });
   };
   
   const handleGenerateFromTopic = async (topic: string, systemInstruction: string) => {
@@ -248,20 +240,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         status: 'researching' 
     });
     
-    try {
-        const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], controller.signal);
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: draft ? 'completed' : 'failed', 
-            result: draft || undefined, 
-            error: draft ? undefined : "Error en tema." 
-        });
-    } catch (error: any) {
-        console.error("Error generating from topic:", error);
-        await props.onUpdateAiNewsTask(taskId, { 
-            status: 'failed', 
-            error: error.message || "Error inesperado." 
-        });
-    }
+    const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], controller.signal);
+    await props.onUpdateAiNewsTask(taskId, { 
+        status: draft ? 'completed' : 'failed', 
+        result: draft || undefined, 
+        error: draft ? undefined : "Error en tema." 
+    });
   };
 
   const handleLoadDraftInEditor = (task: GenerationTask) => {
@@ -307,11 +291,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
             result: result || undefined, 
             error: result ? undefined : "Error en generación social." 
         });
-    } catch (error: any) {
-        console.error("Error generating social from topic:", error);
+    } catch (error) {
         await props.onUpdateAiSocialTask(taskId, { 
             status: 'failed', 
-            error: error.message || "Error inesperado." 
+            error: "Error de red." 
         });
     }
   };
