@@ -6,7 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area 
 } from 'recharts';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, subDays, startOfMonth, endOfMonth, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatArgentinaDate, formatArgentinaTimestamp, parseArgentinaDate } from '../../services/dateUtils';
 
@@ -692,6 +692,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                 <thead>
                   <tr className="border-b border-white/5 bg-black/40">
                     <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Usuario</th>
+                    <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Estado</th>
                     <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Tareas Pendientes</th>
                     <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Tareas Completadas</th>
                     <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Horas Totales</th>
@@ -703,6 +704,10 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                   {userStats.map(user => {
                     const activeAlerts = user.alertMessages?.filter(a => !a.seen) || [];
                     const activeAlertsCount = activeAlerts.length;
+                    
+                    // Consider online if isOnline is true OR last connection was less than 2 minutes ago
+                    const isActuallyOnline = user.isOnline || (user.lastConnection && (new Date().getTime() - new Date(user.lastConnection).getTime() < 120000));
+                    
                     return (
                       <tr key={user.id} className="hover:bg-white/[0.02] transition-colors group">
                         <td 
@@ -714,15 +719,38 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                           }}
                         >
                           <div className="flex items-center gap-3">
-                            <img 
-                              src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} 
-                              alt={user.name} 
-                              className="w-10 h-10 rounded-xl object-cover border border-white/10 group-hover:border-neon/30 transition-colors" 
-                            />
+                            <div className="relative">
+                              <img 
+                                src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D0D0D&color=fff`} 
+                                alt={user.name} 
+                                className="w-10 h-10 rounded-xl object-cover border border-white/10 group-hover:border-neon/30 transition-colors" 
+                              />
+                              {isActuallyOnline && (
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-neon rounded-full border-2 border-black animate-pulse" />
+                              )}
+                            </div>
                             <div>
                               <p className="text-sm font-oswald font-black italic uppercase tracking-tight text-white group-hover:text-neon transition-colors">{user.name}</p>
                               <p className="text-[10px] text-gray-500">{user.email}</p>
                             </div>
+                          </div>
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            {isActuallyOnline ? (
+                              <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-neon/10 text-neon uppercase tracking-widest">
+                                En Línea
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-white/5 text-gray-500 uppercase tracking-widest">
+                                Desconectado
+                              </span>
+                            )}
+                            {user.lastConnection && (
+                              <span className="text-[8px] text-gray-600 font-bold uppercase">
+                                {formatDistanceToNow(new Date(user.lastConnection), { addSuffix: true, locale: es })}
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="p-4 text-center">

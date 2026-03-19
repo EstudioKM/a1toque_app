@@ -12,7 +12,7 @@ import { LoginModal } from './components/LoginModal';
 import { WelcomeModal } from './components/WelcomeModal';
 import { PersonalNotificationsModal } from './components/PersonalNotificationsModal';
 import { db } from './services/firebase';
-import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { A1ToqueLoader } from './components/A1ToqueLoader';
 import { Youtube, Instagram, Twitter, Facebook, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -488,9 +488,69 @@ const App: React.FC = () => {
   };
   
   const handleLogout = () => {
+    if (currentUser) {
+      updateUser({ ...currentUser, isOnline: false });
+    }
     setCurrentUser(null);
     setView(ViewMode.HOME);
   };
+
+  // Heartbeat and Online Status Tracking
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const updateStatus = async (online: boolean) => {
+      try {
+        const userRef = doc(db, 'users', currentUser.id);
+        await updateDoc(userRef, {
+          isOnline: online,
+          lastConnection: new Date().toISOString()
+        });
+        console.log(`User ${currentUser.name} status updated to ${online ? 'online' : 'offline'}`);
+      } catch (error) {
+        console.error("Error updating user status:", error);
+        // If updateDoc fails (e.g. fields don't exist), try setDoc with merge
+        try {
+          const userRef = doc(db, 'users', currentUser.id);
+          await setDoc(userRef, {
+            isOnline: online,
+            lastConnection: new Date().toISOString()
+          }, { merge: true });
+        } catch (innerError) {
+          console.error("Error updating user status with setDoc:", innerError);
+        }
+      }
+    };
+
+    // Initial online status
+    updateStatus(true);
+
+    // Heartbeat every 30 seconds for better responsiveness
+    const heartbeatInterval = setInterval(() => {
+      updateStatus(true);
+    }, 30000);
+
+    const handleVisibilityChange = () => {
+      updateStatus(document.visibilityState === 'visible');
+    };
+
+    const handleBeforeUnload = () => {
+      // Try to set offline before leaving
+      const userRef = doc(db, 'users', currentUser.id);
+      setDoc(userRef, { isOnline: false, lastConnection: new Date().toISOString() }, { merge: true });
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearInterval(heartbeatInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Set offline on cleanup (logout or component unmount)
+      updateStatus(false);
+    };
+  }, [currentUser?.id]);
 
   const removeUndefinedFields = (obj: any): any => {
     if (Array.isArray(obj)) {

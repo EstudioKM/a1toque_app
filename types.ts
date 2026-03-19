@@ -176,6 +176,8 @@ export interface User {
   instagram?: string;
   managedSocialAccountIds?: string[];
   alertMessages?: UserAlert[];
+  lastConnection?: string;
+  isOnline?: boolean;
 }
 
 // --- NUEVOS TIPOS PARA GESTIÓN DE TIEMPO Y TAREAS ---
