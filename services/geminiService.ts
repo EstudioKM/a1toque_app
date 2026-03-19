@@ -16,7 +16,7 @@ const getAI = () => {
 };
 
 const FAST_MODEL = 'gemini-3.1-flash-lite-preview';
-const POWERFUL_MODEL = 'gemini-3.1-pro-preview';
+const POWERFUL_MODEL = 'gemini-3.1-flash-lite-preview'; // Usamos Lite en ambos para mitigar problemas de spending cap
 
 const cleanAndParseJSON = (text: any, defaultValue: any) => {
   try {
@@ -46,7 +46,7 @@ const cleanAndParseJSON = (text: any, defaultValue: any) => {
 const generateContentWithRetry = async (
   request: GenerateContentParameters,
   signal?: AbortSignal,
-  maxRetries: number = 2
+  maxRetries: number = 5
 ): Promise<GenerateContentResponse> => {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -57,8 +57,28 @@ const generateContentWithRetry = async (
       if (signal?.aborted) {
         throw error;
       }
-      if (attempt === maxRetries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, attempt)));
+      
+      const isRateLimit = error.message?.includes('429') || error.status === 429;
+      const isSpendingCap = error.message?.includes('spending cap') || JSON.stringify(error).includes('spending cap');
+      
+      if (isSpendingCap) {
+        const msg = "Límite de gasto de la API alcanzado. Por favor, ve a console.cloud.google.com, selecciona tu proyecto y revisa 'Billing' -> 'Budgets & alerts' para aumentar el límite o desactivar el tope de gasto.";
+        console.error(`Gemini API: ${msg}`);
+        throw new Error(msg);
+      }
+
+      if (attempt === maxRetries - 1) {
+        console.error(`Gemini API Error after ${maxRetries} attempts:`, error);
+        throw error;
+      }
+
+      // Backoff más agresivo para 429
+      const delay = isRateLimit 
+        ? 5000 * Math.pow(2, attempt) // 5s, 10s, 20s, 40s...
+        : 2000 * Math.pow(2, attempt); // 2s, 4s, 8s...
+        
+      console.warn(`Gemini API Attempt ${attempt + 1} failed (${isRateLimit ? 'Rate Limit' : 'Error'}). Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
   throw new Error("API Fatal Error");
@@ -120,7 +140,10 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
               .filter((s): s is Source => !!s) : [];
         
         return draft;
-    } catch (error) { return null; }
+    } catch (error) { 
+        console.error("Error in generateNewsDraftFromTopic:", error);
+        return null; 
+    }
 };
 
 export const generateNewsFromUrl = async (url: string, systemInstruction: string, signal?: AbortSignal) => {
@@ -146,7 +169,10 @@ export const generateNewsFromUrl = async (url: string, systemInstruction: string
         const draft = cleanAndParseJSON(response.text, null);
         if (draft) draft.sources = [{ uri: url, title: 'Original' }];
         return draft;
-    } catch (error) { return null; }
+    } catch (error) { 
+        console.error("Error in generateNewsFromUrl:", error);
+        return null; 
+    }
 };
 
 export const generateSocialMediaContentFast = async (title: string, excerpt: string, systemInstruction: string, copyInstruction: string) => {
