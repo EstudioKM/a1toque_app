@@ -14,7 +14,7 @@ import { PersonalNotificationsModal } from './components/PersonalNotificationsMo
 import { db } from './services/firebase';
 import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc, onSnapshot } from 'firebase/firestore';
 import { A1ToqueLoader } from './components/A1ToqueLoader';
-import { Youtube, Instagram, Twitter, Facebook, ArrowUpRight } from 'lucide-react';
+import { Youtube, Instagram, Twitter, Facebook, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const CLUB_COLORS: Record<string, string> = {
   'Unión': '#ef4444', 
@@ -82,10 +82,17 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('currentView', view);
   }, [view]);
+
   const [showPopup, setShowPopup] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
+  const [currentPage, setCurrentPage] = useState(1);
   const [adminTab, setAdminTab] = useState<string | undefined>(undefined);
   const [adminTargetId, setAdminTargetId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [selectedCategory]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -828,18 +835,36 @@ const App: React.FC = () => {
   const homeLvl2AdSlot = useMemo(() => adSlots.find(s => s.id === 'HOME_LVL_2'), [adSlots]);
   const homeLvl3AdSlot = useMemo(() => adSlots.find(s => s.id === 'HOME_LVL_3'), [adSlots]);
 
+  const ARTICLES_PER_PAGE = 10;
+  const paginatedArticles = useMemo(() => {
+    const startIndex = (currentPage - 1) * ARTICLES_PER_PAGE;
+    return filteredArticles.slice(startIndex, startIndex + ARTICLES_PER_PAGE);
+  }, [filteredArticles, currentPage]);
+
+  const totalPages = Math.ceil(filteredArticles.length / ARTICLES_PER_PAGE);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const newsSection = document.getElementById('news-feed-section');
+    if (newsSection) {
+      newsSection.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const showMainContent = !isLoading;
   
   const homeFeedItems = useMemo(() => {
     if (selectedCategory !== 'All' || homeLvl2Ads.length === 0 || !homeLvl2AdSlot) {
-      return filteredArticles.map(art => <ArticleCard key={art.id} article={art} users={users} onClick={handleArticleClick} />);
+      return paginatedArticles.map(art => <ArticleCard key={art.id} article={art} users={users} onClick={handleArticleClick} />);
     }
 
     const items: React.ReactNode[] = [];
     let adCounter = 0;
     const interval = homeLvl2AdSlot.injectInterval || siteConfig.homeAdInterval || 4;
     
-    filteredArticles.forEach((art, index) => {
+    paginatedArticles.forEach((art, index) => {
       items.push(<ArticleCard key={art.id} article={art} users={users} onClick={handleArticleClick} priority={index < 4} />);
       if ((index + 1) % interval === 0) {
         const adToShow = homeLvl2Ads[adCounter % homeLvl2Ads.length];
@@ -859,7 +884,7 @@ const App: React.FC = () => {
     });
     
     return items;
-  }, [filteredArticles, selectedCategory, homeLvl2Ads, users, handleArticleClick, siteConfig.homeAdInterval, homeLvl2AdSlot, handleSponsorshipImpression, handleSponsorshipClick]);
+  }, [paginatedArticles, selectedCategory, homeLvl2Ads, users, handleArticleClick, siteConfig.homeAdInterval, homeLvl2AdSlot, handleSponsorshipImpression, handleSponsorshipClick]);
 
   return (
     <div className="min-h-screen selection:bg-neon selection:text-black bg-black">
@@ -1028,7 +1053,7 @@ const App: React.FC = () => {
 
                 <div className="mt-12 grid grid-cols-1 lg:grid-cols-4 gap-12">
                 <div className="lg:col-span-3">
-                    <div className="mb-8">
+                    <div id="news-feed-section" className="mb-8">
                     {selectedCategory !== 'All' && (
                         <div className="flex items-center gap-8 border-b border-white/10 pb-8">
                           {activeSocialAccount?.profileImageUrl && (
@@ -1046,9 +1071,68 @@ const App: React.FC = () => {
                     </div>
                     
                     {homeFeedItems.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {homeFeedItems}
-                      </div>
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          {homeFeedItems}
+                        </div>
+                        
+                        {totalPages > 1 && (
+                          <div className="mt-12 flex flex-wrap justify-center items-center gap-4">
+                            <button
+                              onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                              disabled={currentPage === 1}
+                              className="px-4 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-white font-medium transition-all border border-white/10 flex items-center gap-2"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                              Anterior
+                            </button>
+                            
+                            <div className="flex flex-wrap gap-2">
+                              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                                // Show first, last, current, and neighbors
+                                if (
+                                  page === 1 || 
+                                  page === totalPages || 
+                                  (page >= currentPage - 1 && page <= currentPage + 1)
+                                ) {
+                                  return (
+                                    <button
+                                      key={page}
+                                      onClick={() => handlePageChange(page)}
+                                      className={`w-10 h-10 rounded-lg font-bold transition-all border ${
+                                        currentPage === page
+                                          ? 'bg-neon text-black border-neon shadow-[0_0_15px_rgba(180,255,0,0.3)]'
+                                          : 'bg-white/5 text-white border-white/10 hover:bg-white/10'
+                                      }`}
+                                    >
+                                      {page}
+                                    </button>
+                                  );
+                                }
+                                
+                                // Show dots
+                                if (
+                                  (page === 2 && currentPage > 3) || 
+                                  (page === totalPages - 1 && currentPage < totalPages - 2)
+                                ) {
+                                  return <span key={page} className="text-white/20 self-center px-1">...</span>;
+                                }
+                                
+                                return null;
+                              })}
+                            </div>
+
+                            <button
+                              onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+                              disabled={currentPage === totalPages}
+                              className="px-4 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-white font-medium transition-all border border-white/10 flex items-center gap-2"
+                            >
+                              Siguiente
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                      </>
                     ) : (
                     <div className="py-20 text-center text-gray-500 font-oswald font-bold uppercase italic text-xl border border-dashed border-white/10 rounded-3xl">
                         No hay noticias en <span style={{ color: activeColor }}>{selectedCategory}</span> todavía.

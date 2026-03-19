@@ -19,26 +19,42 @@ export const UsersTab: React.FC<UsersTabProps> = ({ users, currentUser, roles, r
   const [activeTab, setActiveTab] = useState<'users' | 'permissions'>('users');
 
   return (
-    <div>
-      <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => setActiveTab('users')} className={`flex items-center gap-2 px-4 py-2 rounded-sm font-black uppercase italic tracking-widest text-xs transition ${activeTab === 'users' ? 'bg-neon text-black' : 'bg-white/5 text-white hover:bg-white/10'}`}>
-          <Users size={16} /> Usuarios
-        </button>
-        <button onClick={() => setActiveTab('permissions')} className={`flex items-center gap-2 px-4 py-2 rounded-sm font-black uppercase italic tracking-widest text-xs transition ${activeTab === 'permissions' ? 'bg-neon text-black' : 'bg-white/5 text-white hover:bg-white/10'}`}>
-          <Shield size={16} /> Permisos
-        </button>
+    <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0 pt-4 md:pt-8">
+      <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-4 pb-2 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
+        <div>
+          <h2 className="text-xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-2 md:gap-3">
+            <Users className="text-neon w-5 h-5 md:w-8 md:h-8" /> USUARIOS
+          </h2>
+          <p className="hidden md:block text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Gestión de accesos y permisos del equipo</p>
+        </div>
+
+        <div className="flex bg-black/40 p-0.5 md:p-1 rounded-lg md:rounded-2xl border border-white/5 self-stretch md:self-auto overflow-x-auto no-scrollbar">
+          <button 
+            onClick={() => setActiveTab('users')} 
+            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-1.5 md:py-2.5 rounded-md md:rounded-xl text-[8px] md:text-[10px] font-black uppercase italic tracking-widest transition-all whitespace-nowrap ${activeTab === 'users' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
+          >
+            <Users size={12} className="md:w-[14px] md:h-[14px]" /> EQUIPO
+          </button>
+          <button 
+            onClick={() => setActiveTab('permissions')} 
+            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-1.5 md:py-2.5 rounded-md md:rounded-xl text-[8px] md:text-[10px] font-black uppercase italic tracking-widest transition-all whitespace-nowrap ${activeTab === 'permissions' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
+          >
+            <Shield size={12} className="md:w-[14px] md:h-[14px]" /> PERMISOS
+          </button>
+        </div>
       </div>
 
-      {activeTab === 'users' ? (
-        <div>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-oswald font-black italic uppercase text-white">Gestión de Usuarios</h2>
-            <button onClick={() => onOpenEditor()} className="flex items-center gap-2 px-4 py-2 bg-neon text-black text-xs font-black uppercase italic tracking-widest rounded-sm hover:scale-105 transition">
-              <Plus size={16} /> Nuevo Usuario
-            </button>
-          </div>
-          <div className="space-y-4">
-            {users.map(user => (
+      <div className="pt-10 md:pt-14">
+        {activeTab === 'users' ? (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg md:text-2xl font-oswald font-black italic uppercase text-white">LISTADO DE EQUIPO</h2>
+              <button onClick={() => onOpenEditor()} className="flex items-center gap-2 px-4 py-2 bg-neon text-black text-[10px] font-black uppercase italic tracking-widest rounded-lg hover:scale-105 transition shadow-lg">
+                <Plus size={14} /> NUEVO USUARIO
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {users.map(user => (
               <div key={user.id} className="bg-white/5 p-4 rounded-xl flex items-center justify-between border border-transparent hover:border-neon/50 transition-colors">
                 <div className="flex items-center gap-4">
                   {user.avatar ? (
@@ -67,6 +83,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({ users, currentUser, roles, r
       ) : (
         <PermissionsTab roles={roles} onAddRole={onAddRole} onUpdateRole={onUpdateRole} onDeleteRole={onDeleteRole} />
       )}
+      </div>
     </div>
   );
 };

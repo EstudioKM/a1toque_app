@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, RotateCcw, CheckCircle2, Plus, Edit3, Trash2, Twitter, Instagram, Facebook, Eye, EyeOff, GripVertical, Image as ImageIcon, UploadCloud, Loader2, AtSign, Sparkles, MessageSquare, ShoppingBag } from 'lucide-react';
+import { Save, RotateCcw, CheckCircle2, Plus, Edit3, Trash2, Twitter, Instagram, Facebook, Eye, EyeOff, GripVertical, Image as ImageIcon, UploadCloud, Loader2, AtSign, Sparkles, MessageSquare, ShoppingBag, Settings } from 'lucide-react';
 import { DEFAULT_AI_PROMPT } from '../../constants';
 import { SocialAccount, CategoryConfig, SiteConfig } from '../../types';
 import { storage } from '../../services/firebase';
@@ -106,8 +106,25 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
   };
 
   return (
-    <div className="space-y-16 pb-20">
-      {/* 1. IDENTIDAD VISUAL */}
+    <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0 pt-4 md:pt-8">
+      <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-4 pb-2 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
+        <div>
+          <h2 className="text-xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-2 md:gap-3">
+            <Settings className="text-neon w-5 h-5 md:w-8 md:h-8" /> CONFIGURACIÓN
+          </h2>
+          <p className="hidden md:block text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Ajustes generales y personalización del sitio</p>
+        </div>
+
+        <button 
+          onClick={handleSaveSiteConfig}
+          className="flex items-center gap-2 md:gap-3 px-4 md:px-8 py-2 md:py-4 bg-neon text-black text-[10px] md:text-[11px] font-black uppercase italic tracking-widest rounded-lg md:rounded-xl hover:scale-105 transition-all shadow-[0_10px_40px_rgba(0,255,157,0.3)]"
+        >
+          <Save size={16} /> GUARDAR CAMBIOS
+        </button>
+      </div>
+
+      <div className="pt-10 md:pt-14 space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* 1. IDENTIDAD VISUAL */}
       <div>
         <h2 className="text-3xl font-oswald font-black italic uppercase text-white mb-8 tracking-tighter">CONFIGURACIÓN GENERAL</h2>
         <div className="bg-white/5 p-8 rounded-[32px] border border-white/10 max-w-5xl space-y-10 shadow-2xl">
@@ -416,6 +433,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
               </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

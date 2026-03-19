@@ -360,7 +360,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       </div>
 
       {/* Desktop Top Bar (New) */}
-      <div className="hidden lg:flex fixed top-0 right-0 left-64 h-16 bg-black/50 backdrop-blur-md border-b border-white/5 z-30 items-center justify-between px-8">
+      <div className="hidden lg:flex fixed top-0 right-0 left-64 h-16 bg-black/50 backdrop-blur-md border-b border-white/5 z-50 items-center justify-between px-8">
           <div className="flex items-center gap-4">
             {/* Breadcrumb removed */}
           </div>
@@ -416,7 +416,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar">{availableTabs.map(tab => (<NavButton key={tab.id} tab={tab.id as AdminTab} icon={tab.icon} label={tab.label} />))}</div>
         <div className="space-y-2 border-t border-white/10 pt-6 mt-4"><button onClick={props.onExit} className="flex items-center space-x-3 w-full text-left px-3 py-3 rounded-xl transition-all text-sm font-bold text-red-400 hover:bg-red-500/10"> <LogOut size={18} /> <span>Salir del Panel</span></button></div>
       </aside>
-      <main className="flex-1 p-4 md:p-8 bg-black lg:ml-64 pt-20 lg:pt-24">
+      <main className="flex-1 p-4 md:p-8 bg-black lg:ml-64 pt-24 lg:pt-28 overflow-x-hidden">
         <div className="max-w-7xl mx-auto">
           {activeTab === 'home' && (
             <HomeTab 

@@ -188,18 +188,18 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageUrl, onClose, o
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-[#111] border border-white/10 rounded-2xl p-6 max-w-lg w-full">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-oswald font-black italic text-neon flex items-center gap-2">
-            <Crop size={18}/> Editar Encuadre
+    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 lg:p-4">
+      <div className="bg-[#111] border border-white/10 rounded-2xl p-4 lg:p-6 max-w-lg w-full flex flex-col max-h-[95vh]">
+        <div className="flex justify-between items-center mb-4 flex-shrink-0">
+          <h3 className="text-base lg:text-lg font-oswald font-black italic text-neon flex items-center gap-2 uppercase tracking-tight">
+            <Crop size={18}/> EDITAR ENCUADRE
           </h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={20}/></button>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-all"><X size={20}/></button>
         </div>
         
         <div 
             ref={containerRef}
-            className="relative w-full h-[512px] bg-black rounded-lg flex items-center justify-center overflow-hidden touch-none"
+            className="relative w-full h-[300px] lg:h-[512px] bg-black rounded-xl flex items-center justify-center overflow-hidden touch-none flex-1"
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
@@ -242,14 +242,14 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageUrl, onClose, o
             </>
           )}
         </div>
-        <p className="text-xs text-gray-500 text-center mt-2">Arrastra el recuadro para mover o las esquinas para redimensionar.</p>
+        <p className="text-[9px] lg:text-xs text-gray-500 text-center mt-3 uppercase font-bold tracking-widest opacity-50">Arrastra para mover o las esquinas para redimensionar</p>
         <canvas ref={canvasRef} className="hidden" />
 
-        <div className="flex justify-end gap-4 mt-6">
-          <button onClick={onClose} className="px-4 py-2 bg-white/10 text-white text-xs font-bold rounded-sm hover:bg-white/20 transition">Cancelar</button>
-          <button onClick={handleSaveCrop} disabled={isSaving || !isImageLoaded} className="px-6 py-2 bg-neon text-black text-xs font-black uppercase italic tracking-widest rounded-sm hover:scale-105 transition flex items-center gap-2 disabled:opacity-50">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 lg:gap-4 mt-6 flex-shrink-0">
+          <button onClick={onClose} className="w-full sm:w-auto px-4 py-2.5 bg-white/5 text-gray-400 text-[10px] lg:text-xs font-bold rounded-xl hover:bg-white/10 hover:text-white transition-all uppercase tracking-widest">CANCELAR</button>
+          <button onClick={handleSaveCrop} disabled={isSaving || !isImageLoaded} className="w-full sm:w-auto px-6 py-2.5 bg-neon text-black text-[10px] lg:text-xs font-black uppercase italic tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(0,255,157,0.2)]">
             {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            {isSaving ? 'Guardando...' : 'Guardar Encuadre'}
+            {isSaving ? 'GUARDANDO...' : 'GUARDAR ENCUADRE'}
           </button>
         </div>
       </div>

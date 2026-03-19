@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Article, Sponsorship, User, SocialPost, Brand, SocialAccount, AdSlotConfig } from '../../types';
 import { formatArgentinaTimestamp, parseArgentinaDate } from '../../services/dateUtils';
-import { Newspaper, Users, MousePointerClick, Eye, Percent, ExternalLink, Send, Star, AtSign, Calendar, Filter, RotateCcw, ShoppingBag } from 'lucide-react';
+import { Newspaper, Users, MousePointerClick, Eye, Percent, ExternalLink, Send, Star, AtSign, Calendar, Filter, RotateCcw, ShoppingBag, BarChart3 } from 'lucide-react';
 import { AdsTab } from './AdsTab';
 
 interface MetricsTabProps {
@@ -224,16 +224,40 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
   );
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
-        <h2 className="text-3xl font-oswald font-black italic uppercase text-white">Métricas de Rendimiento</h2>
-        <div className="flex items-center bg-black/50 border border-white/10 rounded-lg p-1">
-          <button onClick={() => setView('sponsorships')} className={`px-4 py-1.5 text-xs font-black uppercase rounded-md transition ${view === 'sponsorships' ? 'bg-neon text-black' : 'text-gray-400 hover:bg-white/10'}`}>Campañas</button>
-          <button onClick={() => setView('posts')} className={`px-4 py-1.5 text-xs font-black uppercase rounded-md transition ${view === 'posts' ? 'bg-neon text-black' : 'text-gray-400 hover:bg-white/10'}`}>Redes Sociales</button>
-          <button onClick={() => setView('ads')} className={`px-4 py-1.5 text-xs font-black uppercase rounded-md transition ${view === 'ads' ? 'bg-neon text-black' : 'text-gray-400 hover:bg-white/10'}`}>Ads</button>
+    <div className="max-w-7xl mx-auto pb-24 px-4 md:px-0 pt-4 md:pt-8">
+      <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-4 pb-2 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
+        <div>
+          <h2 className="text-xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-2 md:gap-3">
+            <BarChart3 className="text-neon w-5 h-5 md:w-8 md:h-8" /> MÉTRICAS
+          </h2>
+          <p className="hidden md:block text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Rendimiento y estadísticas del portal</p>
+        </div>
+
+        <div className="flex bg-black/40 p-0.5 md:p-1 rounded-lg md:rounded-2xl border border-white/5 self-stretch md:self-auto overflow-x-auto no-scrollbar">
+          <button 
+            onClick={() => setView('sponsorships')} 
+            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-1.5 md:py-2.5 rounded-md md:rounded-xl text-[8px] md:text-[10px] font-black uppercase italic tracking-widest transition-all whitespace-nowrap ${view === 'sponsorships' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
+          >
+            CAMPAÑAS
+          </button>
+          <button 
+            onClick={() => setView('posts')} 
+            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-1.5 md:py-2.5 rounded-md md:rounded-xl text-[8px] md:text-[10px] font-black uppercase italic tracking-widest transition-all whitespace-nowrap ${view === 'posts' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
+          >
+            REDES
+          </button>
+          <button 
+            onClick={() => setView('ads')} 
+            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-1.5 md:py-2.5 rounded-md md:rounded-xl text-[8px] md:text-[10px] font-black uppercase italic tracking-widest transition-all whitespace-nowrap ${view === 'ads' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
+          >
+            ADS
+          </button>
         </div>
       </div>
-      {view === 'sponsorships' ? renderSponsorshipsView() : view === 'posts' ? renderPostsView() : <AdsTab brands={brands} sponsorships={sponsorships} adSlots={adSlots} brandMap={brandMap} onOpenBrandEditor={onOpenBrandEditor} onOpenSponsorshipEditor={onOpenSponsorshipEditor} onOpenAdSlotEditor={onOpenAdSlotEditor} onDeleteBrand={onDeleteBrand} onDeleteSponsorship={onDeleteSponsorship} onToggleSponsorshipStatus={onToggleSponsorshipStatus} />}
+
+      <div className="pt-10 md:pt-14 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {view === 'sponsorships' ? renderSponsorshipsView() : view === 'posts' ? renderPostsView() : <AdsTab brands={brands} sponsorships={sponsorships} adSlots={adSlots} brandMap={brandMap} onOpenBrandEditor={onOpenBrandEditor} onOpenSponsorshipEditor={onOpenSponsorshipEditor} onOpenAdSlotEditor={onOpenAdSlotEditor} onDeleteBrand={onDeleteBrand} onDeleteSponsorship={onDeleteSponsorship} onToggleSponsorshipStatus={onToggleSponsorshipStatus} />}
+      </div>
     </div>
   );
 };

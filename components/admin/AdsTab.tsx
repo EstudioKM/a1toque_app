@@ -160,30 +160,32 @@ export const AdsTab: React.FC<AdsTabProps> = (props) => {
   [adSlots, sponsorships]);
 
   return (
-    <div className="pb-32">
+    <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0 pt-4 md:pt-8">
       {/* Action Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+      <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-4 pb-2 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
         <div>
-            <h2 className="text-4xl font-oswald font-black italic uppercase text-white tracking-tighter leading-none">GESTIÓN PUBLICITARIA</h2>
-            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-3">Control estricto de dimensiones e inventario</p>
+            <h2 className="text-xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter leading-none flex items-center gap-2 md:gap-3">
+              <ShoppingBag className="text-neon w-5 h-5 md:w-8 md:h-8" /> PUBLICIDAD
+            </h2>
+            <p className="hidden md:block text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">Control estricto de dimensiones e inventario</p>
         </div>
-        <div className="flex gap-4 w-full md:w-auto">
+        <div className="flex gap-2 md:gap-4 w-full md:w-auto">
           <button 
             onClick={() => onOpenBrandEditor()} 
-            className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:bg-white/10 transition-all"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 md:gap-3 px-4 md:px-8 py-2 md:py-4 bg-white/5 border border-white/10 text-white text-[9px] md:text-[11px] font-black uppercase italic tracking-widest rounded-lg md:rounded-xl hover:bg-white/10 transition-all"
           >
-            <Star size={16} /> NUEVA MARCA
+            <Star size={14} className="md:w-4 md:h-4" /> <span className="hidden sm:inline">NUEVA</span> MARCA
           </button>
           <button 
             onClick={() => onOpenSponsorshipEditor()} 
-            className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition-all shadow-[0_10px_40px_rgba(0,255,157,0.3)]"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 md:gap-3 px-4 md:px-8 py-2 md:py-4 bg-neon text-black text-[9px] md:text-[11px] font-black uppercase italic tracking-widest rounded-lg md:rounded-xl hover:scale-105 transition-all shadow-[0_10px_40px_rgba(0,255,157,0.3)]"
           >
-            <Plus size={18} strokeWidth={3} /> NUEVO BANNER
+            <Plus size={16} strokeWidth={3} className="md:w-[18px] md:h-[18px]" /> <span className="hidden sm:inline">NUEVO</span> BANNER
           </button>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-10 md:pt-14">
         <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
             <SectionColumn 
               title="ESPACIOS EN HOME" 

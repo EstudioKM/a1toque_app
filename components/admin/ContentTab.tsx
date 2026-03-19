@@ -30,45 +30,45 @@ export const ContentTab: React.FC<ContentTabProps> = (props) => {
   const [activeSubTab, setActiveSubTab] = useState<'published' | 'drafts' | 'write'>('published');
 
   return (
-    <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0">
+    <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0 pt-4 md:pt-8">
       {/* Header Superior */}
-      <div className="sticky top-16 lg:top-16 z-40 bg-black pt-4 pb-6 mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-4 pb-2 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
         <div>
-          <h2 className="text-3xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-3">
-            {activeSubTab === 'published' && <><FileText className="text-neon" size={32} /> NOTICIAS</>}
-            {activeSubTab === 'drafts' && <><Archive className="text-neon" size={32} /> BORRADORES</>}
-            {activeSubTab === 'write' && <><Edit3 className="text-neon" size={32} /> REDACTAR NOTICIA</>}
+          <h2 className="text-xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-2 md:gap-3">
+            {activeSubTab === 'published' && <><FileText className="text-neon w-5 h-5 md:w-8 md:h-8" /> NOTICIAS</>}
+            {activeSubTab === 'drafts' && <><Archive className="text-neon w-5 h-5 md:w-8 md:h-8" /> BORRADORES</>}
+            {activeSubTab === 'write' && <><Edit3 className="text-neon w-5 h-5 md:w-8 md:h-8" /> REDACTAR</>}
           </h2>
-          <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">
+          <p className="hidden md:block text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">
             {activeSubTab === 'published' && 'Control editorial y distribución'}
             {activeSubTab === 'drafts' && 'Noticias en proceso o archivadas'}
-            {activeSubTab === 'write' && 'Motor de generación de contenido asistido y redacción manual'}
+            {activeSubTab === 'write' && 'Motor de generación de contenido asistido'}
           </p>
         </div>
         
-        <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 self-stretch md:self-auto overflow-x-auto custom-scrollbar">
+        <div className="flex bg-black/40 p-0.5 md:p-1 rounded-lg md:rounded-2xl border border-white/5 self-stretch md:self-auto overflow-x-auto no-scrollbar">
           <button 
             onClick={() => setActiveSubTab('published')}
-            className={`flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeSubTab === 'published' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
+            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-1.5 md:py-2.5 rounded-md md:rounded-xl text-[8px] md:text-[10px] font-black uppercase italic tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'published' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
           >
-            <FileText size={14} /> NOTICIAS
+            <FileText size={12} className="md:w-[14px] md:h-[14px]" /> NOTICIAS
           </button>
           <button 
             onClick={() => setActiveSubTab('drafts')}
-            className={`flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeSubTab === 'drafts' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
+            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-1.5 md:py-2.5 rounded-md md:rounded-xl text-[8px] md:text-[10px] font-black uppercase italic tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'drafts' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
           >
-            <Archive size={14} /> BORRADORES
+            <Archive size={12} className="md:w-[14px] md:h-[14px]" /> BORRADORES
           </button>
           <button 
             onClick={() => setActiveSubTab('write')}
-            className={`flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest transition-all ${activeSubTab === 'write' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
+            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-1.5 md:py-2.5 rounded-md md:rounded-xl text-[8px] md:text-[10px] font-black uppercase italic tracking-widest transition-all whitespace-nowrap ${activeSubTab === 'write' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
           >
-            <Edit3 size={14} /> REDACTAR NOTICIA
+            <Edit3 size={12} className="md:w-[14px] md:h-[14px]" /> REDACTAR
           </button>
         </div>
       </div>
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-10 md:pt-14">
         {activeSubTab === 'published' && (
           <NewsTab 
             {...props}
@@ -96,6 +96,7 @@ export const ContentTab: React.FC<ContentTabProps> = (props) => {
             onSaveDraft={props.onSaveDraft}
             onRemoveTask={props.onRemoveTask}
             onOpenEditor={props.onOpenEditor}
+            hideHeader={true}
           />
         )}
       </div>

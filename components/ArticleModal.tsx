@@ -294,6 +294,28 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, articles, u
                         </div>
                     </div>
                 )}
+
+                {/* Sección de Noticias Relacionadas debajo del contenido */}
+                {!isLocked && relatedArticles.length > 0 && (
+                  <div className="mt-20 border-t border-white/10 pt-12">
+                    <h3 className="font-oswald font-black text-white uppercase italic text-3xl mb-8 tracking-tighter">Noticias Relacionadas</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                      {relatedArticles.map(a => (
+                        <div 
+                          key={a.id} 
+                          onClick={() => onArticleClick(a.id)}
+                          className="group cursor-pointer"
+                        >
+                          <div className="aspect-video rounded-xl overflow-hidden mb-4 border border-white/10 group-hover:border-neon/50 transition-all shadow-lg">
+                            <OptimizedImage src={a.imageUrl} alt={a.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          </div>
+                          <div className="text-[8px] text-neon font-black uppercase tracking-[0.2em] mb-2">{a.category}</div>
+                          <h4 className="font-oswald font-bold text-white uppercase italic group-hover:text-neon transition-colors leading-tight text-lg line-clamp-2 tracking-tight">{a.title}</h4>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <aside className="col-span-1 lg:col-span-4 space-y-8">
@@ -301,28 +323,6 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, articles, u
                     <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-600 mb-4 px-2">Partners A1TOQUE</h4>
                     <SponsorshipBanner sponsorship={sideAd1} slotConfig={sideSlot1} onImpression={onSponsorshipImpression} onClickEvent={onSponsorshipClick} />
                     <SponsorshipBanner sponsorship={sideAd2} slotConfig={sideSlot2} onImpression={onSponsorshipImpression} onClickEvent={onSponsorshipClick} />
-                    
-                    <div className="bg-gradient-to-br from-neon/10 to-transparent p-px rounded-2xl mt-8">
-                        <div className="bg-[#111] rounded-2xl p-6 border border-white/5">
-                            <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-neon mb-5">Noticias Relacionadas</h4>
-                            <div className="space-y-4">
-                                {relatedArticles.length > 0 ? (
-                                    relatedArticles.map(a => (
-                                        <div 
-                                            key={a.id} 
-                                            onClick={() => onArticleClick(a.id)}
-                                            className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer group border border-transparent hover:border-neon/30"
-                                        >
-                                            <div className="text-[8px] font-black text-gray-500 uppercase mb-1 tracking-widest">{a.category}</div>
-                                            <div className="font-oswald font-bold text-white uppercase italic group-hover:text-neon transition-colors leading-tight text-sm">{a.title}</div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-[10px] text-gray-600 uppercase tracking-widest text-center py-4">No hay más noticias en esta categoría</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
                 </div>
               </aside>
             </div>
