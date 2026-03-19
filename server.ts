@@ -17,7 +17,12 @@ async function startServer() {
     const webhookUrl = "https://hook.us1.make.com/k1ju5hoo957qi7tasocjdpcso23egosw";
     
     try {
-      console.log("Proxying request to Make.com...");
+      console.log("Proxying request to Make.com...", JSON.stringify({
+        state: req.body.state,
+        postType: req.body.postType,
+        title: req.body.title?.substring(0, 20) + "..."
+      }));
+
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
@@ -27,10 +32,16 @@ async function startServer() {
       });
 
       const data = await response.text();
+      console.log(`Make.com response status: ${response.status}`);
       
       if (!response.ok) {
         console.error(`Webhook error: ${response.status} - ${data}`);
         return res.status(response.status).send(data);
+      }
+
+      // If it's a 'create' state, we expect a URL in the response
+      if (req.body.state === 'create') {
+        console.log("Generated image URL received from Make.com:", data.substring(0, 50) + "...");
       }
 
       res.send(data);

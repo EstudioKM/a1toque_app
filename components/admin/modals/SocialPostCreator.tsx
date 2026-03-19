@@ -48,6 +48,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   articles,
 }) => {
   const [status, setStatus] = useState<PublicationStatus>(skipGeneration ? 'idle' : 'generating');
+  const [lastError, setLastError] = useState<string | null>(null);
   const [shortTitle, setShortTitle] = useState('');
   const [copy, setCopy] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -611,8 +612,23 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         throw new Error(errorMessage);
       }
 
-      const newImageUrl = await response.text();
-      if (!newImageUrl.startsWith('http')) throw new Error(`Invalid URL from webhook: ${newImageUrl}`);
+      const responseText = await response.text();
+      let newImageUrl = responseText.trim();
+      
+      // Intentar parsear como JSON por si el webhook devuelve un objeto
+      try {
+        const json = JSON.parse(responseText);
+        if (json.url) newImageUrl = json.url;
+        else if (json.imageUrl) newImageUrl = json.imageUrl;
+        else if (json.image) newImageUrl = json.image;
+      } catch (e) {
+        // No es JSON, asumimos que es texto plano
+      }
+
+      if (!newImageUrl.startsWith('http')) {
+        throw new Error(`Respuesta inválida del webhook: ${newImageUrl.substring(0, 100)}`);
+      }
+      
       setGeneratedImageUrl(newImageUrl);
       setLastGeneratedTitle(shortTitle);
       setLastGeneratedCopy(copy);
@@ -622,6 +638,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       setStatus('preview');
     } catch (error) {
       console.error("Failed to generate preview:", error);
+      setLastError(error instanceof Error ? error.message : String(error));
       setStatus('error');
     }
   };
@@ -715,6 +732,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       }, 2000);
     } catch (error) {
       console.error("Failed to publish/schedule:", error);
+      setLastError(error instanceof Error ? error.message : String(error));
       setStatus('error');
     }
   };
@@ -724,26 +742,26 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     <div className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300 font-sans selection:bg-neon selection:text-black">
        {/* MODAL DE REVISIÓN Y MEJORA (REFINEMENT) */}
        {isRefinementVisible && (
-          <div className="fixed inset-0 z-[350] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-2 lg:p-4 animate-in fade-in duration-300">
-             <div className="max-w-4xl w-full bg-[#0A0A0A] border border-white/10 rounded-[24px] lg:rounded-[40px] shadow-2xl flex flex-col h-[95vh] lg:max-h-[85vh] overflow-hidden">
-                <header className="h-14 lg:h-16 border-b border-white/5 flex items-center justify-between px-4 lg:px-8 bg-black/50 flex-shrink-0">
-                   <div className="flex items-center gap-2 lg:gap-3">
-                      <div className="w-7 h-7 lg:w-8 lg:h-8 bg-neon/20 rounded-lg flex items-center justify-center text-neon">
-                         <Sparkles size={14} lg:size={16} />
+          <div className="fixed inset-0 z-[350] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in duration-300">
+             <div className="max-w-4xl w-full bg-[#0A0A0A] border border-white/10 rounded-[40px] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+                <header className="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-black/50">
+                   <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-neon/20 rounded-lg flex items-center justify-center text-neon">
+                         <Sparkles size={16} />
                       </div>
-                      <h2 className="text-base lg:text-xl font-oswald font-black italic uppercase text-white tracking-tighter">REVISAR Y MEJORAR</h2>
+                      <h2 className="text-xl font-oswald font-black italic uppercase text-white tracking-tighter">REVISAR Y MEJORAR</h2>
                    </div>
                    <button onClick={() => setIsRefinementVisible(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-all">
                       <X size={18} />
                    </button>
                 </header>
 
-                <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
-                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                       {/* Left: Sources & Context */}
                       <div className="space-y-6">
                          <div>
-                            <h3 className="text-[9px] lg:text-[10px] font-black text-neon uppercase tracking-[0.4em] mb-4">FUENTES DE INFORMACIÓN</h3>
+                            <h3 className="text-[10px] font-black text-neon uppercase tracking-[0.4em] mb-4">FUENTES DE INFORMACIÓN</h3>
                             {sources.length > 0 ? (
                                <div className="space-y-2">
                                   {sources.map((source, idx) => (
@@ -755,26 +773,26 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                                         className="block p-3 bg-white/[0.03] border border-white/5 rounded-xl hover:bg-white/5 hover:border-neon/30 transition-all group"
                                      >
                                         <div className="flex items-center justify-between">
-                                           <span className="text-[10px] lg:text-[11px] text-gray-400 font-medium truncate max-w-[200px] lg:max-w-[250px] group-hover:text-white">{source.title || 'Fuente externa'}</span>
+                                           <span className="text-[11px] text-gray-400 font-medium truncate max-w-[250px] group-hover:text-white">{source.title || 'Fuente externa'}</span>
                                            <ArrowRight size={12} className="text-gray-600 group-hover:text-neon group-hover:translate-x-1 transition-all" />
                                         </div>
-                                        <span className="text-[8px] lg:text-[9px] text-gray-600 truncate block mt-1">{source.uri}</span>
+                                        <span className="text-[9px] text-gray-600 truncate block mt-1">{source.uri}</span>
                                      </a>
                                   ))}
                                </div>
                             ) : (
-                               <div className="p-8 lg:p-10 border border-dashed border-white/5 rounded-2xl text-center">
-                                  <AlertCircle size={20} lg:size={24} className="mx-auto text-gray-800 mb-3" />
-                                  <p className="text-[9px] lg:text-[10px] text-gray-600 font-bold uppercase tracking-widest">No se encontraron fuentes adicionales</p>
+                               <div className="p-10 border border-dashed border-white/5 rounded-2xl text-center">
+                                  <AlertCircle size={24} className="mx-auto text-gray-800 mb-3" />
+                                  <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">No se encontraron fuentes adicionales</p>
                                 </div>
                             )}
                          </div>
 
-                         <div className="p-4 lg:p-6 bg-neon/5 border border-neon/10 rounded-2xl">
-                            <h4 className="text-[8px] lg:text-[9px] font-black text-neon uppercase tracking-widest mb-2 flex items-center gap-2">
+                         <div className="p-6 bg-neon/5 border border-neon/10 rounded-2xl">
+                            <h4 className="text-[9px] font-black text-neon uppercase tracking-widest mb-2 flex items-center gap-2">
                                <Sparkles size={12} /> CONSEJO DE IA
                             </h4>
-                            <p className="text-[10px] lg:text-[11px] text-gray-400 leading-relaxed italic">
+                            <p className="text-[11px] text-gray-400 leading-relaxed italic">
                                "Puedes pedirme que cambie el tono, que sea más breve, que agregue datos específicos de las fuentes o que enfoque el mensaje en un público diferente."
                             </p>
                          </div>
@@ -783,23 +801,23 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                       {/* Right: Copy Iteration */}
                       <div className="flex flex-col space-y-4">
                          <div className="flex-1 flex flex-col space-y-2">
-                            <label className="text-[9px] lg:text-[10px] font-black text-gray-500 uppercase tracking-[0.4em]">BORRADOR ACTUAL</label>
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em]">BORRADOR ACTUAL</label>
                             <textarea 
                                value={copy} 
                                onChange={e => setCopy(e.target.value)} 
-                               className="flex-1 bg-white/[0.02] border border-white/5 rounded-2xl p-4 lg:p-5 text-sm text-gray-300 focus:text-white focus:border-neon/20 outline-none leading-relaxed resize-none transition-all custom-scrollbar min-h-[200px]" 
+                               className="flex-1 bg-white/[0.02] border border-white/5 rounded-2xl p-5 text-sm text-gray-300 focus:text-white focus:border-neon/20 outline-none leading-relaxed resize-none transition-all custom-scrollbar" 
                             />
                          </div>
 
                          <div className="space-y-3 pt-4 border-t border-white/5">
-                            <label className="text-[9px] lg:text-[10px] font-black text-gray-500 uppercase tracking-[0.4em]">¿QUÉ QUIERES CAMBIAR?</label>
+                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em]">¿QUÉ QUIERES CAMBIAR?</label>
                             <div className="flex gap-2">
                                <input 
                                   type="text" 
                                   value={refinementQuery} 
                                   onChange={e => setRefinementQuery(e.target.value)} 
                                   onKeyDown={e => e.key === 'Enter' && handleRefine()}
-                                  placeholder="Ej: Hazlo más emocionante..." 
+                                  placeholder="Ej: Hazlo más emocionante y menciona el resultado..." 
                                   className="flex-1 bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-neon outline-none transition-all" 
                                />
                                <button 
@@ -815,10 +833,10 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                    </div>
                 </div>
 
-                <footer className="h-16 lg:h-20 border-t border-white/5 bg-black/50 flex items-center justify-end px-6 lg:px-10 gap-4 flex-shrink-0">
+                <footer className="h-20 border-t border-white/5 bg-black/50 flex items-center justify-end px-10 gap-4">
                    <button 
                       onClick={() => setIsRefinementVisible(false)} 
-                      className="w-full lg:w-auto px-6 lg:px-8 py-3 bg-neon text-black text-[10px] lg:text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(0,255,157,0.2)]"
+                      className="px-8 py-3 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(0,255,157,0.2)]"
                    >
                       LISTO, USAR ESTE COPY
                    </button>
@@ -834,16 +852,16 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
        {/* FULL IMAGE PREVIEW MODAL */}
        {showFullImage && (generatedImageUrl || imageUrls[currentImageIndex]) && (
           <div 
-            className="fixed inset-0 z-[400] bg-black/95 flex items-center justify-center p-4 lg:p-8 animate-in fade-in zoom-in duration-300 cursor-zoom-out"
+            className="fixed inset-0 z-[400] bg-black/95 flex items-center justify-center p-8 animate-in fade-in zoom-in duration-300 cursor-zoom-out"
             onClick={() => setShowFullImage(false)}
           >
              <img 
                 src={generatedImageUrl || imageUrls[currentImageIndex] || ''} 
-                className="max-w-full max-h-full object-contain shadow-2xl rounded-xl" 
+                className="max-w-full max-h-full object-contain shadow-2xl rounded-lg" 
                 alt="Full Preview" 
              />
-             <button className="absolute top-4 right-4 lg:top-8 lg:right-8 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 text-white/50 hover:text-white transition-colors">
-                <X size={24} />
+             <button className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors">
+                <X size={32} />
              </button>
           </div>
        )}
@@ -851,22 +869,22 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
        {/* MODAL DE PROGRAMACIÓN */}
        {showScheduleModal && (
           <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-[24px] lg:rounded-[32px] p-5 lg:p-8 text-center shadow-2xl relative overflow-hidden flex flex-col max-h-[95vh] overflow-y-auto custom-scrollbar">
+            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] p-8 text-center shadow-2xl relative overflow-hidden flex flex-col">
                 <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 opacity-50" />
                 
-                <div className="flex items-center justify-center gap-3 lg:gap-4 mb-4 lg:mb-6">
-                  <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-500/10 border border-blue-500/30 rounded-full flex items-center justify-center text-blue-500">
-                    <Calendar size={20} lg:size={24} />
+                <div className="flex items-center justify-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/30 rounded-full flex items-center justify-center text-blue-500">
+                    <Calendar size={24} />
                   </div>
                   <div className="text-left">
-                    <h3 className="text-lg lg:text-xl font-oswald font-black text-white uppercase italic tracking-tighter">PROGRAMAR POSTEO</h3>
-                    <p className="text-gray-500 text-[8px] lg:text-[9px] font-bold uppercase tracking-[0.2em]">
+                    <h3 className="text-xl font-oswald font-black text-white uppercase italic tracking-tighter">PROGRAMAR POSTEO</h3>
+                    <p className="text-gray-500 text-[9px] font-bold uppercase tracking-[0.2em]">
                        SELECCIONA LA FECHA Y HORA DE PUBLICACIÓN
                     </p>
                   </div>
                 </div>
                 
-                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 lg:p-5 mb-4 lg:mb-6">
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 mb-6">
                   {/* Calendar Header */}
                   <div className="flex justify-between items-center mb-4">
                     <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white">
@@ -937,7 +955,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                 </div>
 
                 {/* Time Selector */}
-                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-3 lg:p-4 mb-6 lg:mb-8 flex items-center justify-between">
+                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 mb-8 flex items-center justify-between">
                   <div className="flex items-center gap-3 text-gray-400">
                     <Clock size={18} />
                     <span className="text-xs font-bold uppercase tracking-wider">Hora de publicación</span>
@@ -970,7 +988,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 lg:gap-3 mt-auto">
+                <div className="flex flex-col gap-3 mt-auto">
                   <button 
                     onClick={() => {
                        const [hours, minutes] = selectedTime.split(':').map(Number);
@@ -982,13 +1000,13 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                        setShowScheduleModal(false);
                        setShowConfirmPublish(true);
                     }} 
-                    className="w-full py-3.5 lg:py-4 bg-blue-500 text-white font-black uppercase italic text-[10px] lg:text-[11px] tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_10px_20px_rgba(59,130,246,0.2)]"
+                    className="w-full py-4 bg-blue-500 text-white font-black uppercase italic text-[11px] tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_10px_20px_rgba(59,130,246,0.2)]"
                   >
                     CONFIRMAR FECHA Y HORA
                   </button>
                   <button 
                     onClick={() => setShowScheduleModal(false)} 
-                    className="w-full py-2.5 lg:py-3 bg-white/5 text-gray-500 font-black uppercase italic text-[8px] lg:text-[9px] tracking-widest rounded-xl hover:text-white transition-all"
+                    className="w-full py-3 bg-white/5 text-gray-500 font-black uppercase italic text-[9px] tracking-widest rounded-xl hover:text-white transition-all"
                   >
                     CANCELAR
                   </button>
@@ -1000,29 +1018,29 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
        {/* MODAL DE CONFIRMACIÓN DE PUBLICACIÓN */}
        {showConfirmPublish && (
           <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <div className="max-w-sm w-full bg-[#0A0A0A] border border-white/10 rounded-[24px] lg:rounded-[32px] p-6 lg:p-10 text-center shadow-2xl relative overflow-hidden">
+            <div className="max-w-sm w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] p-10 text-center shadow-2xl relative overflow-hidden">
                 <div className={`absolute top-0 left-0 w-full h-1 opacity-50 ${isScheduling ? 'bg-blue-500' : 'bg-neon'}`} />
-                <div className={`w-12 h-12 lg:w-16 lg:h-16 border rounded-full flex items-center justify-center mx-auto mb-4 lg:mb-6 ${isScheduling ? 'bg-blue-500/10 border-blue-500/30 text-blue-500' : 'bg-neon/10 border-neon/30 text-neon'}`}>
-                  {isScheduling ? <Calendar size={28} lg:size={32} className="animate-pulse" /> : <AlertCircle size={28} lg:size={32} className="animate-pulse" />}
+                <div className={`w-16 h-16 border rounded-full flex items-center justify-center mx-auto mb-6 ${isScheduling ? 'bg-blue-500/10 border-blue-500/30 text-blue-500' : 'bg-neon/10 border-neon/30 text-neon'}`}>
+                  {isScheduling ? <Calendar size={32} className="animate-pulse" /> : <AlertCircle size={32} className="animate-pulse" />}
                 </div>
-                <h3 className="text-xl lg:text-2xl font-oswald font-black text-white uppercase italic mb-2 lg:mb-3 tracking-tighter">
+                <h3 className="text-2xl font-oswald font-black text-white uppercase italic mb-3 tracking-tighter">
                    {isScheduling ? '¿CONFIRMAR PROGRAMACIÓN?' : '¿CONFIRMAR ENVÍO?'}
                 </h3>
-                <p className="text-gray-500 text-[9px] lg:text-[10px] font-bold uppercase tracking-[0.2em] mb-6 lg:mb-8 leading-relaxed">
+                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-8 leading-relaxed">
                    {isScheduling 
                       ? `El posteo quedará programado para el ${new Date(scheduledAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}.` 
                       : 'Se enviará a todas las plataformas seleccionadas.'}
                 </p>
-                <div className="flex flex-col gap-2 lg:gap-3">
+                <div className="flex flex-col gap-3">
                   <button 
                     onClick={handleFinalPublish} 
-                    className={`w-full py-3.5 lg:py-4 font-black uppercase italic text-[10px] lg:text-[11px] tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all ${isScheduling ? 'bg-blue-500 text-white shadow-[0_10px_20px_rgba(59,130,246,0.2)]' : 'bg-neon text-black shadow-[0_10px_20px_rgba(0,255,157,0.2)]'}`}
+                    className={`w-full py-4 font-black uppercase italic text-[11px] tracking-widest rounded-xl hover:scale-[1.02] active:scale-95 transition-all ${isScheduling ? 'bg-blue-500 text-white shadow-[0_10px_20px_rgba(59,130,246,0.2)]' : 'bg-neon text-black shadow-[0_10px_20px_rgba(0,255,157,0.2)]'}`}
                   >
                     {isScheduling ? 'SÍ, PROGRAMAR POSTEO' : 'SÍ, PUBLICAR AHORA'}
                   </button>
                   <button 
                     onClick={() => setShowConfirmPublish(false)} 
-                    className="w-full py-2.5 lg:py-3 bg-white/5 text-gray-500 font-black uppercase italic text-[8px] lg:text-[9px] tracking-widest rounded-xl hover:text-white transition-all"
+                    className="w-full py-3 bg-white/5 text-gray-500 font-black uppercase italic text-[9px] tracking-widest rounded-xl hover:text-white transition-all"
                   >
                     CANCELAR
                   </button>
@@ -1033,32 +1051,30 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
 
         {/* MODAL DE ESTADO DE PUBLICACIÓN (LOADER / ÉXITO) */}
         {(status === 'publishing' || status === 'success') && (
-           <div className="fixed inset-0 z-[500] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6 animate-in fade-in duration-500">
+           <div className="fixed inset-0 z-[500] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in duration-500">
               <div className="max-w-sm w-full text-center">
-                 <div className="relative w-24 h-24 lg:w-32 lg:h-32 mx-auto mb-8 lg:mb-10">
+                 <div className="relative w-32 h-32 mx-auto mb-10">
                     {status === 'publishing' ? (
                        <>
                           <div className={`absolute inset-0 border-4 rounded-full ${isScheduling ? 'border-blue-500/10' : 'border-neon/10'}`} />
                           <div className={`absolute inset-0 border-4 rounded-full border-t-transparent animate-spin ${isScheduling ? 'border-blue-500' : 'border-neon'}`} />
                           <div className={`absolute inset-0 flex items-center justify-center ${isScheduling ? 'text-blue-500' : 'text-neon'}`}>
-                             {isScheduling ? <Calendar size={32} className="animate-pulse lg:hidden" /> : <Send size={32} className="animate-pulse lg:hidden" />}
-                             {isScheduling ? <Calendar size={40} className="animate-pulse hidden lg:block" /> : <Send size={40} className="animate-pulse hidden lg:block" />}
+                             {isScheduling ? <Calendar size={40} className="animate-pulse" /> : <Send size={40} className="animate-pulse" />}
                           </div>
                        </>
                     ) : (
                        <div className={`absolute inset-0 rounded-full flex items-center justify-center text-black animate-in zoom-in duration-500 ${isScheduling ? 'bg-blue-500' : 'bg-neon'}`}>
-                          <Check size={40} strokeWidth={4} className="lg:hidden" />
-                          <Check size={60} strokeWidth={4} className="hidden lg:block" />
+                          <Check size={60} strokeWidth={4} />
                        </div>
                     )}
                  </div>
                  
-                 <h3 className="text-2xl lg:text-3xl font-oswald font-black text-white uppercase italic mb-4 tracking-tighter">
+                 <h3 className="text-3xl font-oswald font-black text-white uppercase italic mb-4 tracking-tighter">
                     {status === 'publishing' 
                        ? (isScheduling ? 'PROGRAMANDO...' : 'PUBLICANDO...') 
                        : (isScheduling ? '¡PROGRAMADO CON ÉXITO!' : '¡PUBLICADO CON ÉXITO!')}
                  </h3>
-                 <p className="text-gray-500 text-[9px] lg:text-[10px] font-bold uppercase tracking-[0.3em] leading-relaxed max-w-[250px] mx-auto">
+                 <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] leading-relaxed max-w-[250px] mx-auto">
                     {status === 'publishing' 
                        ? (isScheduling ? 'Estamos guardando la programación de tu posteo. Por favor, no cierres esta ventana.' : 'Estamos enviando tu contenido a las redes sociales seleccionadas. Por favor, no cierres esta ventana.') 
                        : (isScheduling ? 'Tu posteo ha sido programado correctamente. Volviendo al panel de control...' : 'Tu posteo ya está en camino. Volviendo al panel de control...')}
@@ -1067,38 +1083,38 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
            </div>
         )}
 
-       <div className="max-w-5xl w-full bg-[#0A0A0A] border border-white/10 rounded-2xl lg:rounded-[32px] shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col h-[95vh] lg:h-[90vh] overflow-hidden relative">
+       <div className="max-w-5xl w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col h-[95vh] lg:h-[90vh] overflow-hidden relative">
           {/* Header */}
-          <header className="h-14 lg:h-12 border-b border-white/5 flex items-center justify-between px-4 lg:px-6 bg-black/50 flex-shrink-0">
-             <div className="flex items-center gap-3 lg:gap-6 overflow-hidden">
-                <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
+          <header className="h-12 border-b border-white/5 flex items-center justify-between px-6 bg-black/50 flex-shrink-0">
+             <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3">
                    {siteConfig?.logoUrl ? (
-                      <img src={siteConfig.logoUrl} className="h-5 lg:h-6 w-auto object-contain" alt="Logo" />
+                      <img src={siteConfig.logoUrl} className="h-6 w-auto object-contain" alt="Logo" />
                    ) : (
-                      <div className="w-6 h-6 lg:w-7 lg:h-7 bg-neon rounded-lg flex items-center justify-center text-black">
-                         <Send size={12} lg:size={14} strokeWidth={3} />
+                      <div className="w-7 h-7 bg-neon rounded-lg flex items-center justify-center text-black">
+                         <Send size={14} strokeWidth={3} />
                       </div>
                    )}
-                   <h1 className="text-sm lg:text-lg font-oswald font-black italic uppercase text-white tracking-tighter whitespace-nowrap">
-                      {draftPost ? 'REVISIÓN' : 'NUEVO POST'}
+                   <h1 className="text-lg font-oswald font-black italic uppercase text-white tracking-tighter">
+                      {draftPost ? 'REVISIÓN BORRADOR' : 'NUEVO POST SOCIAL'}
                    </h1>
                 </div>
-                {(article?.title || draftPost?.originalArticleTitle) && (
-                    <div className="hidden sm:flex items-center gap-3 lg:gap-6 overflow-hidden">
-                        <div className="h-4 w-px bg-white/10 flex-shrink-0" />
-                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest truncate max-w-[150px] lg:max-w-[300px]">
+                {article?.title || draftPost?.originalArticleTitle ? (
+                    <>
+                        <div className="h-4 w-px bg-white/10" />
+                        <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest truncate max-w-[300px]">
                         {article?.title || draftPost?.originalArticleTitle}
                         </p>
-                    </div>
-                )}
+                    </>
+                ) : null}
              </div>
              
-             <div className="flex items-center gap-2 lg:gap-4 flex-shrink-0">
+             <div className="flex items-center gap-4">
                 {/* Account Dropdown */}
                 <div className="relative">
                    <button 
                       onClick={() => setShowAccountDropdown(!showAccountDropdown)}
-                      className="flex items-center gap-1.5 lg:gap-2 px-2 lg:px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
                    >
                       <div className="flex -space-x-2">
                          {selectedAccounts.length > 0 ? (
@@ -1106,19 +1122,19 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                                const acc = availableSocialAccounts.find(a => a.id === id);
                                if (!acc) return null;
                                return (
-                                  <div key={id} className="w-4 h-4 lg:w-5 lg:h-5 rounded-full border border-black overflow-hidden bg-neutral-800">
+                                  <div key={id} className="w-5 h-5 rounded-full border border-black overflow-hidden bg-neutral-800">
                                      {acc.profileImageUrl ? <img src={acc.profileImageUrl} className="w-full h-full object-cover" /> : null}
                                   </div>
                                );
                             })
                          ) : (
-                            <div className="w-4 h-4 lg:w-5 lg:h-5 rounded-full border border-black overflow-hidden bg-neutral-800 flex items-center justify-center">
-                               <AtSign size={8} lg:size={10} className="text-gray-500" />
+                            <div className="w-5 h-5 rounded-full border border-black overflow-hidden bg-neutral-800 flex items-center justify-center">
+                               <AtSign size={10} className="text-gray-500" />
                             </div>
                          )}
                       </div>
-                      <span className="text-[8px] lg:text-[10px] font-bold uppercase tracking-wider text-white truncate max-w-[60px] lg:max-w-none">
-                         {selectedAccounts.length === 0 ? 'CUENTA' : availableSocialAccounts.find(a => a.id === selectedAccounts[0])?.name || ''}
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white">
+                         {selectedAccounts.length === 0 ? 'SELECCIONAR CUENTA' : availableSocialAccounts.find(a => a.id === selectedAccounts[0])?.name || ''}
                       </span>
                    </button>
 
@@ -1156,19 +1172,19 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-y-auto lg:overflow-hidden p-3 lg:p-4 custom-scrollbar">
-             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:h-full">
+          <main className="flex-1 overflow-hidden p-4">
+             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
                 {/* Visual Identity (Left) */}
-                <div className="col-span-1 lg:col-span-5 flex flex-col space-y-4 lg:h-full lg:overflow-y-auto custom-scrollbar lg:pr-2 pb-4">
+                <div className="col-span-1 lg:col-span-5 flex flex-col space-y-4 h-full overflow-y-auto custom-scrollbar pr-2 pb-4">
                    <div className="flex items-center justify-between">
-                      <h2 className="text-[9px] lg:text-[10px] font-black text-neon uppercase tracking-[0.4em]">01. VISUAL</h2>
+                      <h2 className="text-[10px] font-black text-neon uppercase tracking-[0.4em]">01. TIPO DE POSTEO</h2>
                       {article && (
                         <button 
                           onClick={handleLoadArticleImages}
-                          className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] lg:text-[9px] font-bold text-gray-400 hover:text-white transition-all"
+                          className="flex items-center gap-1.5 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-bold text-gray-400 hover:text-white transition-all"
                         >
-                          <Plus size={10} lg:size={12} />
-                          CARGAR NOTA
+                          <Plus size={12} />
+                          CARGAR IMÁGENES DE LA NOTA
                         </button>
                       )}
                    </div>
@@ -1257,6 +1273,20 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                          <div className="absolute inset-0 z-20 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center">
                             <Loader2 className="animate-spin text-neon size-8 mb-3" />
                             <p className="text-neon text-[9px] font-black uppercase tracking-[0.5em] animate-pulse">GENERANDO...</p>
+                         </div>
+                      )}
+
+                      {status === 'error' && (
+                         <div className="absolute inset-0 z-20 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center rounded-2xl">
+                            <AlertCircle className="text-red-500 size-8 mb-3" />
+                            <p className="text-red-500 text-[10px] font-black uppercase tracking-[0.3em] mb-2">ERROR DE GENERACIÓN</p>
+                            <p className="text-gray-400 text-[9px] font-medium leading-relaxed max-w-[200px] mb-4">{lastError || 'Ocurrió un error inesperado'}</p>
+                            <button 
+                              onClick={() => setStatus('idle')}
+                              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition-all"
+                            >
+                              REINTENTAR
+                            </button>
                          </div>
                       )}
                       
@@ -1469,30 +1499,30 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           </main>
 
           {/* Footer Actions */}
-          <footer className="h-auto lg:h-16 border-t border-white/5 bg-black/50 flex flex-col lg:flex-row items-center justify-between p-4 lg:px-6 gap-4 flex-shrink-0">
+          <footer className="h-16 border-t border-white/5 bg-black/50 flex items-center justify-between px-6 flex-shrink-0">
              <button 
                 onClick={onClose} 
-                className="hidden lg:block text-gray-600 text-[10px] font-black uppercase tracking-[0.3em] hover:text-white transition-all"
+                className="text-gray-600 text-[10px] font-black uppercase tracking-[0.3em] hover:text-white transition-all"
              >
                 DESCARTAR
              </button>
              
-             <div className="flex flex-col sm:flex-row items-center gap-3 lg:gap-4 w-full lg:w-auto">
+             <div className="flex items-center gap-4">
                 <button 
                    onClick={handleSaveDraft} 
-                   className="w-full sm:w-auto px-4 py-2.5 lg:py-2 bg-white/5 text-white text-[10px] font-black uppercase tracking-widest rounded-xl border border-white/10 hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                   className="px-4 py-2 bg-white/5 text-white text-[10px] font-black uppercase tracking-widest rounded-xl border border-white/10 hover:bg-white/10 transition-all flex items-center gap-2"
                 >
-                   <Save size={16} /> <span className="sm:hidden lg:inline">GUARDAR BORRADOR</span><span className="hidden sm:inline lg:hidden">BORRADOR</span>
+                   <Save size={16} /> GUARDAR BORRADOR
                 </button>
                 
                 {(status === 'preview' && !hasChangesSinceLastGeneration()) || postType === 'reel' ? (
-                   <div className="flex items-center gap-2 lg:gap-3 w-full sm:w-auto">
+                   <div className="flex items-center gap-3">
                       <button 
                          onClick={() => setShowScheduleModal(true)} 
                          disabled={postType === 'reel' ? (!copy.trim() || !videoUrl || selectedAccounts.length === 0) : (!copy.trim() || !shortTitle.trim() || selectedAccounts.length === 0)}
-                         className="flex-1 sm:flex-none px-4 lg:px-6 py-2.5 lg:py-2 bg-blue-500 text-white text-[10px] lg:text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(59,130,246,0.3)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                         className="px-6 py-2 bg-blue-500 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(59,130,246,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                         <Calendar size={14} lg:size={16} strokeWidth={3} /> <span className="sm:hidden lg:inline">PROGRAMAR</span><span className="hidden sm:inline lg:hidden">PROG</span>
+                         <Calendar size={16} strokeWidth={3} /> PROGRAMAR
                       </button>
                       <button 
                          onClick={() => {
@@ -1500,18 +1530,18 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                             setShowConfirmPublish(true);
                          }} 
                          disabled={postType === 'reel' ? (!copy.trim() || !videoUrl || selectedAccounts.length === 0) : (!copy.trim() || !shortTitle.trim() || selectedAccounts.length === 0)}
-                         className="flex-1 sm:flex-none px-4 lg:px-8 py-2.5 lg:py-2 bg-neon text-black text-[10px] lg:text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                         className="px-8 py-2 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                         <Send size={14} lg:size={16} strokeWidth={3} /> <span className="sm:hidden lg:inline">PUBLICAR</span><span className="hidden sm:inline lg:hidden">PUB</span>
+                         <Send size={16} strokeWidth={3} /> PUBLICAR
                       </button>
                    </div>
                 ) : (
                    <button 
                       onClick={handleGeneratePreview} 
                       disabled={selectedAccounts.length === 0 || status === 'creatingPreview' || !copy.trim() || !shortTitle.trim() || imageUrls.length === 0} 
-                      className="w-full sm:w-auto px-8 py-3 lg:py-2 bg-neon text-black text-[10px] lg:text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-8 py-2 bg-neon text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-[1.05] active:scale-95 transition-all shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                    >
-                      {status === 'preview' ? 'RE-GENERAR' : 'GENERAR PORTADA'} <ArrowRight size={16} strokeWidth={3} />
+                      {status === 'preview' ? 'RE-GENERAR PORTADA' : 'GENERAR PORTADA'} <ArrowRight size={16} strokeWidth={3} />
                    </button>
                 )}
              </div>
@@ -1521,18 +1551,18 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         {/* Type Change Confirmation Modal */}
         {pendingPostType && (
           <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-2xl lg:rounded-3xl p-6 lg:p-8 text-center shadow-2xl">
-              <div className="w-12 h-12 lg:w-16 lg:h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 lg:mb-6">
-                <AlertTriangle className="text-red-500 size-6 lg:size-8" />
+            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-3xl p-8 text-center shadow-2xl">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle className="text-red-500 size-8" />
               </div>
-              <h3 className="text-lg lg:text-xl font-oswald font-black italic uppercase text-white mb-2">¿Descartar cambios?</h3>
-              <p className="text-gray-400 text-xs lg:text-sm mb-6 lg:mb-8">
+              <h3 className="text-xl font-oswald font-black italic uppercase text-white mb-2">¿Descartar cambios?</h3>
+              <p className="text-gray-400 text-sm mb-8">
                 Cambiar a {pendingPostType.toUpperCase()} descartará {pendingPostType === 'reel' ? 'las imágenes actuales' : 'el video actual'}. ¿Deseas continuar?
               </p>
-              <div className="flex gap-2 lg:gap-3">
+              <div className="flex gap-3">
                 <button 
                   onClick={() => setPendingPostType(null)}
-                  className="flex-1 py-2.5 lg:py-3 bg-white/5 text-white text-[10px] lg:text-xs font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all"
+                  className="flex-1 py-3 bg-white/5 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all"
                 >
                   Cancelar
                 </button>
@@ -1547,7 +1577,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                     setPostType(pendingPostType);
                     setPendingPostType(null);
                   }}
-                  className="flex-1 py-2.5 lg:py-3 bg-red-500 text-white text-[10px] lg:text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all"
+                  className="flex-1 py-3 bg-red-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all"
                 >
                   Descartar
                 </button>
