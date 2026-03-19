@@ -44,7 +44,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({ users, currentUser, roles, r
         </div>
       </div>
 
-      <div className="pt-10 md:pt-14">
+      <div className="pt-14 md:pt-18">
         {activeTab === 'users' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center mb-6">

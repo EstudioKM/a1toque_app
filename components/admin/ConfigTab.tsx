@@ -123,7 +123,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
         </button>
       </div>
 
-      <div className="pt-10 md:pt-14 space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="pt-14 md:pt-18 space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* 1. IDENTIDAD VISUAL */}
       <div>
         <h2 className="text-3xl font-oswald font-black italic uppercase text-white mb-8 tracking-tighter">CONFIGURACIÓN GENERAL</h2>

@@ -68,7 +68,7 @@ export const ContentTab: React.FC<ContentTabProps> = (props) => {
         </div>
       </div>
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-10 md:pt-14">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-14 md:pt-18">
         {activeSubTab === 'published' && (
           <NewsTab 
             {...props}

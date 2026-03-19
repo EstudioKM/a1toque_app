@@ -325,7 +325,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
       </div>
 
       {activeSubTab === 'posteos' ? (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-10 md:pt-14">
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-14 md:pt-18">
           {/* Input de Generación */}
           <div className="bg-[#0f0f0f] p-5 md:p-8 rounded-3xl md:rounded-[40px] border border-white/5 shadow-2xl relative mt-2 md:mt-4">
             <div className="absolute top-0 right-0 p-4 md:p-8 opacity-5 overflow-hidden pointer-events-none">
@@ -618,7 +618,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
           )}
         </div>
       ) : (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-6 md:pt-10">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-10 md:pt-14">
           <div className="flex justify-between items-center mb-6 md:mb-8">
             <div>
               <h3 className="text-lg md:text-xl font-oswald font-black italic uppercase text-white tracking-tight">POSTEOS PUBLICADOS</h3>

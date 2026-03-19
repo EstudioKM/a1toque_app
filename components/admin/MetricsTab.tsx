@@ -255,7 +255,7 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
         </div>
       </div>
 
-      <div className="pt-10 md:pt-14 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="pt-14 md:pt-18 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {view === 'sponsorships' ? renderSponsorshipsView() : view === 'posts' ? renderPostsView() : <AdsTab brands={brands} sponsorships={sponsorships} adSlots={adSlots} brandMap={brandMap} onOpenBrandEditor={onOpenBrandEditor} onOpenSponsorshipEditor={onOpenSponsorshipEditor} onOpenAdSlotEditor={onOpenAdSlotEditor} onDeleteBrand={onDeleteBrand} onDeleteSponsorship={onDeleteSponsorship} onToggleSponsorshipStatus={onToggleSponsorshipStatus} />}
       </div>
     </div>

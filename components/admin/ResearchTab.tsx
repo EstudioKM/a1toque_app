@@ -79,7 +79,7 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
             <div className="w-8 h-8 bg-neon/10 rounded-full flex items-center justify-center text-neon">
                 <Sparkles size={16} />
             </div>
-            <h3 className="text-sm font-black text-white uppercase tracking-widest">Generar Borrador</h3>
+            <h3 className="text-sm font-black text-white uppercase tracking-widest">GENERAR BORRADOR CON IA</h3>
         </div>
 
         <div className="flex flex-col gap-4">

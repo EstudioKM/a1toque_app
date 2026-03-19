@@ -185,7 +185,7 @@ export const AdsTab: React.FC<AdsTabProps> = (props) => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-10 md:pt-14">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-14 md:pt-18">
         <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
             <SectionColumn 
               title="ESPACIOS EN HOME" 
