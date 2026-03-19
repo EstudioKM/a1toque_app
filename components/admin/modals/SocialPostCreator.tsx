@@ -618,15 +618,39 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       if (!newImageUrl.startsWith('http')) {
         try {
           const json = JSON.parse(responseText);
-          // Common Make.com response patterns: { url: "..." } or { imageUrl: "..." }
-          newImageUrl = json.url || json.imageUrl || json.image || json.data || responseText;
+          
+          // Helper function to find the first URL in an object
+          const findUrl = (obj: any): string | null => {
+            if (typeof obj === 'string' && obj.startsWith('http')) return obj;
+            if (typeof obj === 'object' && obj !== null) {
+              for (const key in obj) {
+                const result = findUrl(obj[key]);
+                if (result) return result;
+              }
+            }
+            return null;
+          };
+
+          const foundUrl = findUrl(json);
+          if (foundUrl) {
+            newImageUrl = foundUrl;
+          } else {
+            // Fallback to common patterns
+            newImageUrl = json.url || json.imageUrl || json.image || json.data || responseText;
+          }
         } catch (e) {
           // Not JSON, keep as is
         }
       }
 
+      // Remove quotes if any
+      newImageUrl = newImageUrl.replace(/^"|"$/g, '');
+
       if (!newImageUrl.startsWith('http')) {
-        throw new Error(`Invalid URL from webhook: ${newImageUrl.substring(0, 100)}`);
+        if (newImageUrl === 'Accepted') {
+           throw new Error(`El webhook de Make.com devolvió "Accepted". Debes agregar un módulo "Webhook Response" al final de tu escenario en Make.com que devuelva la URL de la imagen generada.`);
+        }
+        throw new Error(`Respuesta inválida del webhook. Se esperaba una URL, pero se recibió: ${newImageUrl.substring(0, 100)}`);
       }
       
       setGeneratedImageUrl(newImageUrl);
@@ -638,6 +662,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       setStatus('preview');
     } catch (error) {
       console.error("Failed to generate preview:", error);
+      alert(error instanceof Error ? error.message : "Error al generar la portada");
       setStatus('error');
     }
   };

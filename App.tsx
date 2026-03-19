@@ -335,6 +335,11 @@ const App: React.FC = () => {
     fetchData();
 
     // Set up real-time listeners
+    const unsubscribeArticles = onSnapshot(collection(db, 'articles'), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
+      setArticles(list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    }, (error) => console.error("Error in articles snapshot:", error));
+
     const unsubscribeChat = onSnapshot(collection(db, 'chat_messages'), (snapshot) => {
       setChatMessages(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ChatMessage)));
     }, (error) => console.error("Error in chat_messages snapshot:", error));
@@ -375,6 +380,7 @@ const App: React.FC = () => {
     }, (error) => console.error("Error in social_posts snapshot:", error));
 
     return () => {
+      unsubscribeArticles();
       unsubscribeChat();
       unsubscribeConfig();
       unsubscribeUsers();
@@ -504,17 +510,14 @@ const App: React.FC = () => {
 
   const addArticle = async (article: Omit<Article, 'id'>) => {
     const cleanArticle = removeUndefinedFields(article);
-    const docRef = await addDoc(collection(db, 'articles'), cleanArticle);
-    setArticles([{ ...cleanArticle, id: docRef.id } as Article, ...articles]);
+    await addDoc(collection(db, 'articles'), cleanArticle);
   };
   const updateArticle = async (article: Article) => {
     const cleanArticle = removeUndefinedFields(article);
     await setDoc(doc(db, 'articles', article.id), cleanArticle, { merge: true });
-    setArticles(articles.map(a => a.id === article.id ? cleanArticle as Article : a));
   };
   const deleteArticle = async (id: string) => {
     await deleteDoc(doc(db, 'articles', id));
-    setArticles(articles.filter(a => a.id !== id));
   };
   const toggleArticleStatus = async (id: string) => {
     const article = articles.find(a => a.id === id);
