@@ -97,7 +97,19 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
         completedTasks: userTasks.filter(t => t.status === 'completed').length,
         tasks: userTasks
       };
-    }).sort((a, b) => b.totalHours - a.totalHours);
+    }).sort((a, b) => {
+      // Consider online if isOnline is true OR last connection was less than 2 minutes ago
+      const isOnlineA = a.isOnline || (a.lastConnection && (new Date().getTime() - new Date(a.lastConnection).getTime() < 120000));
+      const isOnlineB = b.isOnline || (b.lastConnection && (new Date().getTime() - new Date(b.lastConnection).getTime() < 120000));
+
+      if (isOnlineA && !isOnlineB) return -1;
+      if (!isOnlineA && isOnlineB) return 1;
+
+      // If same status, sort by last connection time (most recent first)
+      const timeA = a.lastConnection ? new Date(a.lastConnection).getTime() : 0;
+      const timeB = b.lastConnection ? new Date(b.lastConnection).getTime() : 0;
+      return timeB - timeA;
+    });
   }, [users, tasks]);
 
   const filteredTasks = useMemo(() => {
@@ -249,8 +261,8 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
   };
 
   return (
-    <div className="pt-4 md:pt-8">
-      <div className="pt-14 md:pt-18 space-y-8">
+    <div className="pt-2 md:pt-4">
+      <div className="space-y-8">
       {/* Control Center Header */}
       <div className="flex flex-col gap-6 bg-white/[0.02] border border-white/5 p-8 rounded-[40px]">
         {/* Top Row: Title, Tabs and Primary Action */}
