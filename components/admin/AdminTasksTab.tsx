@@ -98,9 +98,9 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
         tasks: userTasks
       };
     }).sort((a, b) => {
-      // Consider online if isOnline is true OR last connection was less than 2 minutes ago
-      const isOnlineA = a.isOnline || (a.lastConnection && (new Date().getTime() - new Date(a.lastConnection).getTime() < 120000));
-      const isOnlineB = b.isOnline || (b.lastConnection && (new Date().getTime() - new Date(b.lastConnection).getTime() < 120000));
+      // Consider online ONLY if isOnline is true AND last connection was less than 2 minutes ago
+      const isOnlineA = a.isOnline && (a.lastConnection && (new Date().getTime() - new Date(a.lastConnection).getTime() < 120000));
+      const isOnlineB = b.isOnline && (b.lastConnection && (new Date().getTime() - new Date(b.lastConnection).getTime() < 120000));
 
       if (isOnlineA && !isOnlineB) return -1;
       if (!isOnlineA && isOnlineB) return 1;
@@ -717,8 +717,8 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                     const activeAlerts = user.alertMessages?.filter(a => !a.seen) || [];
                     const activeAlertsCount = activeAlerts.length;
                     
-                    // Consider online if isOnline is true OR last connection was less than 2 minutes ago
-                    const isActuallyOnline = user.isOnline || (user.lastConnection && (new Date().getTime() - new Date(user.lastConnection).getTime() < 120000));
+                    // Consider online ONLY if isOnline is true AND last connection was less than 2 minutes ago
+                    const isActuallyOnline = user.isOnline && (user.lastConnection && (new Date().getTime() - new Date(user.lastConnection).getTime() < 120000));
                     
                     return (
                       <tr key={user.id} className="hover:bg-white/[0.02] transition-colors group">
