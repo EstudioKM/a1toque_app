@@ -50,6 +50,7 @@ interface AdminPanelProps {
   roles: Role[];
   adSlots: AdSlotConfig[];
   onUpdateAdSlot: (slot: AdSlotConfig) => void;
+  unreadGroupMessagesCount?: number;
   currentUser: User;
   currentUserRole: Role;
   siteConfig: SiteConfig;
@@ -335,7 +336,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
 
   const handleNavClick = (tab: AdminTab) => { setActiveTab(tab); setIsSidebarOpen(false); };
   const NavButton: React.FC<{ tab: AdminTab, icon: React.ElementType, label: string }> = ({ tab, icon: Icon, label }) => {
-    const hasNotification = (tab === 'chat' && props.chatMessages.some(m => m.receiverId === props.currentUser.id && !m.isRead)) ||
+    const hasNotification = (tab === 'chat' && (props.chatMessages.some(m => m.receiverId === props.currentUser.id && !m.isRead) || (props.unreadGroupMessagesCount || 0) > 0)) ||
                            (tab === 'tasks' && props.tasks.some(t => t.assignedUserIds.includes(props.currentUser.id) && t.status === 'pending' && !(t.viewedByUserIds || []).includes(props.currentUser.id)));
 
     return (
@@ -344,7 +345,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           <Icon size={18} strokeWidth={2.5} /> <span>{label}</span>
         </div>
         {hasNotification && (
-          <span className={`w-2 h-2 rounded-full ${activeTab === tab ? 'bg-black' : 'bg-neon animate-pulse'} shadow-[0_0_8px_rgba(0,255,157,0.5)]`}></span>
+          <div className="flex items-center gap-1.5">
+            {tab === 'chat' && (props.unreadGroupMessagesCount || 0) > 0 && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${activeTab === tab ? 'bg-black text-neon' : 'bg-red-500 text-white animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}>
+                {props.unreadGroupMessagesCount! > 9 ? '+9' : props.unreadGroupMessagesCount}
+              </span>
+            )}
+            <span className={`w-2 h-2 rounded-full ${activeTab === tab ? 'bg-black' : 'bg-neon animate-pulse'} shadow-[0_0_8px_rgba(0,255,157,0.5)]`}></span>
+          </div>
         )}
       </button>
     );

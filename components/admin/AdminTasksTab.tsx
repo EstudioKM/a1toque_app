@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Task, User, WorkLog, SocialAccount } from '../../types';
-import { Plus, Trash2, Users, CheckSquare, Square, Clock, X, LayoutDashboard, List, ChevronRight, TrendingUp, Timer, Calendar, Save, AlertCircle, BarChart3, PieChart as PieChartIcon, Filter, Download, Building, MessageCircle, Activity, BellRing, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Users, CheckSquare, Square, Clock, X, LayoutDashboard, List, ChevronRight, TrendingUp, Timer, Calendar, Save, AlertCircle, BarChart3, PieChart as PieChartIcon, Filter, Download, Building, MessageCircle, Activity, BellRing, Edit2, Table } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -37,7 +37,11 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
     start: '',
     end: ''
   });
-  const [activeTab, setActiveTab] = useState<'overview' | 'management'>('management');
+  const [activeTab, setActiveTab] = useState<'overview' | 'management' | 'tasks_table'>('management');
+  const [tableSearch, setTableSearch] = useState('');
+  const [tableUserFilter, setTableUserFilter] = useState('all');
+  const [tableStatusFilter, setTableStatusFilter] = useState('all');
+  const [tableDateFilter, setTableDateFilter] = useState('');
   const [userAlertMessage, setUserAlertMessage] = useState('');
   const [isAddingAlert, setIsAddingAlert] = useState(false);
   const [isAddingGlobalAlert, setIsAddingGlobalAlert] = useState(false);
@@ -289,6 +293,12 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                 className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase italic flex items-center gap-2 transition-all ${activeTab === 'management' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
               >
                 <Users size={14} /> GESTIÓN
+              </button>
+              <button 
+                onClick={() => setActiveTab('tasks_table')}
+                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase italic flex items-center gap-2 transition-all ${activeTab === 'tasks_table' ? 'bg-white text-black shadow-lg' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}
+              >
+                <Table size={14} /> TABLA
               </button>
             </div>
 
@@ -1210,6 +1220,188 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
           </AnimatePresence>
         </div>
       )}
+
+        {activeTab === 'tasks_table' && (
+          <div className="space-y-6">
+            {/* Table Filters */}
+            <div className="bg-white/[0.02] border border-white/5 p-6 rounded-3xl flex flex-wrap items-center gap-4">
+              <div className="flex-1 min-w-[200px] relative">
+                <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input 
+                  type="text"
+                  placeholder="BUSCAR TAREA O DESCRIPCIÓN..."
+                  value={tableSearch}
+                  onChange={(e) => setTableSearch(e.target.value)}
+                  className="w-full bg-black/40 border border-white/5 rounded-xl py-2 pl-9 pr-3 text-[10px] font-black text-white uppercase outline-none focus:border-neon transition-colors"
+                />
+              </div>
+              
+              <select 
+                value={tableUserFilter}
+                onChange={(e) => setTableUserFilter(e.target.value)}
+                className="bg-black/40 border border-white/5 rounded-xl py-2 px-3 text-[10px] font-black text-white uppercase outline-none focus:border-neon transition-colors cursor-pointer"
+              >
+                <option value="all">TODOS LOS USUARIOS</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.name.toUpperCase()}</option>
+                ))}
+              </select>
+
+              <select 
+                value={tableStatusFilter}
+                onChange={(e) => setTableStatusFilter(e.target.value)}
+                className="bg-black/40 border border-white/5 rounded-xl py-2 px-3 text-[10px] font-black text-white uppercase outline-none focus:border-neon transition-colors cursor-pointer"
+              >
+                <option value="all">TODOS LOS ESTADOS</option>
+                <option value="pending">PENDIENTES</option>
+                <option value="completed">COMPLETADAS</option>
+              </select>
+
+              <div className="relative flex items-center">
+                <Calendar size={14} className="absolute left-3 text-gray-500 pointer-events-none" />
+                <input 
+                  type="date" 
+                  value={tableDateFilter}
+                  onChange={e => setTableDateFilter(e.target.value)}
+                  className="bg-black/40 border border-white/5 rounded-xl py-2 pl-9 pr-3 text-[10px] font-black text-white uppercase outline-none cursor-pointer w-[130px] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer hover:border-white/20 transition-colors"
+                />
+              </div>
+
+              <button 
+                onClick={() => {
+                  setTableSearch('');
+                  setTableUserFilter('all');
+                  setTableStatusFilter('all');
+                  setTableDateFilter('');
+                }}
+                className="p-2 text-gray-500 hover:text-white transition-colors"
+                title="Limpiar Filtros"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Google Sheet Style Table */}
+            <div className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-black/60">
+                      <th className="p-3 text-[9px] font-black text-gray-500 uppercase tracking-widest border-r border-white/5 w-[100px]">Fecha</th>
+                      <th className="p-3 text-[9px] font-black text-gray-500 uppercase tracking-widest border-r border-white/5 w-[150px]">Usuario</th>
+                      <th className="p-3 text-[9px] font-black text-gray-500 uppercase tracking-widest border-r border-white/5 w-[150px]">Cuenta</th>
+                      <th className="p-3 text-[9px] font-black text-gray-500 uppercase tracking-widest border-r border-white/5">Tarea</th>
+                      <th className="p-3 text-[9px] font-black text-gray-500 uppercase tracking-widest border-r border-white/5 w-[100px]">Tiempo</th>
+                      <th className="p-3 text-[9px] font-black text-gray-500 uppercase tracking-widest border-r border-white/5 w-[100px]">Estado</th>
+                      <th className="p-3 text-[9px] font-black text-gray-500 uppercase tracking-widest w-[80px] text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {(() => {
+                      let filtered = tasks;
+                      
+                      if (tableSearch) {
+                        const s = tableSearch.toLowerCase();
+                        filtered = filtered.filter(t => 
+                          t.title.toLowerCase().includes(s) || 
+                          t.description?.toLowerCase().includes(s)
+                        );
+                      }
+                      
+                      if (tableUserFilter !== 'all') {
+                        filtered = filtered.filter(t => t.assignedUserIds.includes(tableUserFilter));
+                      }
+                      
+                      if (tableStatusFilter !== 'all') {
+                        filtered = filtered.filter(t => t.status === tableStatusFilter);
+                      }
+                      
+                      if (tableDateFilter) {
+                        filtered = filtered.filter(t => t.date === tableDateFilter);
+                      }
+                      
+                      filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                      if (filtered.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={7} className="p-12 text-center">
+                              <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">No se encontraron tareas con los filtros aplicados</p>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return filtered.map(task => {
+                        const assignedUsers = users.filter(u => task.assignedUserIds.includes(u.id));
+                        return (
+                          <tr key={task.id} className="hover:bg-white/[0.03] transition-colors group border-b border-white/5">
+                            <td className="p-3 border-r border-white/5">
+                              <p className="text-[10px] text-gray-400 font-black tracking-widest">{format(parseArgentinaDate(task.date), 'dd/MM/yyyy')}</p>
+                            </td>
+                            <td className="p-3 border-r border-white/5">
+                              <div className="flex -space-x-2 overflow-hidden">
+                                {assignedUsers.map(u => (
+                                  <img 
+                                    key={u.id}
+                                    src={u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=0D0D0D&color=fff`}
+                                    alt={u.name}
+                                    className="w-6 h-6 rounded-full border border-black object-cover"
+                                    title={u.name}
+                                  />
+                                ))}
+                                {assignedUsers.length === 0 && <span className="text-[9px] text-gray-600">SIN ASIGNAR</span>}
+                              </div>
+                            </td>
+                            <td className="p-3 border-r border-white/5">
+                              <span className="text-[9px] font-black text-neon uppercase tracking-widest bg-neon/5 px-2 py-0.5 rounded border border-neon/10">
+                                {task.account || 'GENERAL'}
+                              </span>
+                            </td>
+                            <td className="p-3 border-r border-white/5">
+                              <div className="flex flex-col">
+                                <p className="text-[11px] font-black text-white uppercase italic tracking-tight truncate">{task.title}</p>
+                                {task.description && (
+                                  <p className="text-[9px] text-gray-500 truncate mt-0.5">{task.description}</p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3 border-r border-white/5">
+                              <p className="text-[10px] text-gray-400 font-black tracking-widest">{task.hours}h {task.minutes}m</p>
+                            </td>
+                            <td className="p-3 border-r border-white/5">
+                              <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest border ${task.status === 'completed' ? 'bg-neon/5 border-neon/20 text-neon' : 'bg-yellow-500/5 border-yellow-500/20 text-yellow-500'}`}>
+                                {task.status === 'completed' ? 'LISTO' : 'PENDIENTE'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button 
+                                  onClick={() => handleEditTask(task)}
+                                  className="p-1.5 text-gray-500 hover:text-white hover:bg-white/10 rounded transition-all"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                                <button 
+                                  onClick={() => {
+                                    if (window.confirm('¿Eliminar tarea?')) onDeleteTask(task.id);
+                                  }}
+                                  className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-all"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
 
       <AnimatePresence>
         {isCreating && (

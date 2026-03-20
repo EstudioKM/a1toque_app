@@ -11,6 +11,7 @@ import { LandingPage } from './components/LandingPage';
 import { LoginModal } from './components/LoginModal';
 import { WelcomeModal } from './components/WelcomeModal';
 import { PersonalNotificationsModal } from './components/PersonalNotificationsModal';
+import { GroupChat } from './components/GroupChat';
 import { db } from './services/firebase';
 import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { A1ToqueLoader } from './components/A1ToqueLoader';
@@ -52,6 +53,7 @@ const App: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [aiNewsTasks, setAiNewsTasks] = useState<GenerationTask[]>([]);
   const [aiSocialTasks, setAiSocialTasks] = useState<SocialGenerationTask[]>([]);
+  const [unreadGroupMessagesCount, setUnreadGroupMessagesCount] = useState(0);
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('currentUser');
     return saved ? JSON.parse(saved) : null;
@@ -780,6 +782,13 @@ const App: React.FC = () => {
 
   const markChatAsRead = useCallback(async (senderId: string) => {
     if (!currentUser) return;
+    
+    if (senderId === 'group') {
+      localStorage.setItem('lastGroupChatView', new Date().toISOString());
+      setUnreadGroupMessagesCount(0);
+      return;
+    }
+
     const unreadMsgs = chatMessages.filter(m => m.senderId === senderId && m.receiverId === currentUser.id && !m.isRead);
     if (unreadMsgs.length === 0) return;
 
@@ -1039,6 +1048,7 @@ const App: React.FC = () => {
           onMarkTaskAsViewed={markTaskAsViewed}
           aiNewsTasks={aiNewsTasks}
           aiSocialTasks={aiSocialTasks}
+          unreadGroupMessagesCount={unreadGroupMessagesCount}
           onAddAiNewsTask={addAiNewsTask}
           onUpdateAiNewsTask={updateAiNewsTask}
           onDeleteAiNewsTask={deleteAiNewsTask}
@@ -1091,6 +1101,7 @@ const App: React.FC = () => {
               tickerArticles={publishedArticles.slice(0, 8)}
               onArticleClick={handleArticleClick}
               unreadNotificationsCount={totalNotifications}
+              unreadGroupMessagesCount={unreadGroupMessagesCount}
               chatMessages={chatMessages}
               tasks={tasks}
               users={users}
@@ -1340,6 +1351,14 @@ const App: React.FC = () => {
             </footer>
           )}
         </div>
+      )}
+
+      {currentUser && (view === ViewMode.HOME || view === ViewMode.ADMIN) && (
+        <GroupChat 
+          currentUser={currentUser} 
+          allUsers={users} 
+          onNewMessages={setUnreadGroupMessagesCount}
+        />
       )}
     </div>
   );

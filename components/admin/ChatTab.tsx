@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatMessage, User } from '../../types';
-import { Send, User as UserIcon, Shield, Clock, Search } from 'lucide-react';
+import { Send, User as UserIcon, Shield, Clock, Search, Users } from 'lucide-react';
+import { GroupChat } from '../GroupChat';
 
 interface ChatTabProps {
   chatMessages: ChatMessage[];
@@ -12,7 +13,7 @@ interface ChatTabProps {
 }
 
 export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, users, onAddChatMessage, onMarkAsRead, initialTargetId }) => {
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(initialTargetId || null);
+  const [selectedUserId, setSelectedUserId] = useState<string | 'group' | null>(initialTargetId || null);
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -88,6 +89,30 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
           </div>
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
+          {/* Group Chat Option */}
+          <button
+            onClick={() => {
+              setSelectedUserId('group');
+              onMarkAsRead('group');
+            }}
+            className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all relative ${selectedUserId === 'group' ? 'bg-neon text-black shadow-lg scale-105' : 'hover:bg-white/5 text-gray-400 hover:text-white'}`}
+          >
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center border ${selectedUserId === 'group' ? 'bg-black/20 border-black/20' : 'bg-neon/10 border-neon/20'}`}>
+              <Users size={20} className={selectedUserId === 'group' ? 'text-black' : 'text-neon'} />
+            </div>
+            <div className="text-left truncate flex-1">
+              <p className="text-xs font-black uppercase truncate tracking-tight">Chat Grupal</p>
+              <p className={`text-[9px] font-bold uppercase tracking-widest ${selectedUserId === 'group' ? 'text-black/60' : 'text-gray-600'}`}>
+                Todo el equipo
+              </p>
+            </div>
+            {chatMessages.some(m => m.receiverId === 'group' && !m.isRead) && (
+              <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]"></span>
+            )}
+          </button>
+
+          <div className="h-px bg-white/5 my-2"></div>
+
           {filteredUsers.map(user => (
             <button
               key={user.id}
@@ -114,7 +139,9 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
 
       {/* Chat Area */}
       <div className="flex-1 flex flex-col bg-black/40">
-        {selectedUserId ? (
+        {selectedUserId === 'group' ? (
+          <GroupChat currentUser={currentUser} allUsers={users} isFloating={false} />
+        ) : selectedUserId ? (
           <>
             <div className="p-6 border-b border-white/10 flex items-center justify-between bg-black/20 backdrop-blur-xl">
               <div className="flex items-center gap-4">

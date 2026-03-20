@@ -19,6 +19,7 @@ interface HeaderProps {
   siteConfig: SiteConfig;
   onArticleClick: (id: string) => void;
   unreadNotificationsCount?: number;
+  unreadGroupMessagesCount?: number;
   chatMessages?: ChatMessage[];
   tasks?: Task[];
   users?: User[];
@@ -41,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   siteConfig,
   onArticleClick,
   unreadNotificationsCount = 0,
+  unreadGroupMessagesCount = 0,
   chatMessages = [],
   tasks = [],
   users = [],
@@ -135,10 +137,9 @@ export const Header: React.FC<HeaderProps> = ({
           <nav className="hidden lg:flex flex-1 items-center justify-center space-x-1">
             <button 
               onClick={() => handleNavClick('All')} 
-              className={`px-3 h-full flex items-center font-oswald font-black text-[11px] uppercase italic tracking-[0.2em] transition-all relative group ${selectedCategory === 'All' && currentView === ViewMode.HOME ? 'text-neon' : 'text-gray-500 hover:text-neon'}`}
+              className={`px-4 py-1.5 rounded-full font-oswald font-black text-[11px] uppercase italic tracking-[0.2em] transition-all relative group ${selectedCategory === 'All' && currentView === ViewMode.HOME ? 'bg-neon text-black shadow-[0_0_15px_rgba(0,255,157,0.4)]' : 'text-gray-500 hover:text-neon'}`}
             >
               Inicio
-              <span className={`absolute -bottom-2 left-0 h-0.5 bg-neon transition-all ${selectedCategory === 'All' && currentView === ViewMode.HOME ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
             </button>
             
             {clubs.map(club => {
@@ -149,19 +150,16 @@ export const Header: React.FC<HeaderProps> = ({
                 <button 
                   key={club.id}
                   onClick={() => handleNavClick(club.name)}
-                  className={`px-3 h-full flex items-center gap-2 font-oswald font-black text-[11px] uppercase italic tracking-[0.2em] transition-all relative group ${isActive ? 'text-neon' : 'text-gray-500 hover:text-neon'}`}
+                  className={`px-4 py-1.5 rounded-full flex items-center gap-2 font-oswald font-black text-[11px] uppercase italic tracking-[0.2em] transition-all relative group ${isActive ? 'bg-neon text-black shadow-[0_0_15px_rgba(0,255,157,0.4)]' : 'text-gray-400 hover:text-neon'}`}
                 >
                   {clubSocial?.profileImageUrl && (
                     <img 
                       src={clubSocial.profileImageUrl} 
                       alt={club.name} 
-                      className={`w-4 h-4 rounded-full object-cover border transition-colors ${isActive ? 'border-neon' : 'border-white/10 group-hover:border-neon/50'}`}
+                      className={`w-4 h-4 rounded-full object-cover border transition-colors ${isActive ? 'border-black/20' : 'border-white/10 group-hover:border-neon/50'}`}
                     />
                   )}
                   {club.name}
-                  <span 
-                    className={`absolute -bottom-2 left-0 h-0.5 bg-neon transition-all ${isActive ? 'w-full' : 'w-0 group-hover:w-full'}`}
-                  ></span>
                 </button>
               );
             })}
@@ -172,10 +170,9 @@ export const Header: React.FC<HeaderProps> = ({
               <button 
                 key={section.id}
                 onClick={() => handleNavClick(section.name)}
-                className={`px-3 h-full flex items-center font-oswald font-black text-[11px] uppercase italic tracking-[0.2em] transition-all relative group ${selectedCategory === section.name ? 'text-neon' : 'text-gray-500 hover:text-neon'}`}
+                className={`px-4 py-1.5 rounded-full flex items-center font-oswald font-black text-[11px] uppercase italic tracking-[0.2em] transition-all relative group ${selectedCategory === section.name ? 'bg-neon text-black shadow-[0_0_15px_rgba(0,255,157,0.4)]' : 'text-gray-400 hover:text-neon'}`}
               >
                 {section.name}
-                <span className={`absolute -bottom-2 left-0 h-0.5 bg-neon transition-all ${selectedCategory === section.name ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
               </button>
             ))}
           </nav>
@@ -196,19 +193,24 @@ export const Header: React.FC<HeaderProps> = ({
             {canAccessControlPanel && (
               <button 
                 onClick={() => setView(ViewMode.ADMIN)}
-                className={`hidden md:block px-4 py-2 rounded-sm font-black text-[10px] uppercase italic tracking-widest transition shadow-lg ${currentView === ViewMode.ADMIN ? 'bg-white text-black' : 'bg-neon/10 text-neon border border-neon/30 hover:bg-neon hover:text-black'}`}
+                className={`hidden md:block px-5 py-2 rounded-full font-black text-[10px] uppercase italic tracking-widest transition shadow-lg relative ${currentView === ViewMode.ADMIN ? 'bg-white text-black' : 'bg-neon text-black hover:scale-105 shadow-[0_0_20px_rgba(0,255,157,0.3)]'}`}
               >
                 PANEL
+                {unreadGroupMessagesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(239,68,68,0.5)] animate-pulse border-2 border-black">
+                    {unreadGroupMessagesCount > 9 ? '+9' : unreadGroupMessagesCount}
+                  </span>
+                )}
               </button>
             )}
             
             {currentUser ? (
               <div className="relative" ref={userMenuRef}>
                 <div 
-                  className="h-9 w-9 rounded-full bg-gradient-to-tr from-neon to-blue-400 p-[2px] cursor-pointer shadow-xl hover:scale-105 transition-transform"
+                  className="h-9 w-9 rounded-full bg-neon p-[2px] cursor-pointer shadow-xl hover:scale-105 transition-transform"
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 >
-                  <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[9px] font-black text-white">
+                  <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[9px] font-black text-white border border-white/10">
                     {currentUser.name.substring(0, 2).toUpperCase()}
                   </div>
                 </div>
