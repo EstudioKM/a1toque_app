@@ -228,12 +228,13 @@ export interface SocialAccount {
   handle: string;
   platform: SocialPlatform;
   profileImageUrl: string;
-  accountId?: string; // ID de cuenta para webhook
-  placidId?: string; // ID de Placid para webhook
-  primaryColor?: string; // Color principal
-  secondaryColor?: string; // Color secundario
-  systemPrompt?: string; // Prompt de personalidad de IA
-  copyPrompt?: string;   // Prompt de instrucciones para el copy
+  instagramId?: string;
+  facebookId?: string;
+  placidId?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  systemPrompt?: string;
+  copyPrompt?: string;
 }
 
 
@@ -253,6 +254,10 @@ export interface SocialPost {
   titleOverlay: string;
   copy: string;
   postedToAccounts: string[]; // Array de SocialAccount IDs
+  instagramId?: string;
+  facebookId?: string;
+  placidId?: string;
+  imageCount?: number;
   associatedSponsors: string[]; // Array de Brand IDs
   status: 'success' | 'failed' | 'draft' | 'scheduled';
   scheduledAt?: string; // ISO string para la fecha/hora programada

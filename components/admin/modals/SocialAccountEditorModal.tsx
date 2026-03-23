@@ -14,7 +14,8 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
     handle: '', 
     platform: 'instagram', 
     profileImageUrl: '', 
-    accountId: '',
+    instagramId: '',
+    facebookId: '',
     placidId: '',
     primaryColor: '',
     secondaryColor: '',
@@ -29,15 +30,29 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
         handle: account.handle, 
         platform: account.platform, 
         profileImageUrl: account.profileImageUrl,
-        accountId: account.accountId || '',
-        placidId: account.placidId || '',
+        // Fallbacks para asegurar que los datos existentes se carguen correctamente tras el cambio de nombres de campos
+        instagramId: account.instagramId || (account as any).accountId || (account as any).instagramAccountId || '',
+        facebookId: account.facebookId || (account as any).facebookAccountId || '',
+        placidId: account.placidId || (account as any).placidTemplateId || '',
         primaryColor: account.primaryColor || '#000000',
         secondaryColor: account.secondaryColor || '#000000',
         systemPrompt: account.systemPrompt || '',
         copyPrompt: account.copyPrompt || '',
       });
     } else {
-      setFormData({ name: '', handle: '', platform: 'instagram', profileImageUrl: '', accountId: '', placidId: '', primaryColor: '#000000', secondaryColor: '#000000', systemPrompt: '', copyPrompt: '' });
+      setFormData({ 
+        name: '', 
+        handle: '', 
+        platform: 'instagram', 
+        profileImageUrl: '', 
+        instagramId: '',
+        facebookId: '',
+        placidId: '', 
+        primaryColor: '#000000', 
+        secondaryColor: '#000000', 
+        systemPrompt: '', 
+        copyPrompt: '' 
+      });
     }
   }, [account]);
 
@@ -71,76 +86,112 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             
             {/* Columna de Datos Básicos */}
-            <div className="lg:col-span-4 space-y-6">
-                <div className="space-y-4">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Información Pública</label>
-                    <input 
-                        type="text" 
-                        placeholder="Nombre (ej. Unión A1Toque)" 
-                        value={formData.name || ''} 
-                        onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} 
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:border-neon outline-none" 
-                    />
-                    <input 
-                        type="text" 
-                        placeholder="@handle" 
-                        value={formData.handle || ''} 
-                        onChange={e => setFormData(p => ({ ...p, handle: e.target.value }))} 
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-blue-400 font-bold focus:border-neon outline-none" 
-                    />
-                    <input 
-                        type="text" 
-                        placeholder="ID de Cuenta (para webhooks)" 
-                        value={formData.accountId || ''} 
-                        onChange={e => setFormData(p => ({ ...p, accountId: e.target.value }))} 
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:border-neon outline-none" 
-                    />
-                    <input 
-                        type="text" 
-                        placeholder="ID Placid" 
-                        value={formData.placidId || ''} 
-                        onChange={e => setFormData(p => ({ ...p, placidId: e.target.value }))} 
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:border-neon outline-none" 
-                    />
-                    <div className="flex gap-4">
-                        <div className="flex-1 space-y-2">
-                            <label className="text-[9px] font-black text-gray-500 uppercase">Color Principal</label>
+            <div className="lg:col-span-5 space-y-5">
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Nombre Público</label>
+                        <input 
+                            type="text" 
+                            placeholder="Ej. Unión A1Toque" 
+                            value={formData.name || ''} 
+                            onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} 
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl p-3 text-xs text-white focus:border-neon outline-none" 
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Handle / Usuario</label>
+                        <input 
+                            type="text" 
+                            placeholder="@handle" 
+                            value={formData.handle || ''} 
+                            onChange={e => setFormData(p => ({ ...p, handle: e.target.value }))} 
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl p-3 text-xs text-blue-400 font-bold focus:border-neon outline-none" 
+                        />
+                    </div>
+                </div>
+
+                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between">
+                        <label className="text-[9px] font-black text-neon uppercase tracking-[0.2em]">IDs de Integración</label>
+                        <div className="px-2 py-0.5 bg-neon/10 rounded text-[8px] font-bold text-neon uppercase tracking-tighter">Webhook Ready</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-3">
+                        <div className="space-y-1.5">
+                            <label className="text-[8px] font-bold text-gray-500 uppercase ml-1">ID Instagram</label>
                             <input 
-                                type="color" 
-                                value={formData.primaryColor || '#000000'} 
-                                onChange={e => setFormData(p => ({ ...p, primaryColor: e.target.value }))} 
-                                className="w-full h-12 bg-white/[0.03] border border-white/10 rounded-2xl p-1 cursor-pointer" 
+                                type="text" 
+                                placeholder="ID Numérico" 
+                                value={formData.instagramId || ''} 
+                                onChange={e => setFormData(p => ({ ...p, instagramId: e.target.value }))} 
+                                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-[11px] text-white focus:border-neon outline-none" 
                             />
                         </div>
-                        <div className="flex-1 space-y-2">
-                            <label className="text-[9px] font-black text-gray-500 uppercase">Color Secundario</label>
+                        <div className="space-y-1.5">
+                            <label className="text-[8px] font-bold text-gray-500 uppercase ml-1">ID Facebook</label>
                             <input 
-                                type="color" 
-                                value={formData.secondaryColor || '#000000'} 
-                                onChange={e => setFormData(p => ({ ...p, secondaryColor: e.target.value }))} 
-                                className="w-full h-12 bg-white/[0.03] border border-white/10 rounded-2xl p-1 cursor-pointer" 
+                                type="text" 
+                                placeholder="ID Numérico" 
+                                value={formData.facebookId || ''} 
+                                onChange={e => setFormData(p => ({ ...p, facebookId: e.target.value }))} 
+                                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-[11px] text-white focus:border-neon outline-none" 
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[8px] font-bold text-gray-500 uppercase ml-1">ID Placid</label>
+                            <input 
+                                type="text" 
+                                placeholder="Template ID" 
+                                value={formData.placidId || ''} 
+                                onChange={e => setFormData(p => ({ ...p, placidId: e.target.value }))} 
+                                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-[11px] text-white focus:border-neon outline-none" 
                             />
                         </div>
                     </div>
-                    <select 
-                        value={formData.platform || 'instagram'} 
-                        onChange={e => setFormData(p => ({ ...p, platform: e.target.value as SocialPlatform }))} 
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:border-neon outline-none appearance-none cursor-pointer"
-                    >
-                        <option value="instagram">📸 Instagram</option>
-                        <option value="twitter">𝕏 Twitter / X</option>
-                        <option value="facebook">👥 Facebook</option>
-                    </select>
                 </div>
 
-                <div className="space-y-4">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Imagen de Perfil</label>
-                    <div className="flex items-center gap-4">
-                        <div className="w-20 h-20 bg-black border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Plataforma</label>
+                        <select 
+                            value={formData.platform || 'instagram'} 
+                            onChange={e => setFormData(p => ({ ...p, platform: e.target.value as SocialPlatform }))} 
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl p-3 text-xs text-white focus:border-neon outline-none appearance-none cursor-pointer"
+                        >
+                            <option value="instagram">📸 Instagram</option>
+                            <option value="twitter">𝕏 Twitter / X</option>
+                            <option value="facebook">👥 Facebook</option>
+                        </select>
+                    </div>
+                    <div className="flex gap-2">
+                        <div className="flex-1 space-y-2">
+                            <label className="text-[9px] font-black text-gray-500 uppercase pl-1">Colores</label>
+                            <div className="flex gap-2">
+                                <input 
+                                    type="color" 
+                                    value={formData.primaryColor || '#000000'} 
+                                    onChange={e => setFormData(p => ({ ...p, primaryColor: e.target.value }))} 
+                                    className="w-full h-10 bg-white/[0.03] border border-white/10 rounded-xl p-1 cursor-pointer" 
+                                />
+                                <input 
+                                    type="color" 
+                                    value={formData.secondaryColor || '#000000'} 
+                                    onChange={e => setFormData(p => ({ ...p, secondaryColor: e.target.value }))} 
+                                    className="w-full h-10 bg-white/[0.03] border border-white/10 rounded-xl p-1 cursor-pointer" 
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Imagen de Perfil</label>
+                    <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 bg-black border border-white/10 rounded-xl overflow-hidden shadow-xl flex-shrink-0">
                             {formData.profileImageUrl ? (
                                 <img src={formData.profileImageUrl} alt="Preview" className="w-full h-full object-cover" />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-800"><AtSign size={32} /></div>
+                                <div className="w-full h-full flex items-center justify-center text-gray-800"><AtSign size={24} /></div>
                             )}
                         </div>
                         <input 
@@ -148,19 +199,19 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
                             placeholder="URL de la imagen..." 
                             value={formData.profileImageUrl || ''} 
                             onChange={e => setFormData(p => ({ ...p, profileImageUrl: e.target.value }))} 
-                            className="flex-1 bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-[10px] text-gray-400 focus:border-neon outline-none" 
+                            className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl p-3 text-[10px] text-gray-400 focus:border-neon outline-none" 
                         />
                     </div>
                 </div>
 
-                <div className="p-4 bg-neon/5 border border-neon/20 rounded-2xl">
-                    <div className="flex gap-3 text-neon mb-2"><Info size={16} /> <span className="text-[9px] font-black uppercase tracking-widest">Diferenciador</span></div>
-                    <p className="text-[11px] text-gray-400 leading-relaxed font-medium">Los prompts configurados aquí tendrán prioridad sobre el prompt global de redacción cuando se genere contenido para esta cuenta.</p>
+                <div className="p-3 bg-neon/5 border border-neon/10 rounded-xl">
+                    <div className="flex gap-2 text-neon mb-1"><Info size={14} /> <span className="text-[8px] font-black uppercase tracking-widest">Diferenciador</span></div>
+                    <p className="text-[10px] text-gray-500 leading-tight font-medium">Los prompts configurados aquí tendrán prioridad sobre el prompt global cuando se genere contenido para esta cuenta.</p>
                 </div>
             </div>
 
             {/* Columna de Inteligencia Artificial */}
-            <div className="lg:col-span-8 space-y-8">
+            <div className="lg:col-span-7 space-y-6">
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 mb-2">
                         <Sparkles size={18} className="text-neon" />

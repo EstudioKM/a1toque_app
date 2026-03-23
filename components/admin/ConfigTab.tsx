@@ -106,30 +106,30 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0 pt-4 md:pt-8">
-      <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-4 pb-2 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
+    <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0 pt-2 md:pt-4">
+      <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-2 pb-2 md:pb-4 mb-2 md:mb-4 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
         <div>
-          <h2 className="text-xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-2 md:gap-3">
-            <Settings className="text-neon w-5 h-5 md:w-8 md:h-8" /> CONFIGURACIÓN
+          <h2 className="text-xl md:text-3xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-2 md:gap-3">
+            <Settings className="text-neon w-5 h-5 md:w-7 md:h-7" /> CONFIGURACIÓN
           </h2>
-          <p className="hidden md:block text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Ajustes generales y personalización del sitio</p>
+          <p className="hidden md:block text-gray-500 text-[9px] font-bold uppercase tracking-widest mt-0.5">Ajustes generales y personalización del sitio</p>
         </div>
 
         <button 
           onClick={handleSaveSiteConfig}
-          className="flex items-center gap-2 md:gap-3 px-4 md:px-8 py-2 md:py-4 bg-neon text-black text-[10px] md:text-[11px] font-black uppercase italic tracking-widest rounded-lg md:rounded-xl hover:scale-105 transition-all shadow-[0_10px_40px_rgba(0,255,157,0.3)]"
+          className="flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 bg-neon text-black text-[10px] md:text-[11px] font-black uppercase italic tracking-widest rounded-lg md:rounded-xl hover:scale-105 transition-all shadow-[0_10px_40px_rgba(0,255,157,0.3)]"
         >
           <Save size={16} /> GUARDAR CAMBIOS
         </button>
       </div>
 
-      <div className="pt-14 md:pt-18 space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="pt-2 md:pt-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* 1. IDENTIDAD VISUAL */}
       <div>
-        <h2 className="text-3xl font-oswald font-black italic uppercase text-white mb-8 tracking-tighter">CONFIGURACIÓN GENERAL</h2>
-        <div className="bg-white/5 p-8 rounded-[32px] border border-white/10 max-w-5xl space-y-10 shadow-2xl">
-            <h3 className="text-xl font-oswald font-black italic uppercase text-neon flex items-center gap-3">
-              <ImageIcon size={20} /> Identidad de Marca
+        <h2 className="text-xl md:text-2xl font-oswald font-black italic uppercase text-white mb-2 md:mb-4 tracking-tighter">CONFIGURACIÓN GENERAL</h2>
+        <div className="bg-white/5 p-4 md:p-6 rounded-[24px] border border-white/10 max-w-5xl space-y-6 shadow-2xl">
+            <h3 className="text-base md:text-lg font-oswald font-black italic uppercase text-neon flex items-center gap-3 drop-shadow-[0_0_8px_rgba(0,255,157,0.4)]">
+              <ImageIcon size={18} /> Identidad de Marca
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
                 <div className="md:col-span-4 flex flex-col items-center">
@@ -154,23 +154,23 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
                     </div>
                     <input type="file" ref={logoInputRef} onChange={handleLogoUpload} hidden accept="image/png, image/svg+xml, image/webp" />
                 </div>
-                <div className="md:col-span-8 space-y-6">
+                <div className="md:col-span-8 space-y-3">
                     <div>
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block pl-1">Nombre de la Plataforma</label>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1 block pl-1">Nombre de la Plataforma</label>
                         <input 
                             type="text" 
                             value={localSiteConfig.siteName || ''}
                             onChange={e => setLocalSiteConfig({...localSiteConfig, siteName: e.target.value})}
-                            className="w-full bg-black border border-white/10 rounded-2xl p-4 text-white font-bold focus:border-neon outline-none"
+                            className="w-full bg-black border border-white/10 rounded-xl p-3 text-white font-bold focus:border-neon outline-none text-sm"
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block pl-1">Resumen Footer</label>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1 block pl-1">Resumen Footer</label>
                         <textarea 
-                            rows={3}
+                            rows={2}
                             value={localSiteConfig.footerText || ''}
                             onChange={e => setLocalSiteConfig({...localSiteConfig, footerText: e.target.value})}
-                            className="w-full bg-black border border-white/10 rounded-2xl p-4 text-gray-300 text-sm focus:border-neon outline-none"
+                            className="w-full bg-black border border-white/10 rounded-xl p-3 text-gray-300 text-xs focus:border-neon outline-none resize-none"
                         />
                     </div>
                     <div>
@@ -324,7 +324,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
                             onClick={() => onOpenSocialAccountEditor(account)} 
                             className="flex-1 py-3 bg-white/5 border border-white/5 text-gray-300 text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:bg-white/10 hover:text-white transition-all"
                         >
-                            CONFIGURAR PROMPTS
+                            CONFIGURAR CUENTA
                         </button>
                         <button 
                             onClick={() => onDeleteSocialAccount(account.id)} 

@@ -245,12 +245,12 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                   </table>
                 </div>
               ) : (
-                <div className="py-6 text-center bg-white/[0.01] rounded-2xl border border-dashed border-white/5 flex flex-col items-center justify-center">
-                  <div className="flex items-center gap-3">
-                    <CheckSquare size={16} className="text-gray-800" />
-                    <h4 className="text-gray-500 font-oswald font-black italic uppercase text-lg tracking-widest">Todo al día</h4>
+                <div className="py-12 text-center bg-white/[0.01] rounded-[32px] border border-dashed border-white/5 flex flex-col items-center justify-center group hover:bg-white/[0.02] transition-all duration-500">
+                  <div className="flex items-center gap-4 mb-2">
+                    <CheckSquare size={24} className="text-gray-800 group-hover:text-neon transition-colors" />
+                    <h4 className="text-gray-600 font-oswald font-black italic uppercase text-2xl tracking-tighter group-hover:text-white transition-colors">Todo al día</h4>
                   </div>
-                  <p className="text-gray-700 text-[9px] font-black uppercase tracking-widest mt-1">No tienes tareas pendientes</p>
+                  <p className="text-gray-700 text-[10px] font-black uppercase tracking-[0.3em] mt-1">No tienes tareas pendientes</p>
                 </div>
               )}
             </div>

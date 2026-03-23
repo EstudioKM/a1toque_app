@@ -26,6 +26,7 @@ interface SocialPostCreatorProps {
   onClose: () => void;
   onAddSocialPost: (post: Omit<SocialPost, 'id'>) => void;
   onUpdateSocialPost: (post: SocialPost) => void;
+  onDeleteSocialPost?: (id: string) => void;
   users: User[];
   articles: Article[];
 }
@@ -44,6 +45,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   onClose,
   onAddSocialPost,
   onUpdateSocialPost,
+  onDeleteSocialPost,
   users,
   articles,
 }) => {
@@ -75,6 +77,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
   const [isProcessingUrl, setIsProcessingUrl] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [showConfirmPublish, setShowConfirmPublish] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
@@ -514,7 +517,16 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       const selectedAccountDetails = selectedAccounts
           .map(id => socialAccounts.find(acc => acc.id === id))
           .filter((acc): acc is SocialAccount => !!acc)
-          .map(acc => ({ name: acc.name, handle: acc.handle, platform: acc.platform, accountId: acc.accountId, placidId: acc.placidId, primaryColor: acc.primaryColor, secondaryColor: acc.secondaryColor }));
+          .map(acc => ({ 
+            name: acc.name, 
+            handle: acc.handle, 
+            platform: acc.platform, 
+            instagramId: acc.instagramId,
+            facebookId: acc.facebookId,
+            placidId: acc.placidId, 
+            primaryColor: acc.primaryColor, 
+            secondaryColor: acc.secondaryColor 
+          }));
 
       const sponsorPayload: { [key: string]: { name: string; logoUrl: string } | null } = { sponsor_1: null, sponsor_2: null, sponsor_3: null, sponsor_4: null };
       
@@ -667,7 +679,17 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     }
   };
   
+  const getPlatformIds = () => {
+    const selectedAccs = socialAccounts.filter(acc => selectedAccounts.includes(acc.id));
+    return {
+      instagramId: selectedAccs.find(acc => acc.instagramId)?.instagramId,
+      facebookId: selectedAccs.find(acc => acc.facebookId)?.facebookId,
+      placidId: selectedAccs.find(acc => acc.placidId)?.placidId,
+    };
+  };
+
   const handleSaveDraft = async () => {
+    const platformIds = getPlatformIds();
     const postData = {
         originalArticleId: article?.id || draftPost?.originalArticleId || 'standalone',
         originalArticleTitle: article?.title || draftPost?.originalArticleTitle || shortTitle,
@@ -681,6 +703,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         titleOverlay: shortTitle,
         copy: copy,
         postedToAccounts: selectedAccounts,
+        ...platformIds,
+        imageCount: imageUrls.length,
         associatedSponsors: selectedSponsors,
         sources: sources,
         status: 'draft' as const,
@@ -728,6 +752,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
       
       console.log("[Publish] Webhook success");
       
+      const platformIds = getPlatformIds();
       const postData = {
         originalArticleId: article?.id || draftPost?.originalArticleId || 'standalone',
         originalArticleTitle: article?.title || draftPost?.originalArticleTitle || shortTitle,
@@ -741,6 +766,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         titleOverlay: shortTitle,
         copy: copy,
         postedToAccounts: selectedAccounts,
+        ...platformIds,
+        imageCount: imageUrls.length,
         associatedSponsors: selectedSponsors,
         sources: sources,
         status: isScheduled ? 'scheduled' as const : 'success' as const,
@@ -1513,12 +1540,23 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
 
           {/* Footer Actions */}
           <footer className="h-16 border-t border-white/5 bg-black/50 flex items-center justify-between px-6 flex-shrink-0">
-             <button 
-                onClick={onClose} 
-                className="text-gray-600 text-[10px] font-black uppercase tracking-[0.3em] hover:text-white transition-all"
-             >
-                DESCARTAR
-             </button>
+             <div className="flex items-center gap-4">
+                <button 
+                   onClick={onClose} 
+                   className="text-gray-600 text-[10px] font-black uppercase tracking-[0.3em] hover:text-white transition-all"
+                >
+                   DESCARTAR
+                </button>
+                
+                {draftPost?.id && onDeleteSocialPost && (
+                   <button 
+                      onClick={() => setShowDeleteConfirm(true)} 
+                      className="text-red-500/50 text-[10px] font-black uppercase tracking-[0.3em] hover:text-red-500 transition-all flex items-center gap-2"
+                   >
+                      <Trash2 size={14} /> ELIMINAR
+                   </button>
+                )}
+             </div>
              
              <div className="flex items-center gap-4">
                 <button 
@@ -1561,6 +1599,40 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
           </footer>
        </div>
        
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-3xl p-8 text-center shadow-2xl">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash2 className="text-red-500 size-8" />
+              </div>
+              <h3 className="text-xl font-oswald font-black italic uppercase text-white mb-2">¿Eliminar posteo?</h3>
+              <p className="text-gray-400 text-sm mb-8">
+                Esta acción no se puede deshacer. El borrador será eliminado permanentemente.
+              </p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-3 bg-white/5 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => {
+                    if (draftPost?.id && onDeleteSocialPost) {
+                      onDeleteSocialPost(draftPost.id);
+                      onClose();
+                    }
+                  }}
+                  className="flex-1 py-3 bg-red-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Type Change Confirmation Modal */}
         {pendingPostType && (
           <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
