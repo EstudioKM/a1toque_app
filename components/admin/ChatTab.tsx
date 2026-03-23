@@ -92,9 +92,9 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-oswald font-black italic uppercase text-white">Chat Interno</h3>
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-neon/10 border border-neon/20 rounded-full">
-              <div className="w-1.5 h-1.5 bg-neon rounded-full animate-pulse shadow-[0_0_5px_rgba(0,255,102,0.8)]"></div>
-              <span className="text-[10px] font-black uppercase text-neon tracking-widest">{onlineCount} EN LÍNEA</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-neon text-black rounded-full shadow-[0_0_15px_rgba(180,255,0,0.3)]">
+              <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></div>
+              <span className="text-[10px] font-black uppercase tracking-widest">{onlineCount} EN LÍNEA</span>
             </div>
           </div>
           <div className="relative">
@@ -104,7 +104,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
               placeholder="Buscar usuario..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value || '')}
-              className="w-full bg-black border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:border-neon outline-none"
+              className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:border-neon outline-none transition-all"
             />
           </div>
         </div>
@@ -115,14 +115,14 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
               setSelectedUserId('group');
               onMarkAsRead('group');
             }}
-            className={`w-full flex items-center gap-3 p-4 rounded-3xl transition-all relative group ${selectedUserId === 'group' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,102,0.3)] scale-105' : 'bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5'}`}
+            className={`w-full flex items-center gap-3 p-4 rounded-3xl transition-all relative group ${selectedUserId === 'group' ? 'bg-white/5 border border-white/10 shadow-lg scale-[1.02]' : 'hover:bg-white/5 text-gray-400 hover:text-white border border-transparent'}`}
           >
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-transform group-hover:rotate-6 ${selectedUserId === 'group' ? 'bg-black/20 border-black/20' : 'bg-neon/20 border-neon/30'}`}>
-              <Users size={24} className={selectedUserId === 'group' ? 'text-black' : 'text-neon'} />
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${selectedUserId === 'group' ? 'bg-neon/20 border-neon/40 shadow-[0_0_15px_rgba(180,255,0,0.2)]' : 'bg-white/5 border-white/10'}`}>
+              <Users size={24} className={selectedUserId === 'group' ? 'text-neon' : 'text-gray-500'} />
             </div>
             <div className="text-left truncate flex-1">
-              <p className="text-sm font-black uppercase truncate tracking-tight">Chat Grupal</p>
-              <p className={`text-[10px] font-bold uppercase tracking-widest ${selectedUserId === 'group' ? 'text-black/60' : 'text-neon/60'}`}>
+              <p className="text-sm font-black uppercase truncate tracking-tight text-white">Chat Grupal</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-neon/80">
                 Canal General
               </p>
             </div>
@@ -132,13 +132,14 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
           </button>
 
           <div className="flex items-center gap-2 px-2 py-4">
-            <div className="h-px flex-1 bg-white/10"></div>
-            <span className="text-[9px] font-black uppercase text-gray-600 tracking-[0.2em]">Contactos</span>
-            <div className="h-px flex-1 bg-white/10"></div>
+            <div className="h-px flex-1 bg-white/5"></div>
+            <span className="text-[9px] font-black uppercase text-gray-700 tracking-[0.3em]">Contactos</span>
+            <div className="h-px flex-1 bg-white/5"></div>
           </div>
 
           {sortedUsers.map(user => {
             const online = isUserOnline(user);
+            const isSelected = selectedUserId === user.id;
             return (
               <button
                 key={user.id}
@@ -146,24 +147,24 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
                   setSelectedUserId(user.id);
                   onMarkAsRead(user.id);
                 }}
-                className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all relative ${selectedUserId === user.id ? 'bg-neon text-black shadow-lg scale-105' : 'hover:bg-white/5 text-gray-400 hover:text-white'}`}
+                className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all relative ${isSelected ? 'bg-neon text-black shadow-xl scale-[1.02]' : 'hover:bg-white/5 text-gray-400 hover:text-white'}`}
               >
                 <div className="relative">
-                  {user.avatar ? <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full object-cover border border-white/10" /> : <div className="w-10 h-10 rounded-full border border-white/10 bg-neutral-800" />}
+                  {user.avatar ? <img src={user.avatar} alt={user.name} className={`w-10 h-10 rounded-full object-cover border ${isSelected ? 'border-black/20' : 'border-white/10'}`} /> : <div className={`w-10 h-10 rounded-full border ${isSelected ? 'border-black/20 bg-black/10' : 'border-white/10 bg-neutral-800'}`} />}
                   {online && (
-                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-neon rounded-full border-2 border-black shadow-[0_0_10px_rgba(0,255,102,0.5)]"></span>
+                    <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 bg-neon rounded-full border-2 ${isSelected ? 'border-neon' : 'border-black'} shadow-[0_0_10px_rgba(0,255,102,0.5)]`}></span>
                   )}
                 </div>
                 <div className="text-left truncate flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-xs font-black uppercase truncate tracking-tight">{user.name}</p>
+                    <p className={`text-xs font-black uppercase truncate tracking-tight ${isSelected ? 'text-black' : 'text-white'}`}>{user.name}</p>
                     {online && (
-                      <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${selectedUserId === user.id ? 'bg-black/20 text-black' : 'bg-neon/10 text-neon border border-neon/20'}`}>
+                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${isSelected ? 'bg-black/10 text-black border border-black/20' : 'bg-neon/10 text-neon border border-neon/20'}`}>
                         EN LÍNEA
                       </span>
                     )}
                   </div>
-                  <p className={`text-[9px] font-bold uppercase tracking-widest ${selectedUserId === user.id ? 'text-black/60' : 'text-gray-600'}`}>
+                  <p className={`text-[9px] font-bold uppercase tracking-widest ${isSelected ? 'text-black/60' : 'text-gray-600'}`}>
                     {user.roleId === 'admin' ? 'ADMINISTRADOR' : 'USUARIO'}
                   </p>
                 </div>
@@ -206,7 +207,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
             <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-6">
               {currentConversation.map(msg => (
                 <div key={msg.id} className={`flex ${msg.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[70%] p-4 rounded-3xl ${msg.senderId === currentUser.id ? 'bg-neon text-black rounded-tr-none' : 'bg-white/5 text-white border border-white/10 rounded-tl-none'}`}>
+                  <div className={`max-w-[70%] p-4 rounded-3xl ${msg.senderId === currentUser.id ? 'bg-neon text-black rounded-tr-none shadow-[0_0_20px_rgba(180,255,0,0.2)]' : 'bg-[#1A1A1A] text-white border border-white/5 rounded-tl-none'}`}>
                     <p className="text-sm font-medium leading-relaxed">{msg.text}</p>
                     <div className={`flex items-center gap-1.5 mt-2 text-[8px] font-black uppercase tracking-widest ${msg.senderId === currentUser.id ? 'text-black/40' : 'text-gray-500'}`}>
                       <Clock size={10} /> {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

@@ -56,6 +56,17 @@ export const GroupChat: React.FC<GroupChatProps> = ({
     return () => unsubscribe();
   }, [currentUser.id, onNewMessages]);
 
+  // Scroll to bottom when messages change, or when unminimized/expanded
+  useEffect(() => {
+    if (!isMinimized || !isFloating) {
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }, 100);
+    }
+  }, [messages, isMinimized, isExpanded, isFloating]);
+
   // Update last view when expanded or in tab
   useEffect(() => {
     if (!isMinimized || !isFloating) {
@@ -109,12 +120,12 @@ export const GroupChat: React.FC<GroupChatProps> = ({
         {/* Header */}
         <div className="p-4 border-b border-white/10 bg-white/[0.02] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-neon/20 flex items-center justify-center border border-neon/30">
-              <Users size={16} className="text-neon" />
+            <div className="w-10 h-10 rounded-xl bg-neon/20 flex items-center justify-center border border-neon/30">
+              <Users size={20} className="text-neon" />
             </div>
             <div>
-              <h3 className="text-white font-oswald font-black italic uppercase text-xs tracking-tighter">Chat del Equipo</h3>
-              <p className="text-[8px] text-gray-500 font-black uppercase tracking-widest">{allUsers.length} Miembros</p>
+              <h3 className="text-white font-oswald font-black italic uppercase text-sm tracking-tighter">Chat del Equipo</h3>
+              <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest">{allUsers.length} Miembros</p>
             </div>
           </div>
           {isFloating && (
@@ -123,13 +134,13 @@ export const GroupChat: React.FC<GroupChatProps> = ({
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="p-1.5 text-gray-500 hover:text-white transition-colors"
               >
-                {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
               <button 
                 onClick={() => setIsMinimized(true)}
                 className="p-1.5 text-gray-500 hover:text-white transition-colors"
               >
-                <X size={14} />
+                <X size={16} />
               </button>
             </div>
           )}
@@ -148,7 +159,7 @@ export const GroupChat: React.FC<GroupChatProps> = ({
             return (
               <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                 {!isMe && showAvatar && (
-                  <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1 ml-1">
+                  <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">
                     {sender?.name || 'Usuario'}
                   </span>
                 )}
@@ -157,20 +168,20 @@ export const GroupChat: React.FC<GroupChatProps> = ({
                     <img 
                       src={sender?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(sender?.name || 'U')}&background=0D0D0D&color=fff`} 
                       alt={sender?.name}
-                      className="w-6 h-6 rounded-full border border-white/10 object-cover mb-1"
+                      className="w-8 h-8 rounded-full border border-white/10 object-cover mb-1"
                     />
                   )}
-                  {!isMe && !showAvatar && <div className="w-6" />}
+                  {!isMe && !showAvatar && <div className="w-8" />}
                   
-                  <div className={`p-3 rounded-2xl text-[11px] leading-relaxed ${
+                  <div className={`p-3 rounded-2xl text-[12px] leading-relaxed ${
                     isMe 
-                      ? 'bg-neon text-black font-medium rounded-tr-none' 
-                      : 'bg-white/5 text-white border border-white/5 rounded-tl-none'
+                      ? 'bg-neon text-black font-medium rounded-tr-none shadow-[0_0_15px_rgba(180,255,0,0.15)]' 
+                      : 'bg-[#1A1A1A] text-white border border-white/5 rounded-tl-none'
                   }`}>
                     {msg.text}
                   </div>
                 </div>
-                <span className="text-[7px] text-gray-600 font-black uppercase tracking-widest mt-1 px-1">
+                <span className="text-[8px] text-gray-600 font-black uppercase tracking-widest mt-1.5 px-1">
                   {format(new Date(msg.timestamp), 'HH:mm')}
                 </span>
               </div>
@@ -179,21 +190,21 @@ export const GroupChat: React.FC<GroupChatProps> = ({
         </div>
 
         {/* Input */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10 bg-white/[0.01]">
+        <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10 bg-black/40">
           <div className="relative">
             <input 
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Escribe un mensaje..."
-              className="w-full bg-black/40 border border-white/5 rounded-xl py-3 pl-4 pr-12 text-[11px] text-white placeholder:text-gray-600 outline-none focus:border-neon transition-colors"
+              className="w-full bg-black border border-white/5 rounded-2xl py-4 pl-5 pr-14 text-[12px] text-white placeholder:text-gray-700 outline-none focus:border-neon transition-all"
             />
             <button 
               type="submit"
               disabled={!newMessage.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-neon disabled:text-gray-700 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 text-neon disabled:text-gray-800 transition-all hover:scale-110 active:scale-95"
             >
-              <Send size={16} />
+              <Send size={20} />
             </button>
           </div>
         </form>
