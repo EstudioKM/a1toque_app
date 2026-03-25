@@ -18,9 +18,10 @@ interface AdminTasksTabProps {
   onUpdateTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
   onUpdateUser: (user: User) => void;
+  currentUser: User;
 }
 
-export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, socialAccounts, onAddTask, onUpdateTask, onDeleteTask, onUpdateUser }) => {
+export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, socialAccounts, onAddTask, onUpdateTask, onDeleteTask, onUpdateUser, currentUser }) => {
   const [view, setView] = useState<'list' | 'dashboard'>('list');
   const [filter, setFilter] = useState<'pending' | 'completed'>('pending');
   const [isCreating, setIsCreating] = useState(false);
@@ -97,7 +98,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
       return {
         ...user,
         totalHours,
-        pendingTasks: userTasks.filter(t => t.status === 'pending').length,
+        pendingTasks: userTasks.filter(t => t.status !== 'completed').length,
         completedTasks: userTasks.filter(t => t.status === 'completed').length,
         tasks: userTasks
       };
@@ -118,8 +119,8 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
 
   const filteredTasks = useMemo(() => {
     return tasks
-      .filter(task => task.status === filter)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      .filter(task => filter === 'pending' ? task.status !== 'completed' : task.status === 'completed')
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   }, [tasks, filter]);
 
   const analytics = useMemo(() => {
@@ -181,7 +182,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
     })).sort((a, b) => b.value - a.value);
 
     const completedTasks = rangeTasks.filter(t => t.status === 'completed').length;
-    const pendingTasks = rangeTasks.filter(t => t.status === 'pending').length;
+    const pendingTasks = rangeTasks.filter(t => t.status !== 'completed').length;
 
     return { 
       dailyData, 
@@ -207,11 +208,13 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
         description,
         assignedUserIds,
         status: editingTask ? editingTask.status : 'pending',
-        createdBy: editingTask ? editingTask.createdBy : 'admin',
+        createdBy: editingTask ? editingTask.createdBy : currentUser.id,
         createdAt: editingTask ? editingTask.createdAt : new Date().toISOString(),
         date,
         account,
-        hours: hours + (minutes / 60)
+        hours: hours + (minutes / 60),
+        notes: editingTask ? editingTask.notes : [],
+        history: editingTask ? editingTask.history : [{ userId: currentUser.id, action: 'Creada', timestamp: new Date().toISOString() }]
       };
 
       if (editingTask) {
@@ -303,7 +306,17 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
             </div>
 
             <button 
-              onClick={() => { setIsCreating(true); setEditingTask(null); }}
+              onClick={() => { 
+                setIsCreating(true); 
+                setEditingTask(null); 
+                setTitle('');
+                setDescription('');
+                setAssignedUserIds([]);
+                setDate(new Date().toISOString().split('T')[0]);
+                setAccount('');
+                setHours(0);
+                setMinutes(0);
+              }}
               className="flex items-center justify-center gap-2 px-6 py-3 bg-neon text-black text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 transition shadow-[0_0_20px_rgba(0,255,157,0.3)]"
             >
               <Plus size={16} /> NUEVA TAREA

@@ -209,6 +209,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     }
   };
   const handleOpenSocialEditor = (post: SocialPost) => { setArticleForSocial(null); setEditingSocialPost(post); setIsSocialPostCreatorOpen(true); };
+  const handleRepublishSocialPost = (post: SocialPost) => { setArticleForSocial(null); setEditingSocialPost({ ...post, id: '' }); setIsSocialPostCreatorOpen(true); };
   const handleOpenUserEditor = (user?: User) => { setEditingUser(user || null); setIsUserEditorOpen(true); };
   const handleOpenBrandEditor = (brand?: Brand) => { setEditingBrand(brand || null); setIsBrandEditorOpen(true); };
   const handleOpenSponsorshipEditor = (sponsorship?: Partial<Sponsorship>) => { setEditingSponsorship(sponsorship || null); setIsSponsorshipEditorOpen(true); };
@@ -471,7 +472,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               onRemoveTask={props.onDeleteAiNewsTask}
             />
           )}
-          {activeTab === 'social' && <SocialMediaTab {...props} onOpenCreator={handleOpenSocialCreator} onOpenDetail={handleOpenSocialPostDetail} onOpenEditor={handleOpenSocialEditor} onDeletePost={props.onDeleteSocialPost} socialAccountMap={socialAccountMap} socialGenerationQueue={socialGenerationQueue} onGenerateSocialFromTopic={handleGenerateSocialFromTopic} onLoadSocialDraft={handleLoadSocialDraft} onRemoveSocialTask={props.onDeleteAiSocialTask} />}
+          {activeTab === 'social' && <SocialMediaTab {...props} onOpenCreator={handleOpenSocialCreator} onOpenDetail={handleOpenSocialPostDetail} onOpenEditor={handleOpenSocialEditor} onRepublish={handleRepublishSocialPost} onDeletePost={props.onDeleteSocialPost} socialAccountMap={socialAccountMap} socialGenerationQueue={socialGenerationQueue} onGenerateSocialFromTopic={handleGenerateSocialFromTopic} onLoadSocialDraft={handleLoadSocialDraft} onRemoveSocialTask={props.onDeleteAiSocialTask} />}
           {activeTab === 'ads' && <AdsTab {...props} brandMap={brandMap} onOpenBrandEditor={handleOpenBrandEditor} onOpenSponsorshipEditor={handleOpenSponsorshipEditor} onOpenAdSlotEditor={handleOpenAdSlotEditor} />}
           {activeTab === 'users' && <UsersTab {...props} onOpenEditor={handleOpenUserEditor} rolesMap={rolesMap} onAddRole={props.onAddRole} onUpdateRole={props.onUpdateRole} onDeleteRole={props.onDeleteRole} />}
           {activeTab === 'metrics' && <MetricsTab {...props} brands={props.brands} brandMap={brandMap} socialAccountMap={socialAccountMap} onOpenDetail={handleOpenSocialPostDetail} adSlots={props.adSlots} onOpenBrandEditor={handleOpenBrandEditor} onOpenSponsorshipEditor={handleOpenSponsorshipEditor} onOpenAdSlotEditor={handleOpenAdSlotEditor} onDeleteBrand={props.onDeleteBrand} onDeleteSponsorship={props.onDeleteSponsorship} onToggleSponsorshipStatus={props.onToggleSponsorshipStatus} />}
@@ -492,9 +493,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               onOpenSocialCreator={() => handleOpenSocialCreator()}
               initialTargetId={props.initialTargetId} 
               users={props.users}
+              onUpdateUser={props.onUpdateUser}
             />
           )}
-          {activeTab === 'admin_tasks' && <AdminTasksTab tasks={props.tasks} users={props.users} socialAccounts={props.socialAccounts} onAddTask={props.onAddTask} onUpdateTask={props.onUpdateTask} onDeleteTask={props.onDeleteTask} onUpdateUser={props.onUpdateUser} />}
+          {activeTab === 'admin_tasks' && <AdminTasksTab tasks={props.tasks} users={props.users} socialAccounts={props.socialAccounts} onAddTask={props.onAddTask} onUpdateTask={props.onUpdateTask} onDeleteTask={props.onDeleteTask} onUpdateUser={props.onUpdateUser} currentUser={props.currentUser} />}
           {activeTab === 'chat' && <ChatTab chatMessages={props.chatMessages} currentUser={props.currentUser} users={props.users} onAddChatMessage={props.onAddChatMessage} onMarkAsRead={props.onMarkChatAsRead} initialTargetId={props.initialTargetId} />}
         </div>
       </main>

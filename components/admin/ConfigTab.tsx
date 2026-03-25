@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, RotateCcw, CheckCircle2, Plus, Edit3, Trash2, Twitter, Instagram, Facebook, Eye, EyeOff, GripVertical, Image as ImageIcon, UploadCloud, Loader2, AtSign, Sparkles, MessageSquare, ShoppingBag, Settings } from 'lucide-react';
+import { Save, RotateCcw, CheckCircle2, Plus, Edit3, Trash2, Twitter, Instagram, Facebook, Eye, EyeOff, GripVertical, Image as ImageIcon, UploadCloud, Loader2, AtSign, Sparkles, MessageSquare, ShoppingBag, Settings, MonitorPlay } from 'lucide-react';
 import { DEFAULT_AI_PROMPT } from '../../constants';
 import { SocialAccount, CategoryConfig, SiteConfig } from '../../types';
 import { storage } from '../../services/firebase';
@@ -248,7 +248,48 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Configuración de Transmisión en Vivo */}
             <div className="border-t border-white/10 pt-10">
+                 <h3 className="text-xl font-oswald font-black italic uppercase text-neon flex items-center gap-3 mb-6">
+                    <MonitorPlay size={20} /> Transmisión en Vivo
+                </h3>
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl">
+                        <div>
+                            <h4 className="text-sm font-bold text-white mb-1">Estado de la Transmisión</h4>
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest">Activa o desactiva el widget en la página principal</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                className="sr-only peer"
+                                checked={localSiteConfig.isLiveActive || false}
+                                onChange={(e) => setLocalSiteConfig({...localSiteConfig, isLiveActive: e.target.checked})}
+                            />
+                            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon"></div>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                            URL del Video de YouTube (Embed o Link normal)
+                        </label>
+                        <input 
+                            type="text" 
+                            value={localSiteConfig.liveVideoUrl || ''} 
+                            onChange={e => setLocalSiteConfig({...localSiteConfig, liveVideoUrl: e.target.value})} 
+                            placeholder="Ej: https://www.youtube.com/watch?v=ZU8HzVNpYR0 o https://www.youtube.com/embed/ZU8HzVNpYR0" 
+                            className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-neon outline-none transition-colors" 
+                        />
+                        <p className="text-[9px] text-gray-500 mt-2">
+                            Puedes pegar el link normal del video o la URL de embed. El sistema lo adaptará automáticamente.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="border-t border-white/10 pt-10 mt-10">
                  <h3 className="text-xl font-oswald font-black italic uppercase text-neon flex items-center gap-3 mb-6">
                     <ShoppingBag size={20} /> Configuración de Anuncios
                 </h3>

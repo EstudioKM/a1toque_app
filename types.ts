@@ -16,6 +16,8 @@ export interface SiteConfig {
   homeAdInterval?: number;
   adminMessage?: string;
   searchDomains?: string[]; // Dominios permitidos para búsqueda IA
+  isLiveActive?: boolean;
+  liveVideoUrl?: string;
 }
 
 export type BlockType = 'text' | 'image' | 'youtube' | 'instagram' | 'quote' | 'heading';

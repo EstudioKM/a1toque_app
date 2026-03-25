@@ -693,8 +693,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     const postData = {
         originalArticleId: article?.id || draftPost?.originalArticleId || 'standalone',
         originalArticleTitle: article?.title || draftPost?.originalArticleTitle || shortTitle,
-        postedAt: draftPost?.postedAt || new Date().toISOString(),
-        postedBy: draftPost?.postedBy || currentUser.id,
+        postedAt: draftPost?.id ? (draftPost.postedAt || new Date().toISOString()) : new Date().toISOString(),
+        postedBy: draftPost?.id ? (draftPost.postedBy || currentUser.id) : currentUser.id,
         imageUrl: generatedImageUrl || imageUrls[0] || '',
         imageUrls: imageUrls,
         videoUrl: videoUrl,
@@ -757,7 +757,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         originalArticleId: article?.id || draftPost?.originalArticleId || 'standalone',
         originalArticleTitle: article?.title || draftPost?.originalArticleTitle || shortTitle,
         postedAt: new Date().toISOString(),
-        postedBy: draftPost?.postedBy || currentUser.id,
+        postedBy: draftPost?.id ? (draftPost.postedBy || currentUser.id) : currentUser.id,
         imageUrl: generatedImageUrl || imageUrls[0] || '',
         imageUrls: imageUrls,
         videoUrl: videoUrl,
@@ -1150,7 +1150,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                       </div>
                    )}
                    <h1 className="text-lg font-oswald font-black italic uppercase text-white tracking-tighter">
-                      {draftPost ? 'REVISIÓN BORRADOR' : 'NUEVO POST SOCIAL'}
+                      {draftPost?.id ? 'REVISIÓN BORRADOR' : 'NUEVO POST SOCIAL'}
                    </h1>
                 </div>
                 {article?.title || draftPost?.originalArticleTitle ? (

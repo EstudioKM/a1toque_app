@@ -22,6 +22,7 @@ interface SocialMediaTabProps {
   onOpenCreator: () => void;
   onOpenDetail: (post: SocialPost) => void;
   onOpenEditor: (post: SocialPost) => void;
+  onRepublish: (post: SocialPost) => void;
   onDeletePost: (id: string) => void;
   onGenerateSocialFromTopic: (topic: string, systemPrompt: string, copyPrompt: string, accountId?: string) => void;
   onLoadSocialDraft: (task: SocialGenerationTask) => void;
@@ -40,6 +41,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   onOpenCreator, 
   onOpenDetail,
   onOpenEditor,
+  onRepublish,
   onDeletePost,
   onGenerateSocialFromTopic,
   onLoadSocialDraft,
@@ -248,12 +250,20 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                   <Edit3 size={14} className="md:w-4 md:h-4" strokeWidth={3} /> REVISAR Y PUBLICAR
                 </button>
               ) : (
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onOpenDetail(post); }}
-                  className="flex-1 md:flex-none px-4 md:px-6 py-2 md:py-3 bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase italic tracking-widest transition-all"
-                >
-                  VER DETALLE
-                </button>
+                <>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onRepublish(post); }}
+                    className="flex-1 md:flex-none px-4 md:px-6 py-2 md:py-3 bg-neon/10 border border-neon/20 text-neon hover:bg-neon hover:text-black rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase italic tracking-widest transition-all"
+                  >
+                    REPUBLICAR
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onOpenDetail(post); }}
+                    className="flex-1 md:flex-none px-4 md:px-6 py-2 md:py-3 bg-white/5 border border-white/10 text-white hover:bg-white/10 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase italic tracking-widest transition-all"
+                  >
+                    VER DETALLE
+                  </button>
+                </>
               )}
               
               <button 

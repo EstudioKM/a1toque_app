@@ -7,6 +7,7 @@ import { ArticleCard } from './components/ArticleCard';
 import { ArticleModal } from './components/ArticleModal'; 
 import { AdminPanel } from './components/admin/AdminPanel';
 import { HeroSlider } from './components/HeroSlider';
+import { LiveWidget } from './components/LiveWidget';
 import { SponsorshipBanner } from './components/SponsorshipBanner';
 import { LandingPage } from './components/LandingPage';
 import { LoginModal } from './components/LoginModal';
@@ -1116,6 +1117,10 @@ const App: React.FC = () => {
             <LandingPage onBack={() => setView(ViewMode.HOME)} />
           ) : (
             <main className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
+                {selectedCategory === 'All' && siteConfig?.isLiveActive && siteConfig?.liveVideoUrl && (
+                  <LiveWidget videoUrl={siteConfig.liveVideoUrl} />
+                )}
+
                 {selectedCategory === 'All' && (
                     <div className="space-y-12">
                       <HeroSlider 

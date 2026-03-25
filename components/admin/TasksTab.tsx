@@ -18,6 +18,7 @@ interface TasksTabProps {
   onOpenSocialCreator: () => void;
   initialTargetId?: string;
   users: User[];
+  onUpdateUser: (user: User) => void;
 }
 
 export const TasksTab: React.FC<TasksTabProps> = ({ 
@@ -32,7 +33,8 @@ export const TasksTab: React.FC<TasksTabProps> = ({
   onOpenArticleEditor,
   onOpenSocialCreator,
   initialTargetId,
-  users
+  users,
+  onUpdateUser
 }) => {
   const [loggingTimeTaskId, setLoggingTimeTaskId] = useState<string | null>(null);
   const [completeTaskOnSave, setCompleteTaskOnSave] = useState(false);
@@ -57,20 +59,20 @@ export const TasksTab: React.FC<TasksTabProps> = ({
 
   const pendingTasks = useMemo(() => {
     return tasks
-      .filter(task => task.assignedUserIds.includes(currentUser.id) && task.status === 'pending')
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      .filter(task => (task.assignedUserIds || []).includes(currentUser.id) && task.status !== 'completed')
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   }, [tasks, currentUser.id]);
 
   const completedTasks = useMemo(() => {
     return tasks
-      .filter(task => task.assignedUserIds.includes(currentUser.id) && task.status === 'completed')
-      .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+      .filter(task => (task.assignedUserIds || []).includes(currentUser.id) && task.status === 'completed')
+      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''));
   }, [tasks, currentUser.id]);
 
   const stats = useMemo(() => {
     const userTasks = tasks.filter(t => t.assignedUserIds.includes(currentUser.id));
     const totalHours = userTasks.reduce((acc, t) => acc + (t.hours || 0), 0);
-    const pendingCount = userTasks.filter(t => t.status === 'pending').length;
+    const pendingCount = userTasks.filter(t => t.status !== 'completed').length;
     
     return {
       totalHours,
@@ -88,7 +90,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({
   };
 
   const toggleTaskStatus = (task: Task) => {
-    if (task.status === 'pending') {
+    if (task.status !== 'completed') {
       if ((task.hours || 0) > 0) {
         // Already has time, just complete it
         onUpdateTask({
@@ -99,10 +101,20 @@ export const TasksTab: React.FC<TasksTabProps> = ({
         // No time, open modal to log time and complete
         setLoggingTimeTaskId(task.id);
         setCompleteTaskOnSave(true);
+        setStatus('completed');
         setIsGeneralLogging(true);
         setIsQuickCompleting(true);
         setEditingLogId(null);
-        setHours(0); setMinutes(0); setAccount(task.account || ''); setDetail(task.description); setTitle(task.title); setDate(task.date || new Date().toISOString().split('T')[0]);
+        setHours(0); 
+        setMinutes(0); 
+        setAccount(task.account || ''); 
+        setDetail(task.description); 
+        setTitle(task.title); 
+        setDate(task.date || new Date().toISOString().split('T')[0]);
+        setAssignedUserIds(task.assignedUserIds || []);
+        setAssignedUserNames(users.filter(u => (task.assignedUserIds || []).includes(u.id)).map(u => u.name));
+        setNotes(task.notes || []);
+        setHistory(task.history || []);
       }
     } else {
       onUpdateTask({
@@ -167,6 +179,28 @@ export const TasksTab: React.FC<TasksTabProps> = ({
           if (status !== task.status) changes.push(`Estado: ${task.status} -> ${status}`);
           
           const action = changes.length > 0 ? `Editado: ${changes.join(', ')}` : 'Editado';
+
+          // Notification logic for new notes
+          const newNotes = notes.filter(n => !(task.notes || []).some(tn => tn.timestamp === n.timestamp));
+          if (newNotes.length > 0) {
+              for (const userId of assignedUserIds) {
+                  if (userId !== currentUser.id) {
+                      const user = users.find(u => u.id === userId);
+                      if (user) {
+                          const alertMessage = {
+                              id: Date.now().toString(),
+                              message: `Nueva nota en tarea "${task.title}"`,
+                              seen: false,
+                              createdAt: new Date().toISOString()
+                          };
+                          onUpdateUser({
+                              ...user,
+                              alertMessages: [...(user.alertMessages || []), alertMessage]
+                          });
+                      }
+                  }
+              }
+          }
 
           await onUpdateTask({
             ...task,
@@ -278,7 +312,10 @@ export const TasksTab: React.FC<TasksTabProps> = ({
               setIsGeneralLogging(!isGeneralLogging);
               setLoggingTimeTaskId(null);
               setEditingLogId(null);
-              setHours(0); setMinutes(0); setAccount(''); setDetail('');
+              setHours(0); setMinutes(0); setAccount(''); setDetail(''); setTitle(''); setDate(new Date().toISOString().split('T')[0]);
+              setAssignedUserIds([currentUser.id]);
+              setAssignedUserNames([currentUser.name]);
+              setStatus('pending');
             }}
             className="col-span-2 md:col-span-1 bg-neon hover:bg-neon/90 text-black p-4 rounded-2xl flex flex-col items-center justify-center transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-neon/10"
           >
@@ -613,12 +650,27 @@ export const TasksTab: React.FC<TasksTabProps> = ({
                         <h4 className="text-lg font-oswald font-black italic uppercase tracking-tight mb-1 text-white break-words">
                           {task.title}
                         </h4>
+                        <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-2">
+                          Creada por: {users.find(u => u.id === task.createdBy)?.name || (task.history && task.history.length > 0 ? users.find(u => u.id === task.history[0].userId)?.name : 'Desconocido')}
+                        </p>
                         {task.description && (
                           <p className="text-xs text-gray-400 leading-relaxed mb-2 break-words">
                             {task.description}
                           </p>
                         )}
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 mt-2">
+                          <p className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 px-2 py-1 rounded ${task.status === 'in_progress' ? 'bg-yellow-500/10 text-yellow-500' : task.status === 'pending' ? 'bg-neon/10 text-neon' : 'bg-gray-500/10 text-gray-500'}`}>
+                            {task.status === 'in_progress' ? 'En Proceso' : task.status === 'pending' ? 'Pendiente' : 'Completada'}
+                          </p>
+                          <div className="flex -space-x-2">
+                            {users.filter(u => task.assignedUserIds.includes(u.id)).map(user => (
+                              <div key={user.id} className="w-6 h-6 rounded-full bg-gray-700 border border-black text-[9px] flex items-center justify-center text-white font-bold" title={user.name}>
+                                {user.name.substring(0, 2).toUpperCase()}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 mt-2">
                           {task.account && (
                             <>
                               <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest flex items-center gap-1.5">
