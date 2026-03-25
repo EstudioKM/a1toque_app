@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ViewMode, Category, User, Role, CategoryConfig, Article, SiteConfig, ChatMessage, Task, SocialAccount } from '../types';
-import { LogOut, User as UserIcon, Menu, X as CloseIcon, Bell, MessageSquare, CheckSquare, Clock } from 'lucide-react';
+import { LogOut, User as UserIcon, Menu, X, Bell, MessageSquare, CheckSquare, Clock, Settings } from 'lucide-react';
 
 import { NotificationCenter } from './NotificationCenter';
 
@@ -267,49 +267,91 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Mobile Sidebar Navigation */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/95 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
            <div className="flex flex-col h-full">
-              <div className="flex justify-between items-center p-8 border-b border-white/10">
+              <div className="flex justify-between items-center px-6 py-6 md:px-12 md:py-8 border-b border-white/5 bg-black/40 backdrop-blur-md">
                   {siteConfig.logoUrl && (
-                    <img src={siteConfig.logoUrl} alt="Logo" className="h-12 w-auto object-contain" />
+                    <img src={siteConfig.logoUrl} alt="Logo" className="h-10 md:h-14 w-auto object-contain drop-shadow-[0_0_15px_rgba(0,255,157,0.2)]" />
                   )}
-                  <button onClick={() => setIsMobileMenuOpen(false)} className="text-white hover:text-neon transition-colors">
-                    <CloseIcon size={32} />
+                  <button 
+                    onClick={() => setIsMobileMenuOpen(false)} 
+                    className="p-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all group"
+                  >
+                    <X size={32} className="group-hover:rotate-90 transition-transform duration-300" />
                   </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 font-oswald text-3xl font-black italic uppercase text-white">
-                  <button onClick={() => handleNavClick('All')} className={`block w-full text-left ${selectedCategory === 'All' ? 'text-neon' : ''}`}>Inicio</button>
-                  <div className="space-y-4">
-                      <p className="text-[10px] font-black text-gray-500 tracking-[0.4em] uppercase mb-4">// CLUBES</p>
-                      {clubs.map(c => {
-                        const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
-                        const clubSocial = socialAccounts.find(sa => normalize(sa.name).includes(normalize(c.name)));
-                        return (
+              
+              <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-10 md:px-12 space-y-12">
+                  <div className="space-y-6">
+                    <p className="text-[10px] font-black text-gray-500 tracking-[0.5em] uppercase opacity-50">// NAVEGACIÓN</p>
+                    <button 
+                      onClick={() => handleNavClick('All')} 
+                      className={`block w-full text-left font-oswald text-4xl md:text-6xl font-black italic uppercase tracking-tighter transition-all ${selectedCategory === 'All' ? 'text-neon translate-x-4' : 'text-white hover:text-neon hover:translate-x-2'}`}
+                    >
+                      Inicio
+                    </button>
+                  </div>
+
+                  <div className="space-y-8">
+                      <p className="text-[10px] font-black text-gray-500 tracking-[0.5em] uppercase opacity-50">// CLUBES</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {clubs.map(c => {
+                          const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+                          const clubSocial = socialAccounts.find(sa => normalize(sa.name).includes(normalize(c.name)));
+                          const isActive = selectedCategory === c.name;
+                          return (
+                            <button 
+                              key={c.id} 
+                              onClick={() => handleNavClick(c.name)} 
+                              className={`flex items-center gap-6 p-4 rounded-3xl border transition-all group ${isActive ? 'bg-neon border-neon text-black shadow-[0_10px_30px_rgba(0,255,157,0.2)]' : 'bg-white/5 border-white/5 text-white hover:bg-white/10 hover:border-white/10'}`}
+                            >
+                              <div className={`w-12 h-12 rounded-2xl overflow-hidden border-2 transition-transform group-hover:scale-110 ${isActive ? 'border-black/20' : 'border-white/10'}`}>
+                                {clubSocial?.profileImageUrl ? (
+                                  <img 
+                                    src={clubSocial.profileImageUrl} 
+                                    alt={c.name} 
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-black/20 flex items-center justify-center text-xs font-black italic">
+                                    {c.name.substring(0, 2)}
+                                  </div>
+                                )}
+                              </div>
+                              <span className="font-oswald text-2xl font-black italic uppercase tracking-tight">{c.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                  </div>
+
+                  <div className="space-y-6">
+                      <p className="text-[10px] font-black text-gray-500 tracking-[0.5em] uppercase opacity-50">// SECCIONES</p>
+                      <div className="flex flex-wrap gap-3">
+                        {sections.map(c => (
                           <button 
                             key={c.id} 
                             onClick={() => handleNavClick(c.name)} 
-                            className={`flex items-center gap-4 w-full text-left ${selectedCategory === c.name ? 'text-neon' : ''}`}
+                            className={`px-6 py-3 rounded-2xl font-oswald text-xl font-black italic uppercase tracking-tight transition-all ${selectedCategory === c.name ? 'bg-neon text-black' : 'bg-white/5 text-white hover:bg-neon hover:text-black'}`}
                           >
-                            {clubSocial?.profileImageUrl && (
-                              <img 
-                                src={clubSocial.profileImageUrl} 
-                                alt={c.name} 
-                                className="w-8 h-8 rounded-full object-cover border border-white/10"
-                              />
-                            )}
                             {c.name}
                           </button>
-                        );
-                      })}
+                        ))}
+                      </div>
                   </div>
-                  <div className="space-y-4">
-                      <p className="text-[10px] font-black text-gray-500 tracking-[0.4em] uppercase mb-4">// SECCIONES</p>
-                      {sections.map(c => (
-                        <button key={c.id} onClick={() => handleNavClick(c.name)} className={`block w-full text-left ${selectedCategory === c.name ? 'text-neon' : ''}`}>{c.name}</button>
-                      ))}
-                  </div>
+
                   {canAccessControlPanel && (
-                    <button onClick={() => { setView(ViewMode.ADMIN); setIsMobileMenuOpen(false); }} className="block w-full text-left text-neon/60 border-t border-white/10 pt-8">Panel de Control</button>
+                    <div className="pt-12 border-t border-white/5">
+                      <button 
+                        onClick={() => { setView(ViewMode.ADMIN); setIsMobileMenuOpen(false); }} 
+                        className="flex items-center gap-4 text-neon/60 hover:text-neon transition-colors font-oswald text-2xl font-black italic uppercase tracking-tight group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-neon/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Settings size={20} />
+                        </div>
+                        Panel de Control
+                      </button>
+                    </div>
                   )}
               </div>
            </div>

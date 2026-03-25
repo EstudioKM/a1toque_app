@@ -797,7 +797,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
        {/* MODAL DE REVISIÓN Y MEJORA (REFINEMENT) */}
        {isRefinementVisible && (
           <div className="fixed inset-0 z-[350] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in duration-300">
-             <div className="max-w-4xl w-full bg-[#0A0A0A] border border-white/10 rounded-[40px] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+             <div className="max-w-4xl w-full bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
                 <header className="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-black/50">
                    <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-neon/20 rounded-lg flex items-center justify-center text-neon">
@@ -810,8 +810,8 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                    </button>
                 </header>
 
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Left: Sources & Context */}
                       <div className="space-y-6">
                          <div>
@@ -835,7 +835,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                                   ))}
                                </div>
                             ) : (
-                               <div className="p-10 border border-dashed border-white/5 rounded-2xl text-center">
+                               <div className="p-8 border border-dashed border-white/5 rounded-2xl text-center">
                                   <AlertCircle size={24} className="mx-auto text-gray-800 mb-3" />
                                   <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">No se encontraron fuentes adicionales</p>
                                 </div>
@@ -923,7 +923,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
        {/* MODAL DE PROGRAMACIÓN */}
        {showScheduleModal && (
           <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] p-8 text-center shadow-2xl relative overflow-hidden flex flex-col">
+            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-2xl p-6 text-center shadow-2xl relative overflow-hidden flex flex-col">
                 <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 opacity-50" />
                 
                 <div className="flex items-center justify-center gap-4 mb-6">
@@ -1072,7 +1072,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
        {/* MODAL DE CONFIRMACIÓN DE PUBLICACIÓN */}
        {showConfirmPublish && (
           <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <div className="max-w-sm w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] p-10 text-center shadow-2xl relative overflow-hidden">
+            <div className="max-w-sm w-full bg-[#0A0A0A] border border-white/10 rounded-2xl p-8 text-center shadow-2xl relative overflow-hidden">
                 <div className={`absolute top-0 left-0 w-full h-1 opacity-50 ${isScheduling ? 'bg-blue-500' : 'bg-neon'}`} />
                 <div className={`w-16 h-16 border rounded-full flex items-center justify-center mx-auto mb-6 ${isScheduling ? 'bg-blue-500/10 border-blue-500/30 text-blue-500' : 'bg-neon/10 border-neon/30 text-neon'}`}>
                   {isScheduling ? <Calendar size={32} className="animate-pulse" /> : <AlertCircle size={32} className="animate-pulse" />}
@@ -1137,7 +1137,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
            </div>
         )}
 
-       <div className="max-w-5xl w-full bg-[#0A0A0A] border border-white/10 rounded-[32px] shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col h-[95vh] lg:h-[90vh] overflow-hidden relative">
+       <div className="max-w-5xl w-full bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col h-[95vh] lg:h-[90vh] overflow-hidden relative">
           {/* Header */}
           <header className="h-12 border-b border-white/5 flex items-center justify-between px-6 bg-black/50 flex-shrink-0">
              <div className="flex items-center gap-6">
@@ -1602,7 +1602,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         {/* Delete Confirmation Modal */}
         {showDeleteConfirm && (
           <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-3xl p-8 text-center shadow-2xl">
+            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-2xl p-6 text-center shadow-2xl">
               <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Trash2 className="text-red-500 size-8" />
               </div>
@@ -1636,7 +1636,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         {/* Type Change Confirmation Modal */}
         {pendingPostType && (
           <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-3xl p-8 text-center shadow-2xl">
+            <div className="max-w-md w-full bg-[#0A0A0A] border border-white/10 rounded-2xl p-6 text-center shadow-2xl">
               <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                 <AlertTriangle className="text-red-500 size-8" />
               </div>

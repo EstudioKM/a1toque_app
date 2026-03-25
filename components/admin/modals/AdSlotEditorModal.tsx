@@ -31,7 +31,7 @@ export const AdSlotEditorModal: React.FC<AdSlotEditorModalProps> = ({ slot, onCl
 
   return (
     <div className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
-      <div className="bg-[#111] border border-white/10 rounded-[32px] p-8 max-w-2xl w-full shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+      <div className="bg-[#111] border border-white/10 rounded-2xl p-6 max-w-2xl w-full shadow-2xl animate-in fade-in zoom-in-95 duration-300">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h3 className="text-2xl font-oswald font-black italic text-neon uppercase tracking-tighter">Configurar Espacio Publicitario</h3>

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Sponsorship, AdSlotConfig } from '../types';
+import { X } from 'lucide-react';
 
 interface SponsorshipBannerProps {
   sponsorship?: Sponsorship;
@@ -28,33 +29,45 @@ export const SponsorshipBanner: React.FC<SponsorshipBannerProps> = ({ sponsorshi
 
   if (position === 'HOME_POPUP') {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm" onClick={onClosePopup}>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-500" onClick={onClosePopup}>
         <div 
-          className="relative bg-neutral-900 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,255,157,0.3)] border border-white/10" 
+          className="relative bg-[#0d0d0d] rounded-[40px] overflow-hidden shadow-[0_0_100px_rgba(0,255,157,0.2)] border border-white/10 flex flex-col animate-in zoom-in duration-500" 
           onClick={e => e.stopPropagation()}
-          style={{ width: `${width}px`, height: `${height}px`, maxWidth: '95vw', maxHeight: '95vh' }}
+          style={{ width: `${width}px`, height: `${height + 80}px`, maxWidth: '95vw', maxHeight: '95vh' }}
         >
-          <button 
-            onClick={onClosePopup}
-            className="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-neon hover:text-black transition-colors font-bold"
-          >
-            ✕
-          </button>
+          {/* Header */}
+          <div className="px-8 py-4 border-b border-white/5 flex items-center justify-between bg-black/40">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-neon rounded-full animate-pulse" />
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.4em]">ANUNCIO EXCLUSIVO</span>
+            </div>
+            <button 
+              onClick={onClosePopup}
+              className="p-2 text-gray-500 hover:text-white hover:bg-white/5 rounded-xl transition-all group"
+            >
+              <X size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+            </button>
+          </div>
+
           <a
             href={sponsorship.link}
             target="_blank"
             rel="noopener noreferrer"
             onClick={handleClick}
-            className="block w-full h-full cursor-pointer"
+            className="flex-1 relative group overflow-hidden"
           >
             {sponsorship.imageUrl && (
               <img 
                 src={sponsorship.imageUrl} 
-                className="w-full h-full object-contain" 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
                 alt={sponsorship.name}
-                style={{ width: `${width}px`, height: `${height}px` }}
               />
             )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-8">
+              <div className="bg-neon text-black px-6 py-3 rounded-xl font-black uppercase italic tracking-widest text-xs shadow-[0_10px_30px_rgba(0,255,157,0.3)]">
+                VER MÁS DETALLES
+              </div>
+            </div>
           </a>
         </div>
       </div>

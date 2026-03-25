@@ -209,7 +209,7 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
         <div className="bg-white/5 p-4 rounded-lg border border-white/10 h-80 flex gap-1 items-end">{chartData.dataPoints.length > 0 ? chartData.dataPoints.map(d => (<div key={d.date} className="flex-1 flex flex-col items-center group relative"><div className="absolute bottom-full mb-2 bg-black text-white px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10"><span className="font-bold">{d.count}</span> posts el {d.date}</div><div className="w-full bg-neon/40 hover:bg-neon transition-colors" style={{ height: `calc(${(chartData.maxCount > 0 ? (d.count / chartData.maxCount) * 98 : 0)}% + 2px)` }}></div><span className="text-[8px] text-gray-500 mt-1 transform -rotate-45 whitespace-nowrap">{d.date.slice(5)}</span></div>)) : <NoDataMessage />}</div>
     </div>
 
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div>
             <h3 className="text-xl font-oswald font-black italic uppercase text-neon mb-4">Posteos por Cuentas</h3>
             <div className="bg-white/5 p-4 rounded-lg border border-white/10 h-80 overflow-y-auto custom-scrollbar space-y-3">{postsByAccountChartData.length > 0 ? postsByAccountChartData.map(item => (<div key={item.name} className="flex items-center gap-4 text-xs"><span className="w-1/4 font-bold text-gray-300 truncate">{item.name}</span><div className="w-3/4 bg-black/50 rounded-full h-4"><div className="bg-neon h-4 rounded-full flex items-center justify-end px-2" style={{ width: `${item.percentage}%` }}><span className="text-black font-black text-[10px]">{item.count}</span></div></div></div>)) : <NoDataMessage />}</div>
@@ -224,7 +224,7 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
   );
 
   return (
-    <div className="max-w-7xl mx-auto pb-24 px-4 md:px-0 pt-4 md:pt-8">
+    <div className="pb-24 px-4 md:px-0">
       <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-4 pb-2 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
         <div>
           <h2 className="text-xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-2 md:gap-3">

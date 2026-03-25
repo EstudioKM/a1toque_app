@@ -174,9 +174,9 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, articles, u
   };
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-0 md:p-4">
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-md transition-opacity" onClick={onClose}></div>
-      <div className="relative w-full max-w-6xl h-full md:h-[95vh] bg-[#0a0a0a] md:rounded-[40px] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col md:border border-white/10 animate-in fade-in zoom-in-95 duration-500">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-0">
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl transition-opacity" onClick={onClose}></div>
+      <div className="relative w-full h-full bg-[#0a0a0a] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)] flex flex-col animate-in fade-in duration-500">
         
         {/* Barra de progreso de lectura */}
         <div className="absolute top-0 left-0 h-1 bg-neon/20 w-full z-[60]">

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { ViewMode, Article, Sponsorship, Category, User, Brand, SponsorshipType, SocialAccount, SocialPost, CategoryConfig, Role, SiteConfig, AdSlotConfig, INITIAL_AD_SLOTS, WorkLog, Task, ChatMessage, GenerationTask, SocialGenerationTask } from './types';
 import { INITIAL_SPONSORSHIPS, INITIAL_USERS, DEFAULT_AI_PROMPT, INITIAL_BRANDS, INITIAL_SOCIAL_ACCOUNTS, INITIAL_CATEGORIES, INITIAL_ROLES } from './constants';
+import { Toaster } from 'sonner';
 import { Header } from './components/Header';
 import { ArticleCard } from './components/ArticleCard';
 import { ArticleModal } from './components/ArticleModal'; 
@@ -960,6 +961,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen selection:bg-neon selection:text-black bg-black">
+      <Toaster position="top-right" theme="dark" richColors closeButton />
       {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} onLogin={handleLogin} onRegister={handleRegister} />}
       {showWelcomeModal && <WelcomeModal userName={welcomeUserName} onClose={() => setShowWelcomeModal(false)} />}
       {showPersonalNotificationsModal && currentUser && (
@@ -1064,7 +1066,7 @@ const App: React.FC = () => {
           initialTargetId={adminTargetId}
         />
       ) : (
-        <div className={`transition-opacity duration-700 ${showMainContent ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`transition-opacity duration-700 flex flex-col min-h-screen ${showMainContent ? 'opacity-100' : 'opacity-0'}`}>
           {showPopup && <SponsorshipBanner sponsorship={popupAd} slotConfig={popupAdSlot} onClosePopup={handleClosePopup} onImpression={handleSponsorshipImpression} onClickEvent={handleSponsorshipClick} />}
           {selectedArticle && (
             <ArticleModal 
@@ -1113,7 +1115,7 @@ const App: React.FC = () => {
           {view === ViewMode.LANDING ? (
             <LandingPage onBack={() => setView(ViewMode.HOME)} />
           ) : (
-            <main className="max-w-7xl mx-auto px-4 py-8">
+            <main className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
                 {selectedCategory === 'All' && (
                     <div className="space-y-12">
                       <HeroSlider 

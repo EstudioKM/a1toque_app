@@ -86,7 +86,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
   };
 
   return (
-    <div className="h-[calc(100vh-160px)] flex bg-white/5 rounded-[40px] border border-white/10 overflow-hidden shadow-2xl">
+    <div className="h-[calc(100vh-160px)] flex bg-white/5 rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
       {/* Sidebar: User List */}
       <div className="w-80 border-r border-white/10 flex flex-col bg-black/20">
         <div className="p-6 border-b border-white/10">
@@ -204,7 +204,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
               </div>
             </div>
             
-            <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-6">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
               {currentConversation.map(msg => (
                 <div key={msg.id} className={`flex ${msg.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[70%] p-4 rounded-3xl ${msg.senderId === currentUser.id ? 'bg-neon text-black rounded-tr-none shadow-[0_0_20px_rgba(180,255,0,0.2)]' : 'bg-[#1A1A1A] text-white border border-white/5 rounded-tl-none'}`}>
@@ -234,7 +234,7 @@ export const ChatTab: React.FC<ChatTabProps> = ({ chatMessages, currentUser, use
           </>
           );
         })() : (
-          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
             <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10">
               <UserIcon size={40} className="text-gray-700" />
             </div>

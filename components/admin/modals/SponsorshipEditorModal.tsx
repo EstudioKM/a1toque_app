@@ -81,7 +81,7 @@ export const SponsorshipEditorModal: React.FC<SponsorshipEditorModalProps> = ({ 
 
   return (
     <div className="fixed inset-0 z-[250] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
-      <div className="bg-[#111] border border-white/10 rounded-[32px] p-8 max-w-4xl w-full shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+      <div className="bg-[#111] border border-white/10 rounded-2xl p-6 max-w-4xl w-full shadow-2xl animate-in fade-in zoom-in-95 duration-300">
         <div className="flex justify-between items-center mb-8">
           <h3 className="text-2xl font-oswald font-black italic text-neon uppercase tracking-tighter">
             {sponsorship?.id ? 'Editar Auspicio' : 'Nuevo Auspicio'}
@@ -89,7 +89,7 @@ export const SponsorshipEditorModal: React.FC<SponsorshipEditorModalProps> = ({ 
           <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={24} /></button>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 max-h-[75vh] overflow-y-auto custom-scrollbar pr-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[75vh] overflow-y-auto custom-scrollbar pr-4">
           {/* Columna Izquierda: Creatividad */}
           <div className="space-y-6">
             <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Creatividad</h4>

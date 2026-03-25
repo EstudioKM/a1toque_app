@@ -192,7 +192,7 @@ export interface WorkLog {
   taskId?: string | null; // Link to a specific task
 }
 
-export type TaskStatus = 'pending' | 'completed';
+export type TaskStatus = 'pending' | 'in_progress' | 'completed';
 
 export interface Task {
   id: string;
@@ -208,6 +208,10 @@ export interface Task {
   date: string;
   account: string;
   hours: number;
+
+  // New fields
+  notes: { userId: string; text: string; timestamp: string }[];
+  history: { userId: string; action: string; timestamp: string }[];
 }
 
 export interface ChatMessage {

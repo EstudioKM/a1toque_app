@@ -265,10 +265,10 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
   };
 
   return (
-    <div className="pt-2 md:pt-4">
+    <div>
       <div className="space-y-8">
       {/* Control Center Header */}
-      <div className="flex flex-col gap-6 bg-white/[0.02] border border-white/5 p-8 rounded-[40px]">
+      <div className="flex flex-col gap-4 bg-white/[0.02] border border-white/5 p-5 rounded-2xl">
         {/* Top Row: Title, Tabs and Primary Action */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -373,7 +373,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
             {userStats.slice(0, 3).map((user, index) => (
               <div 
                 key={user.id} 
-                className={`relative p-4 rounded-3xl border overflow-hidden group transition-all hover:scale-[1.02] cursor-pointer ${
+                className={`relative p-4 rounded-2xl border overflow-hidden group transition-all hover:scale-[1.02] cursor-pointer ${
                   index === 0 ? 'bg-neon/10 border-neon/30' : 'bg-white/[0.02] border-white/5'
                 }`}
                 onClick={() => setSelectedUserId(user.id)}
@@ -407,7 +407,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
 
           {/* Global Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white/5 border border-white/10 p-6 rounded-[32px] relative overflow-hidden group">
+            <div className="bg-white/5 border border-white/10 p-6 rounded-2xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                 <Clock size={48} className="text-neon" />
               </div>
@@ -418,7 +418,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
               </div>
             </div>
 
-            <div className="bg-white/5 border border-white/10 p-6 rounded-[32px] relative overflow-hidden group">
+            <div className="bg-white/5 border border-white/10 p-6 rounded-2xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                 <TrendingUp size={48} className="text-neon" />
               </div>
@@ -434,7 +434,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
               </p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 p-6 rounded-[32px] relative overflow-hidden group">
+            <div className="bg-white/5 border border-white/10 p-6 rounded-2xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                 <Clock size={48} className="text-neon" />
               </div>
@@ -447,7 +447,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
 
             <div 
               onClick={() => setShowCompletedTasksModal(true)}
-              className="bg-white/5 border border-white/10 p-6 rounded-[32px] relative overflow-hidden group cursor-pointer hover:bg-white/10 transition-colors"
+              className="bg-white/5 border border-white/10 p-5 rounded-2xl relative overflow-hidden group cursor-pointer hover:bg-white/10 transition-colors"
             >
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                 <CheckSquare size={48} className="text-neon" />
@@ -463,8 +463,8 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
           </div>
 
           {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-8 bg-white/5 border border-white/10 p-8 rounded-[40px]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-8 bg-white/5 border border-white/10 p-5 rounded-2xl">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-white font-oswald font-black italic uppercase text-lg flex items-center gap-3">
                   <TrendingUp size={20} className="text-neon" /> Evolución de Carga de Trabajo
@@ -504,7 +504,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
               </div>
             </div>
 
-            <div className="lg:col-span-4 bg-white/5 border border-white/10 p-8 rounded-[40px]">
+            <div className="lg:col-span-4 bg-white/5 border border-white/10 p-5 rounded-2xl">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-white font-oswald font-black italic uppercase text-lg flex items-center gap-3">
                   <PieChartIcon size={20} className="text-neon" /> Distribución por Cuenta
@@ -542,8 +542,8 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
           </div>
 
           {/* Ranking & Detailed Stats */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white/5 border border-white/10 p-8 rounded-[40px]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
               <h3 className="text-white font-oswald font-black italic uppercase text-lg mb-6 flex items-center gap-3">
                 <Users size={20} className="text-neon" /> Ranking de Productividad
               </h3>
@@ -569,7 +569,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
               </div>
             </div>
 
-            <div className="bg-white/5 border border-white/10 p-8 rounded-[40px]">
+            <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
               <h3 className="text-white font-oswald font-black italic uppercase text-lg mb-6 flex items-center gap-3">
                 <Timer size={20} className="text-neon" /> Horas por Día (Detalle)
               </h3>
@@ -708,7 +708,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
             )}
           </AnimatePresence>
           
-          <div className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
+          <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -866,7 +866,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                   initial={{ opacity: 0, scale: 0.95, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                  className="relative w-full max-w-2xl bg-[#0A0A0A] border border-white/10 rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
+                  className="relative w-full max-w-2xl bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
                 >
                   {(() => {
                     const user = userStats.find(u => u.id === selectedAlertUserId);
@@ -894,7 +894,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                           </button>
                         </div>
 
-                        <div className="p-6 space-y-6">
+                        <div className="p-5 space-y-6">
                           <div className="bg-black/40 p-4 rounded-2xl border border-neon/30">
                             <h4 className="text-[10px] font-black text-white uppercase tracking-widest mb-3 flex items-center gap-2">
                               <BellRing size={14} className="text-neon" /> Nueva Alerta
@@ -1003,7 +1003,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                   initial={{ opacity: 0, scale: 0.95, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                  className="relative w-full max-w-6xl max-h-[90vh] bg-[#0A0A0A] border border-white/10 rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
+                  className="relative w-full max-w-6xl max-h-[90vh] bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
                 >
                   {(() => {
                     const user = userStats.find(u => u.id === selectedUserId);
@@ -1038,22 +1038,22 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                         </div>
 
                         {/* Modal Body */}
-                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
+                        <div className="flex-1 overflow-y-auto p-5 custom-scrollbar space-y-8">
                           {/* Stats Row */}
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[120px]">
+                            <div className="bg-white/[0.02] p-6 rounded-2xl border border-white/5 text-center flex flex-col justify-center min-h-[120px]">
                               <p className="text-4xl font-oswald font-black italic text-white mb-2">{user.totalHours.toFixed(1)}</p>
                               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Horas Totales</p>
                             </div>
-                            <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[120px]">
+                            <div className="bg-white/[0.02] p-6 rounded-2xl border border-white/5 text-center flex flex-col justify-center min-h-[120px]">
                               <p className="text-4xl font-oswald font-black italic text-neon mb-2">{user.completedTasks}</p>
                               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Tareas Listas</p>
                             </div>
-                            <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[120px]">
+                            <div className="bg-white/[0.02] p-6 rounded-2xl border border-white/5 text-center flex flex-col justify-center min-h-[120px]">
                               <p className="text-4xl font-oswald font-black italic text-yellow-500 mb-2">{user.pendingTasks}</p>
                               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Pendientes</p>
                             </div>
-                            <div className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center flex flex-col justify-center min-h-[120px] cursor-pointer hover:border-red-500/30 transition-colors" onClick={() => setSelectedAlertUserId(user.id)}>
+                            <div className="bg-white/[0.02] p-5 rounded-2xl border border-white/5 text-center flex flex-col justify-center min-h-[120px] cursor-pointer hover:border-red-500/30 transition-colors" onClick={() => setSelectedAlertUserId(user.id)}>
                               <p className="text-4xl font-oswald font-black italic text-red-500 mb-2">{user.alertMessages?.filter(a => !a.seen).length || 0}</p>
                               <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Alertas Activas</p>
                             </div>
@@ -1099,7 +1099,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                               </div>
                             </div>
                             
-                            <div className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
+                            <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
                               <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                   <thead>
@@ -1224,7 +1224,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
         {activeTab === 'tasks_table' && (
           <div className="space-y-6">
             {/* Table Filters */}
-            <div className="bg-white/[0.02] border border-white/5 p-6 rounded-3xl flex flex-wrap items-center gap-4">
+            <div className="bg-white/[0.02] border border-white/5 p-5 rounded-2xl flex flex-wrap items-center gap-4">
               <div className="flex-1 min-w-[200px] relative">
                 <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                 <input 
@@ -1282,7 +1282,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
             </div>
 
             {/* Google Sheet Style Table */}
-            <div className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden">
               <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
                   <thead>
@@ -1325,7 +1325,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                       if (filtered.length === 0) {
                         return (
                           <tr>
-                            <td colSpan={7} className="p-12 text-center">
+                            <td colSpan={7} className="p-8 text-center">
                               <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">No se encontraron tareas con los filtros aplicados</p>
                             </td>
                           </tr>
@@ -1410,7 +1410,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-[#0D0D0D] p-8 rounded-3xl border border-neon/30 shadow-2xl shadow-neon/10 relative overflow-hidden max-w-3xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
+              className="bg-[#0D0D0D] p-6 rounded-2xl border border-neon/30 shadow-2xl shadow-neon/10 relative overflow-hidden max-w-3xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-neon/20" />
               <div className="flex justify-between items-center mb-8">
@@ -1557,7 +1557,7 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-[#0D0D0D] p-8 rounded-3xl border border-neon/30 shadow-2xl shadow-neon/10 relative overflow-hidden max-w-4xl w-full max-h-[90vh] flex flex-col"
+              className="bg-[#0D0D0D] p-6 rounded-2xl border border-neon/30 shadow-2xl shadow-neon/10 relative overflow-hidden max-w-4xl w-full max-h-[90vh] flex flex-col"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-neon" />
               <div className="flex justify-between items-center mb-8 shrink-0">

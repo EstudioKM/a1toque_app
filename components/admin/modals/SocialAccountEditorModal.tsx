@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SocialAccount, SocialPlatform } from '../../../types';
-import { X, Sparkles, MessageSquare, Info, AtSign } from 'lucide-react';
+import { X, Sparkles, MessageSquare, Info, AtSign, UploadCloud, Loader2 } from 'lucide-react';
+import { storage } from '../../../services/firebase';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 interface SocialAccountEditorModalProps {
   account: SocialAccount | null;
@@ -22,6 +24,9 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
     systemPrompt: '', 
     copyPrompt: '' 
   });
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (account) {
@@ -30,7 +35,6 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
         handle: account.handle, 
         platform: account.platform, 
         profileImageUrl: account.profileImageUrl,
-        // Fallbacks para asegurar que los datos existentes se carguen correctamente tras el cambio de nombres de campos
         instagramId: account.instagramId || (account as any).accountId || (account as any).instagramAccountId || '',
         facebookId: account.facebookId || (account as any).facebookAccountId || '',
         placidId: account.placidId || (account as any).placidTemplateId || '',
@@ -54,20 +58,55 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
         copyPrompt: '' 
       });
     }
+    setProfileImageFile(null);
   }, [account]);
 
-  const handleSave = () => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProfileImageFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData(p => ({ ...p, profileImageUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = async () => {
+    let profileImageUrl = formData.profileImageUrl;
+    if (profileImageFile) {
+        setIsUploading(true);
+        try {
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(profileImageFile);
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = error => reject(error);
+            });
+            const storageRef = ref(storage, `accounts/${formData.name || 'new'}-${Date.now()}.png`);
+            const snapshot = await uploadString(storageRef, base64, 'data_url');
+            profileImageUrl = await getDownloadURL(snapshot.ref);
+        } catch (error) {
+            console.error("Image upload error:", error);
+            setIsUploading(false);
+            return;
+        } finally {
+            setIsUploading(false);
+        }
+    }
+    
+    const dataToSave = { ...formData, profileImageUrl };
     if (account?.id) {
-      onSave({ ...formData, id: account.id });
+      onSave({ ...dataToSave, id: account.id });
     } else {
-      onSave(formData);
+      onSave(dataToSave);
     }
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center p-0 md:p-6">
-      <div className="bg-[#0a0a0a] border border-white/10 md:rounded-[40px] w-full max-w-4xl h-full md:h-auto md:max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)] animate-in fade-in zoom-in-95 duration-300">
+      <div className="bg-[#0a0a0a] border border-white/10 md:rounded-2xl w-full max-w-4xl h-full md:h-auto md:max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_100px_rgba(0,0,0,1)] animate-in fade-in zoom-in-95 duration-300">
         
         {/* Header */}
         <div className="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-black/40">
@@ -82,8 +121,8 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
             {/* Columna de Datos Básicos */}
             <div className="lg:col-span-5 space-y-5">
@@ -187,13 +226,23 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
                 <div className="space-y-3">
                     <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest pl-1">Imagen de Perfil</label>
                     <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 bg-black border border-white/10 rounded-xl overflow-hidden shadow-xl flex-shrink-0">
+                        <div className="w-14 h-14 bg-black border border-white/10 rounded-xl overflow-hidden shadow-xl flex-shrink-0 relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
                             {formData.profileImageUrl ? (
                                 <img src={formData.profileImageUrl} alt="Preview" className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-800"><AtSign size={24} /></div>
                             )}
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <UploadCloud size={20} className="text-neon" />
+                            </div>
                         </div>
+                        <input 
+                            type="file"
+                            ref={avatarInputRef}
+                            onChange={handleFileUpload}
+                            hidden
+                            accept="image/*"
+                        />
                         <input 
                             type="text" 
                             placeholder="URL de la imagen..." 
@@ -255,9 +304,10 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
           </button>
           <button 
             onClick={handleSave} 
-            className="px-10 py-4 bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-[0_10px_30px_rgba(0,255,157,0.3)]"
+            disabled={isUploading}
+            className="px-10 py-4 bg-neon text-black text-[11px] font-black uppercase italic tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-[0_10px_30px_rgba(0,255,157,0.3)] disabled:opacity-50"
           >
-            {account ? 'GUARDAR CAMBIOS' : 'CREAR CUENTA SOCIAL'}
+            {isUploading ? <Loader2 className="animate-spin" size={16} /> : (account ? 'GUARDAR CAMBIOS' : 'CREAR CUENTA SOCIAL')}
           </button>
         </div>
       </div>

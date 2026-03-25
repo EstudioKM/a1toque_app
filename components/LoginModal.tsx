@@ -97,23 +97,60 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLogin, onRegi
     }
 
     return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
-        <div className="relative max-w-sm w-full bg-[#111] rounded-3xl overflow-hidden shadow-2xl border border-white/10 p-8">
-           <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white transition"><X size={20}/></button>
-            <div className="text-center mb-8">
-                <img src="https://www.a1toque.com/wp-content/uploads/2020/06/Artboard-22-4.png" alt="A1Toque" className="h-12 w-auto object-contain mx-auto mb-4"/>
-                <h2 className="text-2xl font-oswald font-black text-white uppercase italic">{titleMap[view]}</h2>
-            </div>
-            {error && <p className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs text-center p-3 rounded-lg mb-4">{error}</p>}
-            {renderContent()}
-            <div className="text-center mt-6 text-xs">
-                <p className="text-gray-500">
-                    {view === 'login' ? '¿No tienes cuenta?' : '¿Ya eres miembro?'}
-                    <button onClick={() => setView(view === 'login' ? 'register' : 'login')} className="font-bold text-neon hover:underline ml-1">
-                         {view === 'login' ? 'Regístrate' : 'Inicia sesión'}
-                    </button>
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300">
+        <div className="relative w-full h-full bg-[#0d0d0d] flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="px-6 md:px-12 py-6 md:py-8 border-b border-white/5 flex items-center justify-between bg-black/40 backdrop-blur-md sticky top-0 z-10">
+            <div className="flex items-center gap-4 md:gap-6">
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-neon/10 border border-neon/20 rounded-2xl flex items-center justify-center text-neon shadow-[0_0_20px_rgba(0,255,157,0.1)]">
+                <Lock size={24} className="md:w-8 md:h-8" />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-4xl font-oswald font-black text-white uppercase italic tracking-tighter leading-none">
+                  {titleMap[view]}
+                </h2>
+                <p className="text-gray-500 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] mt-1 md:mt-2">
+                  {view === 'login' ? 'Accede a tu cuenta de A1Toque' : 'Únete a nuestra comunidad exclusiva'}
                 </p>
+              </div>
             </div>
+            <button 
+              onClick={onClose}
+              className="p-3 md:p-4 text-gray-500 hover:text-white hover:bg-white/5 rounded-2xl transition-all group"
+            >
+              <X size={24} className="md:w-8 md:h-8 group-hover:rotate-90 transition-transform duration-300" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-12 flex flex-col items-center justify-center">
+            <div className="max-w-md w-full">
+              <div className="text-center mb-12">
+                <img src="https://www.a1toque.com/wp-content/uploads/2020/06/Artboard-22-4.png" alt="A1Toque" className="h-16 md:h-24 w-auto object-contain mx-auto mb-6 drop-shadow-[0_0_20px_rgba(0,255,157,0.2)]"/>
+              </div>
+
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs text-center p-4 rounded-2xl mb-8 font-bold uppercase tracking-widest animate-in shake duration-300">
+                  {error}
+                </div>
+              )}
+
+              <div className="bg-white/[0.03] border border-white/5 rounded-[32px] p-8 md:p-10 shadow-2xl">
+                {renderContent()}
+                
+                <div className="text-center mt-10 pt-8 border-t border-white/5">
+                  <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
+                    {view === 'login' ? '¿No tienes cuenta?' : '¿Ya eres miembro?'}
+                    <button 
+                      onClick={() => setView(view === 'login' ? 'register' : 'login')} 
+                      className="font-black text-neon hover:underline ml-2 transition-all"
+                    >
+                      {view === 'login' ? 'REGÍSTRATE' : 'INICIA SESIÓN'}
+                    </button>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

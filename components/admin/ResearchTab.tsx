@@ -74,7 +74,7 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
         </div>
       )}
 
-      <div className="bg-[#0f0f0f] p-6 md:p-8 rounded-[32px] border border-white/5 shadow-2xl mb-12">
+      <div className="bg-[#0f0f0f] p-6 md:p-8 rounded-2xl border border-white/5 shadow-2xl mb-12">
         <div className="flex items-center gap-2 mb-6">
             <div className="w-8 h-8 bg-neon/10 rounded-full flex items-center justify-center text-neon">
                 <Sparkles size={16} />
@@ -136,7 +136,7 @@ export const ResearchTab: React.FC<ResearchTabProps> = ({
         <h3 className="text-xl font-oswald font-black italic uppercase text-white mb-6 px-2">Tareas en Curso</h3>
         <div className="grid grid-cols-1 gap-4">
           {generationQueue.length === 0 ? (
-             <div className="text-center py-20 border-2 border-dashed border-white/5 rounded-[40px] bg-white/[0.01]">
+             <div className="text-center py-16 border-2 border-dashed border-white/5 rounded-2xl bg-white/[0.01]">
                 <Loader2 className="w-12 h-12 text-gray-800 mx-auto mb-4 opacity-20" />
                 <p className="text-gray-500 font-black uppercase italic text-sm tracking-widest">Cola vacía</p>
             </div>

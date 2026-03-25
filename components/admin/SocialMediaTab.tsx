@@ -184,7 +184,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
       <div 
         key={post.id} 
         onClick={!isEditable ? () => onOpenDetail(post) : undefined}
-        className={`group relative rounded-2xl md:rounded-[32px] overflow-hidden border transition-all duration-300 ${!isEditable ? 'bg-[#0f0f0f] border-white/5 hover:border-white/10 cursor-pointer' : isScheduled ? 'bg-blue-500/5 border-blue-500/20' : 'bg-neon/[0.03] border-neon/20'}`}
+        className={`group relative rounded-2xl overflow-hidden border transition-all duration-300 ${!isEditable ? 'bg-[#0f0f0f] border-white/5 hover:border-white/10 cursor-pointer' : isScheduled ? 'bg-blue-500/5 border-blue-500/20' : 'bg-neon/[0.03] border-neon/20'}`}
       >
         <div className="p-4 md:p-6">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
@@ -271,7 +271,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-24 px-3 md:px-0 pt-4 md:pt-8">
+    <div className="pb-24 px-3 md:px-0">
       {/* Header Superior */}
       <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-4 pb-2 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-3 px-3 md:mx-0 md:px-0">
         <div className="w-full md:w-auto">
@@ -325,9 +325,9 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
       </div>
 
       {activeSubTab === 'posteos' ? (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-14 md:pt-18">
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Input de Generación */}
-          <div className="bg-[#0f0f0f] p-5 md:p-8 rounded-3xl md:rounded-[40px] border border-white/5 shadow-2xl relative mt-2 md:mt-4">
+          <div className="bg-[#0f0f0f] p-4 md:p-6 rounded-2xl border border-white/5 shadow-2xl relative mt-2 md:mt-4">
             <div className="absolute top-0 right-0 p-4 md:p-8 opacity-5 overflow-hidden pointer-events-none">
                 <Zap className="w-16 h-16 md:w-[120px] md:h-[120px]" />
             </div>
@@ -415,7 +415,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
 
             <div className="grid grid-cols-1 gap-3 md:gap-4">
               {socialGenerationQueue.length === 0 && drafts.length === 0 ? (
-                <div className="text-center py-12 md:py-20 border-2 border-dashed border-white/5 rounded-3xl md:rounded-[40px] bg-white/[0.01]">
+                <div className="text-center py-12 md:py-16 border-2 border-dashed border-white/5 rounded-2xl bg-white/[0.01]">
                     <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-gray-800 mx-auto mb-3 md:mb-4 opacity-20" />
                     <p className="text-gray-500 font-black uppercase italic text-xs md:text-sm tracking-widest">Sin tareas activas</p>
                 </div>
@@ -609,7 +609,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
           ) : (
             <div className="flex flex-col gap-3">
               {scheduledPosts.length > 0 ? scheduledPosts.map(renderPostItem) : (
-                <div className="py-20 text-center border border-dashed border-white/5 rounded-[40px] bg-[#0f0f0f]">
+                <div className="py-16 text-center border border-dashed border-white/5 rounded-2xl bg-[#0f0f0f]">
                   <Clock className="w-12 h-12 text-gray-800 mx-auto mb-4 opacity-30" />
                   <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">No hay posteos programados</p>
                 </div>
@@ -628,7 +628,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
 
           <div className="flex flex-col gap-3">
             {publishedPosts.length > 0 ? publishedPosts.map(renderPostItem) : (
-              <div className="py-20 text-center border border-dashed border-white/5 rounded-[40px] bg-[#0f0f0f]">
+              <div className="py-16 text-center border border-dashed border-white/5 rounded-2xl bg-[#0f0f0f]">
                 <Send className="w-12 h-12 text-gray-800 mx-auto mb-4 opacity-30" />
                 <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest">Sin publicaciones activas</p>
               </div>
@@ -640,7 +640,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
       {/* Modal de eliminación simplificado */}
       {postToDelete && (
         <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
-           <div className="max-w-xs w-full bg-[#111] border border-white/10 rounded-2xl md:rounded-[40px] p-6 md:p-10 text-center shadow-2xl animate-in zoom-in-95 duration-200">
+           <div className="max-w-xs w-full bg-[#111] border border-white/10 rounded-2xl p-6 md:p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200">
               <div className="w-12 h-12 md:w-16 md:h-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mx-auto mb-4 md:mb-6">
                 <Trash2 size={24} className="md:w-8 md:h-8" strokeWidth={2.5} />
               </div>

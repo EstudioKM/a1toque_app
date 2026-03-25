@@ -188,69 +188,102 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageUrl, onClose, o
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 lg:p-4">
-      <div className="bg-[#111] border border-white/10 rounded-2xl p-4 lg:p-6 max-w-lg w-full flex flex-col max-h-[95vh]">
-        <div className="flex justify-between items-center mb-4 flex-shrink-0">
-          <h3 className="text-base lg:text-lg font-oswald font-black italic text-neon flex items-center gap-2 uppercase tracking-tight">
-            <Crop size={18}/> EDITAR ENCUADRE
-          </h3>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gray-500 hover:text-white transition-all"><X size={20}/></button>
+    <div className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl flex items-center justify-center p-0 animate-in fade-in duration-300">
+      <div className="w-full h-full bg-[#0d0d0d] flex flex-col relative overflow-hidden">
+        {/* Header */}
+        <div className="px-6 md:px-12 py-6 md:py-8 border-b border-white/5 flex items-center justify-between bg-black/40 backdrop-blur-md sticky top-0 z-10">
+          <div className="flex items-center gap-4 md:gap-6">
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-neon/10 border border-neon/20 rounded-2xl flex items-center justify-center text-neon shadow-[0_0_20px_rgba(0,255,157,0.1)]">
+              <Crop size={24} className="md:w-8 md:h-8" />
+            </div>
+            <div>
+              <h2 className="text-2xl md:text-4xl font-oswald font-black text-white uppercase italic tracking-tighter leading-none">
+                EDITAR ENCUADRE
+              </h2>
+              <p className="text-gray-500 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em] mt-1 md:mt-2">
+                Ajusta el área visible de la imagen
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-3 md:p-4 text-gray-500 hover:text-white hover:bg-white/5 rounded-2xl transition-all group"
+          >
+            <X size={24} className="md:w-8 md:h-8 group-hover:rotate-90 transition-transform duration-300" />
+          </button>
         </div>
         
-        <div 
-            ref={containerRef}
-            className="relative w-full h-[300px] lg:h-[512px] bg-black rounded-xl flex items-center justify-center overflow-hidden touch-none flex-1"
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
-        >
-          {!isImageLoaded && !error && <Loader2 className="w-8 h-8 animate-spin text-gray-500" />}
-          {error && <div className="text-center p-4"><AlertTriangle className="w-8 h-8 text-red-500 mb-2 mx-auto" /><p className="text-xs text-red-400 max-w-xs">{error}</p></div>}
-          
-          {isImageLoaded && (
-            <>
-              <img
-                ref={imageRef}
-                src={originalImageRef.current?.src || imageUrl}
-                onLoad={onImageRendered}
-                className="select-none pointer-events-none max-w-full max-h-full"
-                alt="Para recortar"
-              />
-              <div 
-                className="absolute top-0 left-0 pointer-events-none"
-                style={{
-                    width: cropBox.size, 
-                    height: cropBox.size,
-                    transform: `translate(${cropBox.x}px, ${cropBox.y}px)`,
-                    boxShadow: '0 0 0 9999px rgba(0,0,0,0.7)',
-                }}
-              />
-               <div 
-                className="absolute top-0 left-0 border-2 border-dashed border-neon cursor-grab active:cursor-grabbing"
-                style={{
-                    width: cropBox.size, 
-                    height: cropBox.size,
-                    transform: `translate(${cropBox.x}px, ${cropBox.y}px)`,
-                }}
-                onPointerDown={handleDragPointerDown}
-              >
-                <div onPointerDown={e => handleResizePointerDown(e, 'top-left')} className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-neon border border-black cursor-nwse-resize" />
-                <div onPointerDown={e => handleResizePointerDown(e, 'top-right')} className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-neon border border-black cursor-nesw-resize" />
-                <div onPointerDown={e => handleResizePointerDown(e, 'bottom-left')} className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-neon border border-black cursor-nesw-resize" />
-                <div onPointerDown={e => handleResizePointerDown(e, 'bottom-right')} className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-neon border border-black cursor-nwse-resize" />
-              </div>
-            </>
-          )}
-        </div>
-        <p className="text-[9px] lg:text-xs text-gray-500 text-center mt-3 uppercase font-bold tracking-widest opacity-50">Arrastra para mover o las esquinas para redimensionar</p>
-        <canvas ref={canvasRef} className="hidden" />
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-12 flex flex-col items-center justify-center">
+          <div className="max-w-4xl w-full flex flex-col items-center">
+            <div 
+                ref={containerRef}
+                className="relative w-full aspect-square md:aspect-video bg-black rounded-[32px] flex items-center justify-center overflow-hidden touch-none shadow-2xl border border-white/5"
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
+            >
+              {!isImageLoaded && !error && <Loader2 className="w-12 h-12 animate-spin text-neon" />}
+              {error && <div className="text-center p-8 bg-red-500/5 rounded-3xl border border-red-500/10"><AlertTriangle className="w-12 h-12 text-red-500 mb-4 mx-auto" /><p className="text-sm text-red-400 max-w-xs font-bold uppercase tracking-widest">{error}</p></div>}
+              
+              {isImageLoaded && (
+                <>
+                  <img
+                    ref={imageRef}
+                    src={originalImageRef.current?.src || imageUrl}
+                    onLoad={onImageRendered}
+                    className="select-none pointer-events-none max-w-full max-h-full"
+                    alt="Para recortar"
+                  />
+                  <div 
+                    className="absolute top-0 left-0 pointer-events-none"
+                    style={{
+                        width: cropBox.size, 
+                        height: cropBox.size,
+                        transform: `translate(${cropBox.x}px, ${cropBox.y}px)`,
+                        boxShadow: '0 0 0 9999px rgba(0,0,0,0.8)',
+                    }}
+                  />
+                   <div 
+                    className="absolute top-0 left-0 border-4 border-dashed border-neon cursor-grab active:cursor-grabbing shadow-[0_0_30px_rgba(0,255,157,0.3)]"
+                    style={{
+                        width: cropBox.size, 
+                        height: cropBox.size,
+                        transform: `translate(${cropBox.x}px, ${cropBox.y}px)`,
+                    }}
+                    onPointerDown={handleDragPointerDown}
+                  >
+                    <div onPointerDown={e => handleResizePointerDown(e, 'top-left')} className="absolute -top-3 -left-3 w-6 h-6 bg-neon border-2 border-black rounded-full cursor-nwse-resize shadow-lg" />
+                    <div onPointerDown={e => handleResizePointerDown(e, 'top-right')} className="absolute -top-3 -right-3 w-6 h-6 bg-neon border-2 border-black rounded-full cursor-nesw-resize shadow-lg" />
+                    <div onPointerDown={e => handleResizePointerDown(e, 'bottom-left')} className="absolute -bottom-3 -left-3 w-6 h-6 bg-neon border-2 border-black rounded-full cursor-nesw-resize shadow-lg" />
+                    <div onPointerDown={e => handleResizePointerDown(e, 'bottom-right')} className="absolute -bottom-3 -right-3 w-6 h-6 bg-neon border-2 border-black rounded-full cursor-nwse-resize shadow-lg" />
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <p className="text-xs md:text-sm text-gray-500 text-center mt-8 uppercase font-black tracking-[0.3em] opacity-50">
+              Arrastra para mover • Esquinas para redimensionar
+            </p>
+            
+            <canvas ref={canvasRef} className="hidden" />
 
-        <div className="flex flex-col sm:flex-row justify-end gap-3 lg:gap-4 mt-6 flex-shrink-0">
-          <button onClick={onClose} className="w-full sm:w-auto px-4 py-2.5 bg-white/5 text-gray-400 text-[10px] lg:text-xs font-bold rounded-xl hover:bg-white/10 hover:text-white transition-all uppercase tracking-widest">CANCELAR</button>
-          <button onClick={handleSaveCrop} disabled={isSaving || !isImageLoaded} className="w-full sm:w-auto px-6 py-2.5 bg-neon text-black text-[10px] lg:text-xs font-black uppercase italic tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_0_20px_rgba(0,255,157,0.2)]">
-            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            {isSaving ? 'GUARDANDO...' : 'GUARDAR ENCUADRE'}
-          </button>
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-12 w-full max-w-2xl">
+              <button 
+                onClick={onClose} 
+                className="flex-1 py-5 bg-white/5 text-gray-400 text-sm font-black rounded-2xl hover:bg-white/10 hover:text-white transition-all uppercase tracking-widest"
+              >
+                CANCELAR
+              </button>
+              <button 
+                onClick={handleSaveCrop} 
+                disabled={isSaving || !isImageLoaded} 
+                className="flex-1 py-5 bg-neon text-black text-sm font-black uppercase italic tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-[0_10px_40px_rgba(0,255,157,0.3)]"
+              >
+                {isSaving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                {isSaving ? 'GUARDANDO...' : 'GUARDAR ENCUADRE'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

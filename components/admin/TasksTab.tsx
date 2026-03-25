@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Task, User, WorkLog, SocialAccount } from '../../types';
+import { Task, User, WorkLog, SocialAccount, TaskStatus } from '../../types';
 import { CheckSquare, Square, Clock, AlertCircle, Sparkles, Plus, Timer, Building, Save, X, List, TrendingUp, Calendar, ChevronRight, Trash2, FileText, Send } from 'lucide-react';
 import { Role } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -17,6 +17,7 @@ interface TasksTabProps {
   onOpenArticleEditor: () => void;
   onOpenSocialCreator: () => void;
   initialTargetId?: string;
+  users: User[];
 }
 
 export const TasksTab: React.FC<TasksTabProps> = ({ 
@@ -30,7 +31,8 @@ export const TasksTab: React.FC<TasksTabProps> = ({
   onMarkAsViewed, 
   onOpenArticleEditor,
   onOpenSocialCreator,
-  initialTargetId 
+  initialTargetId,
+  users
 }) => {
   const [loggingTimeTaskId, setLoggingTimeTaskId] = useState<string | null>(null);
   const [completeTaskOnSave, setCompleteTaskOnSave] = useState(false);
@@ -38,6 +40,8 @@ export const TasksTab: React.FC<TasksTabProps> = ({
   const [isQuickCompleting, setIsQuickCompleting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [status, setStatus] = useState<TaskStatus>('pending');
+  const [assignedUserNames, setAssignedUserNames] = useState<string[]>([]);
   
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(0);
@@ -45,7 +49,11 @@ export const TasksTab: React.FC<TasksTabProps> = ({
   const [account, setAccount] = useState('');
   const [detail, setDetail] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState<{ userId: string; text: string; timestamp: string }[]>([]);
+  const [history, setHistory] = useState<{ userId: string; action: string; timestamp: string }[]>([]);
+  const [assignedUserIds, setAssignedUserIds] = useState<string[]>([]);
   const dateInputRef = React.useRef<HTMLInputElement>(null);
+  const noteInputRef = React.useRef<HTMLInputElement>(null);
 
   const pendingTasks = useMemo(() => {
     return tasks
@@ -138,6 +146,11 @@ export const TasksTab: React.FC<TasksTabProps> = ({
       return;
     }
 
+    if (status === 'completed' && (hours + minutes / 60) <= 0) {
+      alert('Una tarea completada debe tener tiempo asignado.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const totalHours = hours + (minutes / 60);
@@ -146,6 +159,15 @@ export const TasksTab: React.FC<TasksTabProps> = ({
         // Updating an existing assigned task with time
         const task = tasks.find(t => t.id === loggingTimeTaskId);
         if (task) {
+          let changes = [];
+          if (title && title !== task.title) changes.push(`Título: "${task.title}" -> "${title}"`);
+          if (detail && detail !== task.description) changes.push("Descripción modificada");
+          if (account && account !== task.account) changes.push(`Cuenta: "${task.account}" -> "${account}"`);
+          if (totalHours !== (task.hours || 0)) changes.push(`Tiempo: ${task.hours || 0}h -> ${totalHours}h`);
+          if (status !== task.status) changes.push(`Estado: ${task.status} -> ${status}`);
+          
+          const action = changes.length > 0 ? `Editado: ${changes.join(', ')}` : 'Editado';
+
           await onUpdateTask({
             ...task,
             title: title || task.title,
@@ -153,7 +175,10 @@ export const TasksTab: React.FC<TasksTabProps> = ({
             account: account || task.account,
             hours: totalHours,
             description: detail || task.description,
-            status: completeTaskOnSave ? 'completed' : 'pending'
+            status: status,
+            notes: notes,
+            history: [...(task.history || []), { userId: currentUser.id, action, timestamp: new Date().toISOString() }],
+            assignedUserIds: assignedUserIds
           });
         }
       } else {
@@ -162,12 +187,14 @@ export const TasksTab: React.FC<TasksTabProps> = ({
           title: title || detail.substring(0, 50),
           description: detail,
           assignedUserIds: [currentUser.id],
-          status: totalHours > 0 ? 'completed' : 'pending',
+          status: status,
           createdBy: currentUser.id,
           createdAt: new Date().toISOString(),
           date,
           account,
-          hours: totalHours
+          hours: totalHours,
+          notes: [],
+          history: [{ userId: currentUser.id, action: 'Creada', timestamp: new Date().toISOString() }]
         });
       }
 
@@ -182,6 +209,9 @@ export const TasksTab: React.FC<TasksTabProps> = ({
       setAccount('');
       setDetail('');
       setDate(new Date().toISOString().split('T')[0]);
+      setNotes([]);
+      setHistory([]);
+      setAssignedUserIds([]);
     } catch (error) {
       console.error("Error saving task:", error);
       alert("Error al guardar la tarea.");
@@ -202,6 +232,11 @@ export const TasksTab: React.FC<TasksTabProps> = ({
     setHours(h);
     setMinutes(m);
     setCompleteTaskOnSave(task.status === 'completed');
+    setStatus(task.status);
+    setAssignedUserNames(users.filter(u => task.assignedUserIds.includes(u.id)).map(u => u.name));
+    setNotes(task.notes || []);
+    setHistory(task.history || []);
+    setAssignedUserIds(task.assignedUserIds || []);
   };
 
   return (
@@ -283,7 +318,39 @@ export const TasksTab: React.FC<TasksTabProps> = ({
                 </button>
               </div>
               
-              <form onSubmit={handleLogTime} className="space-y-5">
+              <form onSubmit={handleLogTime} className="space-y-5 max-h-[70vh] overflow-y-auto pr-2">
+                {assignedUserNames.length > 0 && (
+                  <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1 mb-2 block">Responsables</label>
+                    <div className="flex flex-wrap gap-2">
+                      {assignedUserNames.map(name => (
+                        <span key={name} className="bg-neon/10 text-neon text-[10px] font-black px-2 py-1 rounded-md uppercase">{name}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {currentUserRole.name === 'Admin' && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Editar Responsables</label>
+                    <div className="flex flex-wrap gap-2">
+                      {users.map(user => (
+                        <button
+                          key={user.id}
+                          type="button"
+                          onClick={() => {
+                            setAssignedUserIds(prev => prev.includes(user.id) ? prev.filter(id => id !== user.id) : [...prev, user.id]);
+                            setAssignedUserNames(prev => prev.includes(user.name) ? prev.filter(n => n !== user.name) : [...prev, user.name]);
+                          }}
+                          className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${assignedUserIds.includes(user.id) ? 'bg-neon text-black' : 'bg-white/10 text-white'}`}
+                        >
+                          {user.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {!isQuickCompleting && (
                   <>
                     <div className="space-y-2">
@@ -324,20 +391,33 @@ export const TasksTab: React.FC<TasksTabProps> = ({
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Cuenta / Proyecto</label>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Estado</label>
                         <select 
-                          value={account} 
-                          onChange={e => setAccount(e.target.value)}
-                          required
+                          value={status}
+                          onChange={e => setStatus(e.target.value as TaskStatus)}
                           className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-sm focus:border-neon outline-none appearance-none cursor-pointer transition-all"
                         >
-                          <option value="" disabled>Seleccionar...</option>
-                          {socialAccounts.map(acc => (
-                            <option key={acc.id} value={acc.name}>{acc.name}</option>
-                          ))}
-                          <option value="General">General / Otros</option>
+                          <option value="pending">Pendiente</option>
+                          <option value="in_progress">En Proceso</option>
+                          <option value="completed">Completada</option>
                         </select>
                       </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Cuenta / Proyecto</label>
+                      <select 
+                        value={account} 
+                        onChange={e => setAccount(e.target.value)}
+                        required
+                        className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-sm focus:border-neon outline-none appearance-none cursor-pointer transition-all"
+                      >
+                        <option value="" disabled>Seleccionar...</option>
+                        {socialAccounts.map(acc => (
+                          <option key={acc.id} value={acc.name}>{acc.name}</option>
+                        ))}
+                        <option value="General">General / Otros</option>
+                      </select>
                     </div>
                   </>
                 )}
@@ -372,16 +452,86 @@ export const TasksTab: React.FC<TasksTabProps> = ({
                 </div>
 
                 {!isQuickCompleting && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Descripción del Trabajo</label>
-                    <textarea 
-                      rows={2}
-                      placeholder="¿Qué estuviste haciendo?"
-                      value={detail} 
-                      onChange={e => setDetail(e.target.value)}
-                      className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-sm focus:border-neon outline-none transition-all resize-none"
-                    />
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Descripción del Trabajo</label>
+                      <textarea 
+                        rows={2}
+                        placeholder="¿Qué estuviste haciendo?"
+                        value={detail} 
+                        onChange={e => setDetail(e.target.value)}
+                        className="w-full bg-black border border-white/10 rounded-xl p-3 text-white text-sm focus:border-neon outline-none transition-all resize-none"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Notas</label>
+                      <div className="space-y-2">
+                        {notes.map((note, i) => (
+                          <div key={i} className="bg-white/5 p-2 rounded-lg text-xs text-white flex justify-between items-start group">
+                            <div className="flex-1">
+                              <span className="text-neon font-bold">{users.find(u => u.id === note.userId)?.name || 'Usuario'}</span>
+                              <span className="text-gray-500 text-[10px] ml-1">({new Date(note.timestamp).toLocaleString()})</span>
+                              <div className="mt-1">{note.text}</div>
+                            </div>
+                            {note.userId === currentUser.id && (
+                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const newText = prompt("Editar nota:", note.text);
+                                    if (newText !== null && newText.trim() !== '') {
+                                      setNotes(prev => prev.map((n, index) => index === i ? { ...n, text: newText } : n));
+                                    }
+                                  }}
+                                  className="text-gray-500 hover:text-white"
+                                >
+                                  <FileText size={12} />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setNotes(prev => prev.filter((_, index) => index !== i));
+                                  }}
+                                  className="text-red-500 hover:text-red-400"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            ref={noteInputRef}
+                            placeholder="Nueva nota..."
+                            className="flex-1 bg-black border border-white/10 rounded-xl p-2 text-white text-sm focus:border-neon outline-none transition-all"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (noteInputRef.current) {
+                                  setNotes(prev => [...prev, { userId: currentUser.id, text: noteInputRef.current!.value, timestamp: new Date().toISOString() }]);
+                                  noteInputRef.current.value = '';
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Historial</label>
+                      <div className="space-y-1">
+                        {history.map((h, i) => (
+                          <div key={i} className="text-[10px] text-gray-500">
+                            {new Date(h.timestamp).toLocaleString()} - {users.find(u => u.id === h.userId)?.name || 'Usuario'}: {h.action}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
                 )}
 
                 <div className="flex flex-col md:flex-row gap-4 pt-2">
@@ -460,11 +610,11 @@ export const TasksTab: React.FC<TasksTabProps> = ({
                       )}
 
                       <div className="flex-1 min-w-0 pr-4">
-                        <h4 className="text-lg font-oswald font-black italic uppercase tracking-tight mb-1 truncate text-white">
+                        <h4 className="text-lg font-oswald font-black italic uppercase tracking-tight mb-1 text-white break-words">
                           {task.title}
                         </h4>
                         {task.description && (
-                          <p className="text-xs text-gray-400 leading-relaxed truncate mb-2">
+                          <p className="text-xs text-gray-400 leading-relaxed mb-2 break-words">
                             {task.description}
                           </p>
                         )}
@@ -516,7 +666,7 @@ export const TasksTab: React.FC<TasksTabProps> = ({
                   </div>
                   <div className="flex-1 bg-[#0a0a0a] border border-white/10 p-4 md:p-5 rounded-2xl group-hover:border-white/30 group-hover:bg-[#111] transition-all flex flex-col md:flex-row md:items-center justify-between relative overflow-hidden cursor-pointer shadow-lg" onClick={() => handleEditTask(activity)}>
                     <div className="flex-1 min-w-0 pr-4">
-                      <p className="text-white text-lg font-oswald font-black italic uppercase tracking-tight mb-1 truncate">{activity.title}</p>
+                      <p className="text-white text-lg font-oswald font-black italic uppercase tracking-tight mb-1 break-words">{activity.title}</p>
                       <div className="flex items-center gap-4">
                         {activity.account && (
                           <>

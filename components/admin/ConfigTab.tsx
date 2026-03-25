@@ -38,6 +38,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
   const [promptSaved, setPromptSaved] = useState(false);
   
   const [localSiteConfig, setLocalSiteConfig] = useState<SiteConfig>(siteConfig);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,33 +81,42 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setIsUploadingLogo(true);
-    try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = error => reject(error);
-      });
-      const storageRef = ref(storage, `site/logo-${Date.now()}.png`);
-      const snapshot = await uploadString(storageRef, base64, 'data_url');
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      const updatedConfig = { ...localSiteConfig, logoUrl: downloadURL };
-      setLocalSiteConfig(updatedConfig);
-      onUpdateSiteConfig(updatedConfig);
-    } catch (error) {
-      console.error("Logo upload error:", error);
-    } finally {
-      setIsUploadingLogo(false);
-    }
+    setLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setLocalSiteConfig({...localSiteConfig, logoUrl: reader.result as string});
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleSaveSiteConfig = () => {
-    onUpdateSiteConfig(localSiteConfig);
+  const handleSaveSiteConfig = async () => {
+    let logoUrl = localSiteConfig.logoUrl;
+    if (logoFile) {
+        setIsUploadingLogo(true);
+        try {
+            const base64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(logoFile);
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = error => reject(error);
+            });
+            const storageRef = ref(storage, `site/logo-${Date.now()}.png`);
+            const snapshot = await uploadString(storageRef, base64, 'data_url');
+            logoUrl = await getDownloadURL(snapshot.ref);
+        } catch (error) {
+            console.error("Logo upload error:", error);
+            setIsUploadingLogo(false);
+            return;
+        } finally {
+            setIsUploadingLogo(false);
+        }
+    }
+    onUpdateSiteConfig({...localSiteConfig, logoUrl});
+    setLogoFile(null);
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0 pt-2 md:pt-4">
+    <div className="pb-24 px-4 md:px-0">
       <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-2 pb-2 md:pb-4 mb-2 md:mb-4 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
         <div>
           <h2 className="text-xl md:text-3xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-2 md:gap-3">
@@ -127,11 +137,11 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
         {/* 1. IDENTIDAD VISUAL */}
       <div>
         <h2 className="text-xl md:text-2xl font-oswald font-black italic uppercase text-white mb-2 md:mb-4 tracking-tighter">CONFIGURACIÓN GENERAL</h2>
-        <div className="bg-white/5 p-4 md:p-6 rounded-[24px] border border-white/10 max-w-5xl space-y-6 shadow-2xl">
+        <div className="bg-white/5 p-4 md:p-6 rounded-2xl border border-white/10 max-w-5xl space-y-6 shadow-2xl">
             <h3 className="text-base md:text-lg font-oswald font-black italic uppercase text-neon flex items-center gap-3 drop-shadow-[0_0_8px_rgba(0,255,157,0.4)]">
               <ImageIcon size={18} /> Identidad de Marca
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
                 <div className="md:col-span-4 flex flex-col items-center">
                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 block text-center">Logo Principal</label>
                     <div className="w-full aspect-square max-w-[200px] bg-black border-2 border-dashed border-white/10 rounded-3xl flex items-center justify-center p-6 relative group overflow-hidden shadow-inner">
@@ -280,7 +290,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {socialAccounts.map(account => (
-                <div key={account.id} className="bg-white/[0.03] border border-white/5 rounded-[32px] p-6 group hover:border-neon/30 transition-all duration-500">
+                <div key={account.id} className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 group hover:border-neon/30 transition-all duration-500">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="relative">
                             {account.profileImageUrl && (
@@ -338,9 +348,9 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* 3. PROMPT CENTRAL */}
-        <div className="lg:col-span-7 bg-white/5 p-8 rounded-[40px] border border-white/10 flex flex-col shadow-2xl">
+        <div className="lg:col-span-7 bg-white/5 p-6 rounded-2xl border border-white/10 flex flex-col shadow-2xl">
           <h3 className="text-xl font-oswald font-black italic uppercase text-neon mb-4 flex items-center gap-3">
              <AtSign size={20} /> Redacción IA Central
           </h3>
@@ -372,7 +382,7 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
         </div>
 
         {/* 4. ARQUITECTURA DE CONTENIDOS */}
-        <div className="lg:col-span-5 bg-white/5 p-8 rounded-[40px] border border-white/10 shadow-2xl">
+        <div className="lg:col-span-5 bg-white/5 p-6 rounded-2xl border border-white/10 shadow-2xl">
           <h3 className="text-xl font-oswald font-black italic uppercase text-neon mb-4 flex items-center gap-3">
               <GripVertical size={20} /> Arquitectura
           </h3>

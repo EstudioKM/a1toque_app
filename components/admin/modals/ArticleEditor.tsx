@@ -194,7 +194,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
 
   return (
     <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-0 md:p-4 lg:p-6 overflow-hidden">
-      <div className="w-full max-w-6xl h-[95vh] flex flex-col bg-[#080808] md:rounded-[32px] border border-white/10 shadow-[0_0_100px_rgba(0,0,0,1)] relative overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+      <div className="w-full max-w-6xl h-[95vh] flex flex-col bg-[#080808] md:rounded-2xl border border-white/10 shadow-[0_0_100px_rgba(0,0,0,1)] relative overflow-hidden animate-in fade-in zoom-in-95 duration-500">
         
         {/* Header - Fixed Height */}
         <div className="h-16 px-6 md:px-8 border-b border-white/5 flex items-center justify-between flex-shrink-0 bg-black/50 backdrop-blur-md">
@@ -233,7 +233,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
               {/* Columna Principal - Redacción */}
               <div className="lg:col-span-8 space-y-6">

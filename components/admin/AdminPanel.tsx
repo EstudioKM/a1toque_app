@@ -491,6 +491,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               onOpenArticleEditor={() => handleOpenArticleEditor()}
               onOpenSocialCreator={() => handleOpenSocialCreator()}
               initialTargetId={props.initialTargetId} 
+              users={props.users}
             />
           )}
           {activeTab === 'admin_tasks' && <AdminTasksTab tasks={props.tasks} users={props.users} socialAccounts={props.socialAccounts} onAddTask={props.onAddTask} onUpdateTask={props.onUpdateTask} onDeleteTask={props.onDeleteTask} onUpdateUser={props.onUpdateUser} />}

@@ -104,7 +104,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div>
       {/* Header */}
       {!hideHeader && (
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -274,7 +274,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({
             );
           })
         ) : (
-          <div className="py-24 text-center border-2 border-dashed border-white/5 rounded-[40px] bg-white/[0.01]">
+          <div className="py-16 text-center border-2 border-dashed border-white/5 rounded-2xl bg-white/[0.01]">
             <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Search size={32} className="text-gray-700" />
             </div>
@@ -288,7 +288,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({
       {/* MODAL DE CONFIRMACIÓN DE BORRADO */}
       {articleToDelete && (
         <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
-           <div className="max-w-md w-full bg-[#0d0d0d] border border-white/10 rounded-[32px] p-8 md:p-10 shadow-[0_0_50px_rgba(239,68,68,0.2)] text-center relative overflow-hidden">
+           <div className="max-w-md w-full bg-[#0d0d0d] border border-white/10 rounded-2xl p-6 md:p-8 shadow-[0_0_50px_rgba(239,68,68,0.2)] text-center relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
               
               <div className="w-20 h-20 bg-red-500/10 border-2 border-red-500/20 rounded-full flex items-center justify-center text-red-500 mx-auto mb-6">
@@ -336,7 +336,7 @@ export const NewsTab: React.FC<NewsTabProps> = ({
       {/* MODAL DE CONFIRMACIÓN DE GENERACIÓN SOCIAL */}
       {articleForSocialConfirm && (
         <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
-           <div className="max-w-md w-full bg-[#0d0d0d] border border-white/10 rounded-[32px] p-8 md:p-10 shadow-[0_0_50px_rgba(0,255,157,0.2)] text-center relative overflow-hidden">
+           <div className="max-w-md w-full bg-[#0d0d0d] border border-white/10 rounded-2xl p-6 md:p-8 shadow-[0_0_50px_rgba(0,255,157,0.2)] text-center relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-neon to-transparent"></div>
               
               <div className="w-20 h-20 bg-neon/10 border-2 border-neon/20 rounded-full flex items-center justify-center text-neon mx-auto mb-6">

@@ -19,7 +19,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({ users, currentUser, roles, r
   const [activeTab, setActiveTab] = useState<'users' | 'permissions'>('users');
 
   return (
-    <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0 pt-4 md:pt-8">
+    <div className="pb-24 px-4 md:px-0">
       <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-4 pb-2 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
         <div>
           <h2 className="text-xl md:text-4xl font-oswald font-black italic uppercase text-white tracking-tighter flex items-center gap-2 md:gap-3">
@@ -44,7 +44,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({ users, currentUser, roles, r
         </div>
       </div>
 
-      <div className="pt-14 md:pt-18">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
         {activeTab === 'users' ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center mb-6">

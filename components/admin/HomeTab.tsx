@@ -93,12 +93,12 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex-1 flex flex-col">
       {/* Welcome Section */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/[0.02] border border-white/5 p-6 md:p-8 rounded-[40px] relative overflow-hidden"
+        className="bg-white/[0.02] border border-white/5 p-5 md:p-6 rounded-2xl relative overflow-hidden flex-1 flex flex-col"
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-neon/5 blur-[100px] rounded-full -mr-32 -mt-32" />
         <div className="relative z-10">
@@ -130,9 +130,9 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             </button>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 flex-1 flex flex-col">
             {/* Notification Center */}
-            <div className="space-y-4">
+            <div className="space-y-4 flex-1 flex flex-col">
               <div className="flex items-center justify-between">
                 <h3 className="text-[12px] font-black text-white uppercase tracking-[0.2em] flex items-center gap-3">
                   <BellRing size={16} className="text-neon" /> Centro de Notificaciones
@@ -142,7 +142,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                 )}
               </div>
               
-              <div className={`bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden flex flex-col transition-all duration-300 ${notifications.length === 0 ? 'h-[120px]' : 'h-[300px]'}`}>
+              <div className={`bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden flex flex-col transition-all duration-300 ${notifications.length === 0 ? 'h-[120px]' : 'min-h-[300px] flex-1'}`}>
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                   {notifications.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center p-4 text-center">
@@ -245,7 +245,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                   </table>
                 </div>
               ) : (
-                <div className="py-12 text-center bg-white/[0.01] rounded-[32px] border border-dashed border-white/5 flex flex-col items-center justify-center group hover:bg-white/[0.02] transition-all duration-500">
+                <div className="py-12 text-center bg-white/[0.01] rounded-2xl border border-dashed border-white/5 flex flex-col items-center justify-center group hover:bg-white/[0.02] transition-all duration-500">
                   <div className="flex items-center gap-4 mb-2">
                     <CheckSquare size={24} className="text-gray-800 group-hover:text-neon transition-colors" />
                     <h4 className="text-gray-600 font-oswald font-black italic uppercase text-2xl tracking-tighter group-hover:text-white transition-colors">Todo al día</h4>

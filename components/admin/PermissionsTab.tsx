@@ -45,7 +45,7 @@ export const PermissionsTab: React.FC<PermissionsTabProps> = ({ roles, onAddRole
     <div className="pt-4 md:pt-8">
       <h2 className="text-3xl font-oswald font-black italic uppercase text-white mb-6">Gestión de Permisos y Roles</h2>
       <div className="pt-14 md:pt-18">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
             <h3 className="text-xl font-oswald font-black italic uppercase text-neon mb-4">Roles de Usuario</h3>
             <div className="space-y-3">
@@ -92,7 +92,7 @@ export const PermissionsTab: React.FC<PermissionsTabProps> = ({ roles, onAddRole
                     ))}
                 </div>
             ) : (
-                <div className="p-10 bg-white/5 rounded-lg text-center text-gray-500 text-sm font-bold">Selecciona un rol para editar sus permisos.</div>
+                <div className="p-8 bg-white/5 rounded-lg text-center text-gray-500 text-sm font-bold">Selecciona un rol para editar sus permisos.</div>
             )}
         </div>
         </div>

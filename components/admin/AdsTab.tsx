@@ -76,7 +76,7 @@ const SectionColumn: React.FC<{
     onDeleteSponsorship: (id: string) => void;
     onToggleSponsorshipStatus: (id: string) => void;
 }> = ({ title, icon: Icon, positions, brandMap, onOpenSponsorshipEditor, onOpenAdSlotEditor, onDeleteSponsorship, onToggleSponsorshipStatus }) => (
-    <div className="bg-[#0c0c0c] border border-white/5 rounded-[32px] p-6 space-y-8 flex flex-col h-full shadow-2xl">
+    <div className="bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 space-y-8 flex flex-col h-full shadow-2xl">
         <div className="flex items-center gap-3 border-b border-white/5 pb-6">
             <div className="w-10 h-10 bg-neon/10 rounded-xl flex items-center justify-center text-neon">
                 <Icon size={20} />
@@ -160,7 +160,7 @@ export const AdsTab: React.FC<AdsTabProps> = (props) => {
   [adSlots, sponsorships]);
 
   return (
-    <div className="max-w-6xl mx-auto pb-24 px-4 md:px-0 pt-4 md:pt-8">
+    <div className="pb-24 px-4 md:px-0">
       {/* Action Header */}
       <div className="sticky top-16 lg:top-20 z-40 bg-black/95 backdrop-blur-md pt-1 md:pt-4 pb-2 md:pb-6 mb-4 md:mb-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-6 -mx-4 px-4 md:mx-0 md:px-0">
         <div>
@@ -185,8 +185,8 @@ export const AdsTab: React.FC<AdsTabProps> = (props) => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-14 md:pt-18">
-        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-14 md:pt-18">
+        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
             <SectionColumn 
               title="ESPACIOS EN HOME" 
               icon={LayoutGrid} 
