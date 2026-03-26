@@ -249,6 +249,12 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                     {author?.name.split(' ')[0] || 'Sistema'} • {formatArgentinaTimestamp(post.postedAt, { day: '2-digit', month: 'short' })}
                   </span>
 
+                  {post.status === 'success' && (
+                    <span className="text-[8px] md:text-[9px] font-black text-green-500 uppercase tracking-widest bg-green-500/10 px-2 md:px-3 py-0.5 md:py-1 rounded-md">
+                      {new Date(post.postedAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+
                   {isScheduled && post.scheduledAt && (
                     <span className="text-[8px] md:text-[9px] font-black text-blue-400 uppercase tracking-widest bg-blue-500/10 px-2 md:px-3 py-0.5 md:py-1 rounded-md">
                       {new Date(post.scheduledAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}

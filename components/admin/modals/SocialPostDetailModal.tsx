@@ -14,61 +14,61 @@ export const SocialPostDetailModal: React.FC<SocialPostDetailModalProps> = ({ po
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl flex items-center justify-center p-0">
-      <div className="bg-[#0D0D0D] w-full h-full overflow-y-auto custom-scrollbar relative flex flex-col">
-        <div className="max-w-5xl mx-auto w-full p-8 md:p-12">
-          <div className="flex justify-between items-center mb-12">
-            <div className="flex items-center gap-6">
-              <h3 className="text-3xl md:text-4xl font-oswald font-black italic text-neon uppercase tracking-tighter">Detalle de la Publicación</h3>
+    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8">
+      <div className="bg-[#0D0D0D] w-full max-w-5xl max-h-[90vh] overflow-y-auto custom-scrollbar relative flex flex-col rounded-3xl border border-white/10 shadow-2xl">
+        <div className="w-full p-6 md:p-8">
+          <div className="flex justify-between items-center mb-8">
+            <div className="flex items-center gap-4">
+              <h3 className="text-2xl md:text-3xl font-oswald font-black italic text-neon uppercase tracking-tighter">Detalle de la Publicación</h3>
               {onDelete && (
                 <button 
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="flex items-center gap-3 px-6 py-3 bg-red-500/10 text-red-500 text-xs font-black uppercase tracking-widest rounded-2xl border border-red-500/20 hover:bg-red-500 hover:text-white transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-xl border border-red-500/20 hover:bg-red-500 hover:text-white transition-all"
                 >
-                  <Trash2 size={18} /> Eliminar
+                  <Trash2 size={14} /> Eliminar
                 </button>
               )}
             </div>
-            <button onClick={onClose} className="p-3 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white rounded-full transition-all border border-white/5">
-              <X size={32} />
+            <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white rounded-full transition-all border border-white/5">
+              <X size={24} />
             </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-            <div className="space-y-8">
-              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 pl-2">Imagen & Preview</h4>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className="space-y-6">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 pl-1">Imagen & Preview</h4>
               {post.imageUrl && (
-                <div className="rounded-[40px] overflow-hidden border border-white/10 shadow-2xl bg-black aspect-square flex items-center justify-center">
+                <div className="rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black aspect-square flex items-center justify-center">
                   <img src={post.imageUrl} alt={post.titleOverlay} className="w-full h-full object-contain" />
                 </div>
               )}
             </div>
 
-            <div className="space-y-12">
-              <div className="space-y-10">
+            <div className="space-y-8">
+              <div className="space-y-6">
                 <div>
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-4 block pl-2">Título de la Placa</label>
-                  <p className="text-4xl md:text-5xl font-oswald font-black text-white italic uppercase tracking-tighter leading-none">{post.titleOverlay}</p>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 block pl-1">Título de la Placa</label>
+                  <p className="text-2xl md:text-3xl font-oswald font-black text-white italic uppercase tracking-tighter leading-none">{post.titleOverlay}</p>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-4 block pl-2">Copy / Descripción</label>
-                  <div className="w-full bg-black/50 border border-white/10 rounded-3xl p-8 text-lg text-gray-300 leading-relaxed font-medium whitespace-pre-wrap min-h-[200px]">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 block pl-1">Copy / Descripción</label>
+                  <div className="w-full bg-black/50 border border-white/10 rounded-2xl p-4 md:p-6 text-sm text-gray-300 leading-relaxed font-medium whitespace-pre-wrap min-h-[120px]">
                     {post.copy || 'Sin descripción'}
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-4 block pl-2">Publicado en Cuentas</label>
-                  <div className="flex flex-wrap gap-4">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 block pl-1">Publicado en Cuentas</label>
+                  <div className="flex flex-wrap gap-3">
                     {post.postedToAccounts.map(id => {
                       const account = socialAccountMap.get(id);
                       return account ? (
-                        <div key={id} className="flex items-center gap-4 bg-white/5 p-4 pr-6 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
-                          {account.profileImageUrl && <img src={account.profileImageUrl} className="w-10 h-10 rounded-full border-2 border-neon/20" alt={account.name} />}
+                        <div key={id} className="flex items-center gap-3 bg-white/5 p-3 pr-4 rounded-xl border border-white/5 hover:border-white/10 transition-all">
+                          {account.profileImageUrl && <img src={account.profileImageUrl} className="w-8 h-8 rounded-full border border-neon/20" alt={account.name} />}
                           <div className="flex flex-col">
-                            <span className="text-sm font-black text-white uppercase tracking-tight">{account.name}</span>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{account.platform}</span>
+                            <span className="text-xs font-black text-white uppercase tracking-tight">{account.name}</span>
+                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{account.platform}</span>
                           </div>
                         </div>
                       ) : null;
@@ -78,14 +78,14 @@ export const SocialPostDetailModal: React.FC<SocialPostDetailModalProps> = ({ po
 
                 {post.associatedSponsors.length > 0 && (
                   <div>
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-4 block pl-2">Sponsors Asociados</label>
-                    <div className="flex flex-wrap gap-4">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 block pl-1">Sponsors Asociados</label>
+                    <div className="flex flex-wrap gap-3">
                       {post.associatedSponsors.map(id => {
                         const brand = brandMap.get(id);
                         return brand ? (
-                          <div key={id} className="flex items-center gap-4 bg-white/5 p-4 pr-6 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
-                            {brand.logoUrl && <img src={brand.logoUrl} className="w-10 h-10 object-contain rounded-full bg-neutral-800 p-1 border border-white/10" alt={brand.name} />}
-                            <span className="text-sm font-black text-white uppercase tracking-tight">{brand.name}</span>
+                          <div key={id} className="flex items-center gap-3 bg-white/5 p-3 pr-4 rounded-xl border border-white/5 hover:border-white/10 transition-all">
+                            {brand.logoUrl && <img src={brand.logoUrl} className="w-8 h-8 object-contain rounded-full bg-neutral-800 p-1 border border-white/10" alt={brand.name} />}
+                            <span className="text-xs font-black text-white uppercase tracking-tight">{brand.name}</span>
                           </div>
                         ) : null;
                       })}
@@ -94,31 +94,31 @@ export const SocialPostDetailModal: React.FC<SocialPostDetailModalProps> = ({ po
                 )}
 
                 {(post.instagramId || post.facebookId || post.placidId) && (
-                  <div className="pt-12 border-t border-white/5">
-                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-6 block pl-2">Metadatos & IDs de Plataforma</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="pt-8 border-t border-white/5">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 block pl-1">Metadatos & IDs de Plataforma</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {post.instagramId && (
-                        <div className="flex flex-col gap-1 bg-black/50 p-6 rounded-2xl border border-white/5">
-                          <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Instagram ID</span>
-                          <span className="text-xs text-neon font-mono break-all">{post.instagramId}</span>
+                        <div className="flex flex-col gap-1 bg-black/50 p-4 rounded-xl border border-white/5">
+                          <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest">Instagram ID</span>
+                          <span className="text-[10px] text-neon font-mono break-all">{post.instagramId}</span>
                         </div>
                       )}
                       {post.facebookId && (
-                        <div className="flex flex-col gap-1 bg-black/50 p-6 rounded-2xl border border-white/5">
-                          <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Facebook ID</span>
-                          <span className="text-xs text-blue-400 font-mono break-all">{post.facebookId}</span>
+                        <div className="flex flex-col gap-1 bg-black/50 p-4 rounded-xl border border-white/5">
+                          <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest">Facebook ID</span>
+                          <span className="text-[10px] text-blue-400 font-mono break-all">{post.facebookId}</span>
                         </div>
                       )}
                       {post.placidId && (
-                        <div className="flex flex-col gap-1 bg-black/50 p-6 rounded-2xl border border-white/5">
-                          <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Placid ID</span>
-                          <span className="text-xs text-purple-400 font-mono break-all">{post.placidId}</span>
+                        <div className="flex flex-col gap-1 bg-black/50 p-4 rounded-xl border border-white/5">
+                          <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest">Placid ID</span>
+                          <span className="text-[10px] text-purple-400 font-mono break-all">{post.placidId}</span>
                         </div>
                       )}
                       {post.imageCount !== undefined && (
-                        <div className="flex flex-col gap-1 bg-black/50 p-6 rounded-2xl border border-white/5">
-                          <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Imágenes en Carrusel</span>
-                          <span className="text-xl font-oswald font-black text-white">{post.imageCount}</span>
+                        <div className="flex flex-col gap-1 bg-black/50 p-4 rounded-xl border border-white/5">
+                          <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest">Imágenes en Carrusel</span>
+                          <span className="text-lg font-oswald font-black text-white">{post.imageCount}</span>
                         </div>
                       )}
                     </div>
@@ -126,8 +126,8 @@ export const SocialPostDetailModal: React.FC<SocialPostDetailModalProps> = ({ po
                 )}
               </div>
 
-              <div className="pt-12">
-                <button onClick={onClose} className="w-full py-6 bg-white/5 text-gray-400 text-xs font-black uppercase italic tracking-widest rounded-2xl hover:bg-white/10 transition-all border border-white/5">
+              <div className="pt-8">
+                <button onClick={onClose} className="w-full py-4 bg-white/5 text-gray-400 text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:bg-white/10 transition-all border border-white/5">
                   CERRAR DETALLE
                 </button>
               </div>
