@@ -25,8 +25,11 @@ export const SponsorshipEditorModal: React.FC<SponsorshipEditorModalProps> = ({ 
   const [formData, setFormData] = useState(defaultFormData);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
+    if (isInitialized.current) return;
+    
     if (sponsorship) {
       const initialData = { ...defaultFormData, ...sponsorship };
       const { id, active, impressions, clicks, ...dataToSet } = initialData as Sponsorship;
@@ -34,6 +37,7 @@ export const SponsorshipEditorModal: React.FC<SponsorshipEditorModalProps> = ({ 
     } else {
       setFormData(defaultFormData);
     }
+    isInitialized.current = true;
   }, [sponsorship]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

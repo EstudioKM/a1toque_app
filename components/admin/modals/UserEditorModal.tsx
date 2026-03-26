@@ -12,13 +12,17 @@ interface UserEditorModalProps {
 
 export const UserEditorModal: React.FC<UserEditorModalProps> = ({ user, roles, socialAccounts, onClose, onSave }) => {
   const [formData, setFormData] = useState<Partial<User>>({ name: '', email: '', roleId: 'user', avatar: '', password: '', managedSocialAccountIds: [] });
+  const isInitialized = useRef(false);
 
   useEffect(() => {
+    if (isInitialized.current) return;
+    
     if (user) {
       setFormData({ ...user, managedSocialAccountIds: user.managedSocialAccountIds || [] });
     } else {
       setFormData({ name: '', email: '', roleId: 'user', avatar: '', password: '', managedSocialAccountIds: [] });
     }
+    isInitialized.current = true;
   }, [user]);
   
   const handleSocialAccountToggle = (accountId: string) => {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Article, Category, User, ContentBlock, BlockType, Source, CategoryConfig } from '../../../types';
+import { Article, Category, User, ContentBlock, BlockType, Source, CategoryConfig, Role } from '../../../types';
 import { Save, X, UploadCloud, Edit3, Loader2, Plus, Type, Heading2, ImageIcon, Quote, Youtube, Instagram, Trash2, GripVertical, AlertCircle } from 'lucide-react';
 import { storage } from '../../../services/firebase';
 import { ref, uploadString, getDownloadURL, uploadBytes } from 'firebase/storage';
@@ -7,13 +7,14 @@ import { ref, uploadString, getDownloadURL, uploadBytes } from 'firebase/storage
 interface ArticleEditorProps {
   article: Article | null;
   users: User[];
+  roles: Role[];
   currentUser: User;
   categories: CategoryConfig[];
   onClose: () => void;
   onSave: (data: Article | Omit<Article, 'id'>) => void;
 }
 
-export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, currentUser, categories, onClose, onSave }) => {
+export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, roles, currentUser, categories, onClose, onSave }) => {
   const [metaData, setMetaData] = useState<Partial<Article>>({ title: '', excerpt: '', category: '', author: '', imageUrl: '', isPremium: false, isPublished: false, isPublinota: false });
   const [blocks, setBlocks] = useState<ContentBlock[]>([]);
   const [editingSources, setEditingSources] = useState<Source[] | undefined>(undefined);
@@ -28,8 +29,11 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const dragItem = useRef<string | null>(null);
   const dragOverItem = useRef<string | null>(null);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
+    if (isInitialized.current) return;
+    
     if (article) {
       const { content, sources, ...meta } = article;
       setMetaData(meta);
@@ -50,6 +54,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
       setEditingSources(undefined);
     }
     setErrors([]);
+    isInitialized.current = true;
   }, [article, currentUser]);
 
   const handleSaveArticle = () => {
@@ -476,36 +481,13 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, cu
                             className={`w-full bg-black/50 border-2 rounded-xl p-3 text-xs font-bold text-white focus:border-neon outline-none appearance-none cursor-pointer hover:border-white/40 transition-colors ${!metaData.author && errors.length > 0 ? 'border-red-500/50' : 'border-white/20'}`}
                           >
                               <option value="" disabled className="text-gray-600 italic">-- Seleccionar Autor --</option>
-                              {users.filter(u => ['admin', 'editor'].includes(u.roleId)).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                              {users.filter(u => {
+                                const role = roles.find(r => r.id === u.roleId);
+                                return role && role.permissions.includes('news');
+                              }).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                           </select>
                           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neon/40 group-hover:text-neon transition-colors">▼</div>
                       </div>
-                  </div>
-
-                  <div className="space-y-3 pt-4 border-t border-white/5">
-                     <label className="flex items-center gap-3 cursor-pointer group">
-                        <div className="relative flex items-center">
-                            <input 
-                                type="checkbox" 
-                                checked={metaData.isPremium || false} 
-                                onChange={e => setMetaData(p => ({...p, isPremium: e.target.checked}))} 
-                                className="w-5 h-5 rounded border-white/20 bg-black accent-neon cursor-pointer" 
-                            />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white transition-colors">Contenido Premium</span>
-                     </label>
-
-                     <label className="flex items-center gap-3 cursor-pointer group">
-                        <div className="relative flex items-center">
-                            <input 
-                                type="checkbox" 
-                                checked={metaData.isPublinota || false} 
-                                onChange={e => setMetaData(p => ({...p, isPublinota: e.target.checked}))} 
-                                className="w-5 h-5 rounded border-white/20 bg-black accent-neon cursor-pointer" 
-                            />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-white transition-colors">Es una Publinota</span>
-                     </label>
                   </div>
                 </div>
 

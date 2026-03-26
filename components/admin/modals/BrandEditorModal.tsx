@@ -14,13 +14,17 @@ export const BrandEditorModal: React.FC<BrandEditorModalProps> = ({ brand, onClo
   const [formData, setFormData] = useState<Omit<Brand, 'id'>>({ name: '', logoUrl: '', socialHandle: '' });
   const [isUploading, setIsUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
+    if (isInitialized.current) return;
+    
     if (brand) {
       setFormData({ name: brand.name, logoUrl: brand.logoUrl, socialHandle: brand.socialHandle || '' });
     } else {
       setFormData({ name: '', logoUrl: '', socialHandle: '' });
     }
+    isInitialized.current = true;
   }, [brand]);
   
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

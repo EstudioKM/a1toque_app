@@ -10,9 +10,12 @@ interface AdSlotEditorModalProps {
 
 export const AdSlotEditorModal: React.FC<AdSlotEditorModalProps> = ({ slot, onClose, onSave }) => {
   const [formData, setFormData] = useState<AdSlotConfig>(slot);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
+    if (isInitialized.current) return;
     setFormData(slot);
+    isInitialized.current = true;
   }, [slot]);
 
   const handleSave = () => {

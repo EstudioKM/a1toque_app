@@ -27,8 +27,11 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
+    if (isInitialized.current) return;
+    
     if (account) {
       setFormData({ 
         name: account.name, 
@@ -59,6 +62,7 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
       });
     }
     setProfileImageFile(null);
+    isInitialized.current = true;
   }, [account]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

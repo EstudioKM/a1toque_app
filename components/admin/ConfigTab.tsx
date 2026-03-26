@@ -48,14 +48,16 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
   const [localCategories, setLocalCategories] = useState(categories);
   const dragItem = useRef<string | null>(null);
   const dragOverItem = useRef<string | null>(null);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
+    if (isInitialized.current) return;
     setLocalCategories(categories);
-  }, [categories]);
-
-  useEffect(() => {
     setLocalSiteConfig(siteConfig);
-  }, [siteConfig]);
+    if (categories.length > 0 && siteConfig) {
+      isInitialized.current = true;
+    }
+  }, [categories, siteConfig]);
 
   const handleDragEnd = () => {
     if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) return;
