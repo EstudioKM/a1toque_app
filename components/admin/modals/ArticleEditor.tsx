@@ -244,12 +244,17 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, ro
               <div className="lg:col-span-8 space-y-6">
                 <div className="space-y-2">
                   <label className="text-[9px] font-black text-neon uppercase tracking-[0.4em] block pl-1">TITULAR PRINCIPAL *</label>
-                  <input 
-                    type="text" 
+                  <textarea 
                     value={metaData.title || ''} 
                     onChange={e => setMetaData(p => ({ ...p, title: e.target.value }))} 
-                    className={`w-full bg-white/[0.03] border-2 rounded-xl p-4 text-xl md:text-2xl font-oswald font-bold text-white focus:border-neon focus:bg-black outline-none transition-all placeholder:text-gray-700 ${!metaData.title?.trim() && errors.length > 0 ? 'border-red-500/50' : 'border-white/10'}`} 
+                    className={`w-full bg-white/[0.03] border-2 rounded-xl p-4 text-xl md:text-2xl font-oswald font-bold text-white focus:border-neon focus:bg-black outline-none transition-all placeholder:text-gray-700 resize-none overflow-hidden ${!metaData.title?.trim() && errors.length > 0 ? 'border-red-500/50' : 'border-white/10'}`} 
                     placeholder="Escribe el título aquí..." 
+                    rows={2}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = `${target.scrollHeight}px`;
+                    }}
                   />
                 </div>
 
