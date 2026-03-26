@@ -48,8 +48,10 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   onRemoveSocialTask
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'posteos' | 'scheduled' | 'history'>('posteos');
-  const [scheduledViewMode, setScheduledViewMode] = useState<'list' | 'calendar'>('calendar');
+  const [scheduledViewMode, setScheduledViewMode] = useState<'list' | 'calendar' | 'weekly'>('calendar');
+  const [scheduledAccountFilter, setScheduledAccountFilter] = useState<string>('');
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [weeklyDate, setWeeklyDate] = useState(new Date());
   const [postToDelete, setPostToDelete] = useState<SocialPost | null>(null);
   const [generationQuery, setGenerationQuery] = useState('');
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
@@ -93,7 +95,10 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
 
   const scheduledPostsByDate = useMemo(() => {
     const map = new Map<string, SocialPost[]>();
-    filteredPosts.filter(p => p.status === 'scheduled').forEach(post => {
+    filteredPosts
+      .filter(p => p.status === 'scheduled')
+      .filter(p => !scheduledAccountFilter || p.postedToAccounts.includes(scheduledAccountFilter))
+      .forEach(post => {
       if (post.scheduledAt) {
         const date = new Date(post.scheduledAt);
         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -104,7 +109,7 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
       }
     });
     return map;
-  }, [filteredPosts]);
+  }, [filteredPosts, scheduledAccountFilter]);
 
   const calendarDays = useMemo(() => {
     const year = calendarMonth.getFullYear();
@@ -121,6 +126,17 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
     }
     return days;
   }, [calendarMonth]);
+
+  const weeklyDays = useMemo(() => {
+    const days: Date[] = [];
+    const current = new Date(weeklyDate);
+    current.setDate(current.getDate() - current.getDay()); // Start on Sunday
+    for (let i = 0; i < 7; i++) {
+      days.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    return days;
+  }, [weeklyDate]);
 
   const handleGenerate = () => {
     if (!generationQuery) return;
@@ -166,8 +182,9 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   const scheduledPosts = useMemo(() => 
     filteredPosts
       .filter(p => p.status === 'scheduled')
+      .filter(p => !scheduledAccountFilter || p.postedToAccounts.includes(scheduledAccountFilter))
       .sort((a, b) => new Date(a.scheduledAt || 0).getTime() - new Date(b.scheduledAt || 0).getTime()),
-    [filteredPosts]
+    [filteredPosts, scheduledAccountFilter]
   );
   const publishedPosts = useMemo(() => 
     filteredPosts
@@ -516,7 +533,22 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
               </h3>
               <p className="text-gray-500 text-[8px] md:text-[9px] font-bold uppercase tracking-widest mt-0.5 md:mt-1">Contenido pendiente de publicación</p>
             </div>
-            <div className="flex items-center justify-between md:justify-end gap-3 md:gap-4 w-full md:w-auto">
+            <div className="flex items-center justify-between md:justify-end gap-3 md:gap-4 w-full md:w-auto flex-wrap">
+              {/* Filtro por cuenta */}
+              <div className="relative group min-w-[140px]">
+                <select 
+                  value={scheduledAccountFilter} 
+                  onChange={e => setScheduledAccountFilter(e.target.value)} 
+                  className="w-full bg-black/40 border border-white/5 rounded-xl p-2.5 text-[10px] font-bold text-white focus:border-neon outline-none appearance-none cursor-pointer hover:border-white/20 transition-colors uppercase tracking-widest"
+                >
+                  <option value="">TODAS LAS CUENTAS</option>
+                  {availableSocialAccounts.map(acc => (
+                    <option key={acc.id} value={acc.id}>{acc.name}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 group-hover:text-neon transition-colors">▼</div>
+              </div>
+
               <div className="flex bg-black/40 p-1 rounded-xl border border-white/5">
                 <button 
                   onClick={() => setScheduledViewMode('list')}
@@ -528,9 +560,16 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                 <button 
                   onClick={() => setScheduledViewMode('calendar')}
                   className={`p-2 rounded-lg transition-all ${scheduledViewMode === 'calendar' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}
-                  title="Vista de Calendario"
+                  title="Vista Mensual"
                 >
                   <Calendar size={16} />
+                </button>
+                <button 
+                  onClick={() => setScheduledViewMode('weekly')}
+                  className={`p-2 rounded-lg transition-all flex items-center gap-1 ${scheduledViewMode === 'weekly' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}
+                  title="Vista Semanal"
+                >
+                  <span className="text-[9px] font-black uppercase tracking-widest">Semana</span>
                 </button>
               </div>
               <button 
@@ -592,19 +631,123 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                               <div 
                                 key={post.id} 
                                 onClick={() => onOpenEditor(post)}
-                                className="bg-black/40 hover:bg-white/10 p-1 md:p-1.5 rounded-md md:rounded-lg border border-white/5 cursor-pointer transition-all flex items-center gap-1 md:gap-2 group"
+                                className="bg-black/40 hover:bg-white/10 p-1 md:p-1.5 rounded-md md:rounded-lg border border-white/5 cursor-pointer transition-all flex flex-col gap-1 group"
                                 title={post.titleOverlay}
                               >
-                                <div className="flex -space-x-1 flex-shrink-0">
-                                  {post.postedToAccounts.slice(0, 2).map(accountId => {
-                                    const account = socialAccountMap.get(accountId);
-                                    return account?.profileImageUrl ? (
-                                      <img key={accountId} src={account.profileImageUrl} className="w-3 h-3 md:w-4 md:h-4 rounded-full border border-black bg-neutral-800 object-cover" />
-                                    ) : null;
-                                  })}
+                                <div className="flex items-center gap-1 md:gap-2">
+                                  <div className="flex -space-x-1 flex-shrink-0">
+                                    {post.postedToAccounts.slice(0, 2).map(accountId => {
+                                      const account = socialAccountMap.get(accountId);
+                                      return account?.profileImageUrl ? (
+                                        <img key={accountId} src={account.profileImageUrl} className="w-3 h-3 md:w-4 md:h-4 rounded-full border border-black bg-neutral-800 object-cover" />
+                                      ) : null;
+                                    })}
+                                  </div>
+                                  <span className="text-[7px] md:text-[9px] font-bold text-gray-300 group-hover:text-white truncate">
+                                    {post.titleOverlay}
+                                  </span>
                                 </div>
-                                <span className="text-[7px] md:text-[9px] font-bold text-gray-300 group-hover:text-white truncate">
-                                  {post.titleOverlay}
+                                {post.scheduledAt && (
+                                  <div className="text-[6px] md:text-[8px] font-mono text-gray-500 pl-1">
+                                    {new Date(post.scheduledAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : scheduledViewMode === 'weekly' ? (
+            <div className="w-full overflow-hidden">
+              <div className="bg-[#0f0f0f] border border-white/5 rounded-2xl md:rounded-3xl p-4 md:p-6 overflow-x-auto no-scrollbar">
+                <div className="min-w-[800px]">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-white font-oswald font-bold text-base md:text-lg uppercase tracking-wider">
+                      Semana del {weeklyDays[0].getDate()} de {weeklyDays[0].toLocaleString('es-AR', { month: 'long' })}
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => {
+                          const newDate = new Date(weeklyDate);
+                          newDate.setDate(newDate.getDate() - 7);
+                          setWeeklyDate(newDate);
+                        }}
+                        className="p-1.5 md:p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white transition-all"
+                      >
+                        <ChevronLeft size={14} className="md:w-4 md:h-4" />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          const newDate = new Date(weeklyDate);
+                          newDate.setDate(newDate.getDate() + 7);
+                          setWeeklyDate(newDate);
+                        }}
+                        className="p-1.5 md:p-2 bg-white/5 hover:bg-white/10 rounded-lg text-white transition-all"
+                      >
+                        <ChevronRight size={14} className="md:w-4 md:h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-7 gap-2 mb-2">
+                    {weeklyDays.map(date => {
+                      const isToday = new Date().toDateString() === date.toDateString();
+                      return (
+                        <div key={date.toISOString()} className={`text-center py-2 rounded-lg ${isToday ? 'bg-neon/10' : ''}`}>
+                          <div className={`text-[10px] font-black uppercase tracking-widest ${isToday ? 'text-neon' : 'text-gray-500'}`}>
+                            {date.toLocaleString('es-AR', { weekday: 'short' })}
+                          </div>
+                          <div className={`text-lg font-oswald font-bold ${isToday ? 'text-white' : 'text-gray-400'}`}>
+                            {date.getDate()}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="grid grid-cols-7 gap-2">
+                    {weeklyDays.map(date => {
+                      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                      const dayPosts = scheduledPostsByDate.get(dateStr) || [];
+                      const isToday = new Date().toDateString() === date.toDateString();
+                      
+                      return (
+                        <div key={dateStr} className={`bg-white/[0.02] rounded-xl min-h-[300px] p-2 border transition-all ${isToday ? 'border-neon/30 bg-neon/5' : 'border-white/5 hover:border-white/10'}`}>
+                          <div className="flex flex-col gap-2">
+                            {dayPosts.map(post => (
+                              <div 
+                                key={post.id} 
+                                onClick={() => onOpenEditor(post)}
+                                className="bg-black/60 hover:bg-white/10 p-2 rounded-lg border border-white/5 cursor-pointer transition-all flex flex-col gap-2 group"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex -space-x-1 flex-shrink-0">
+                                    {post.postedToAccounts.map(accountId => {
+                                      const account = socialAccountMap.get(accountId);
+                                      return account?.profileImageUrl ? (
+                                        <img key={accountId} src={account.profileImageUrl} className="w-4 h-4 rounded-full border border-black bg-neutral-800 object-cover" />
+                                      ) : null;
+                                    })}
+                                  </div>
+                                  {post.scheduledAt && (
+                                    <div className="text-[9px] font-mono text-neon font-bold flex items-center gap-1 bg-neon/10 px-1.5 py-0.5 rounded">
+                                      <Clock size={10} />
+                                      {new Date(post.scheduledAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                  )}
+                                </div>
+                                {post.imageUrl && (
+                                  <div className="w-full h-24 rounded-md overflow-hidden relative">
+                                    <img src={post.imageUrl} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                )}
+                                <span className="text-[10px] font-bold text-gray-300 group-hover:text-white line-clamp-3 leading-tight">
+                                  {post.titleOverlay || post.copy}
                                 </span>
                               </div>
                             ))}
