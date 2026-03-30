@@ -203,9 +203,13 @@ export const ConfigTab: React.FC<ConfigTabProps> = ({
                                     <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10 group">
                                         <span className="text-[10px] font-bold text-gray-300">{domain}</span>
                                         <button 
-                                            onClick={() => {
-                                                const domains = (localSiteConfig.searchDomains || []).filter((_, i) => i !== idx);
-                                                setLocalSiteConfig({...localSiteConfig, searchDomains: domains});
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                const currentDomains = localSiteConfig.searchDomains || [];
+                                                const newDomains = currentDomains.filter((_, i) => i !== idx);
+                                                setLocalSiteConfig({...localSiteConfig, searchDomains: newDomains});
                                             }}
                                             className="text-gray-600 hover:text-red-400 transition-colors"
                                         >

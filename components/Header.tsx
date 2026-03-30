@@ -53,8 +53,18 @@ export const Header: React.FC<HeaderProps> = ({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const clubs = categories.filter(c => c.type === 'club' && c.visible);
-  const sections = categories.filter(c => c.type === 'section' && c.visible);
+  const uniqueCategories = useMemo(() => {
+    const map = new Map<string, CategoryConfig>();
+    categories.forEach(c => {
+      if (!map.has(c.name)) {
+        map.set(c.name, c);
+      }
+    });
+    return Array.from(map.values());
+  }, [categories]);
+
+  const clubs = uniqueCategories.filter(c => c.type === 'club' && c.visible);
+  const sections = uniqueCategories.filter(c => c.type === 'section' && c.visible);
   
   const [logoClickCount, setLogoClickCount] = useState(0);
   const clickTimeoutRef = useRef<number | null>(null);

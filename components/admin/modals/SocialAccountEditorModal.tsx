@@ -270,13 +270,24 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
                         <Sparkles size={18} className="text-neon" />
                         <label className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Personalidad de la IA (System Prompt)</label>
                     </div>
-                    <textarea 
-                        placeholder="Ej: Actúa como el hincha más apasionado de Rosario Central. Usa modismos rosarinos y enfócate en el orgullo de Arroyito..." 
-                        value={formData.systemPrompt || ''} 
-                        onChange={e => setFormData(p => ({...p, systemPrompt: e.target.value}))} 
-                        rows={6} 
-                        className="w-full bg-black border border-white/10 rounded-3xl p-6 text-sm text-gray-300 font-mono focus:border-neon outline-none shadow-inner leading-relaxed" 
-                    />
+                    <div className="relative">
+                        <textarea 
+                            placeholder="Ej: Actúa como el hincha más apasionado de Rosario Central. Usa modismos rosarinos y enfócate en el orgullo de Arroyito..." 
+                            value={formData.systemPrompt || ''} 
+                            onChange={e => setFormData(p => ({...p, systemPrompt: e.target.value}))} 
+                            rows={6} 
+                            className="w-full bg-black border border-white/10 rounded-3xl p-6 pr-12 text-sm text-gray-300 font-mono focus:border-neon outline-none shadow-inner leading-relaxed custom-scrollbar" 
+                        />
+                        {formData.systemPrompt && (
+                            <button 
+                                onClick={() => setFormData(p => ({...p, systemPrompt: ''}))}
+                                className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded-full transition-colors"
+                                title="Borrar texto"
+                            >
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
                     <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest pl-2">Define QUIÉN es la IA para esta red.</p>
                 </div>
 
@@ -285,13 +296,24 @@ export const SocialAccountEditorModal: React.FC<SocialAccountEditorModalProps> =
                         <MessageSquare size={18} className="text-neon" />
                         <label className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Instrucciones de Redacción (Copy Prompt)</label>
                     </div>
-                    <textarea 
-                        placeholder="Ej: No uses más de 20 palabras. Termina siempre con #VamosTate. Usa emojis de león 🦁. Evita las exclamaciones excesivas..." 
-                        value={formData.copyPrompt || ''} 
-                        onChange={e => setFormData(p => ({...p, copyPrompt: e.target.value}))} 
-                        rows={6} 
-                        className="w-full bg-black border border-white/10 rounded-3xl p-6 text-sm text-gray-300 font-mono focus:border-neon outline-none shadow-inner leading-relaxed" 
-                    />
+                    <div className="relative">
+                        <textarea 
+                            placeholder="Ej: No uses más de 20 palabras. Termina siempre con #VamosTate. Usa emojis de león 🦁. Evita las exclamaciones excesivas..." 
+                            value={formData.copyPrompt || ''} 
+                            onChange={e => setFormData(p => ({...p, copyPrompt: e.target.value}))} 
+                            rows={6} 
+                            className="w-full bg-black border border-white/10 rounded-3xl p-6 pr-12 text-sm text-gray-300 font-mono focus:border-neon outline-none shadow-inner leading-relaxed custom-scrollbar" 
+                        />
+                        {formData.copyPrompt && (
+                            <button 
+                                onClick={() => setFormData(p => ({...p, copyPrompt: ''}))}
+                                className="absolute top-4 right-4 p-2 bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded-full transition-colors"
+                                title="Borrar texto"
+                            >
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
                     <p className="text-[9px] text-gray-600 font-bold uppercase tracking-widest pl-2">Define CÓMO escribe el texto final.</p>
                 </div>
             </div>

@@ -303,7 +303,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     });
     
     try {
-        const result = await generateSocialMediaContentFromTopic(topic, systemInstruction, copyInstruction);
+        const result = await generateSocialMediaContentFromTopic(topic, systemInstruction, copyInstruction, props.siteConfig.searchDomains || []);
         await props.onUpdateAiSocialTask(taskId, { 
             status: result ? 'completed' : 'failed', 
             result: result || undefined, 

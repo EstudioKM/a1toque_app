@@ -67,6 +67,7 @@ const App: React.FC = () => {
   const [aiSystemPrompt, setAiSystemPrompt] = useState<string>(DEFAULT_AI_PROMPT);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [welcomeUserName, setWelcomeUserName] = useState('');
@@ -138,7 +139,7 @@ const App: React.FC = () => {
           const res = results[index];
           if (res.status === 'fulfilled') return res.value;
           console.error(`Error fetching collection at index ${index}:`, res.reason);
-          return { empty: true, docs: [] } as any;
+          throw res.reason;
         };
 
         const articlesSnapshot = getResult(0);
@@ -174,16 +175,14 @@ const App: React.FC = () => {
           console.error("Error with site config:", e);
         }
         
-        try {
-          if (adSlotsSnapshot.empty) {
-            const batch = writeBatch(db);
-            INITIAL_AD_SLOTS.forEach(item => batch.set(doc(db, "ad_slots", item.id), item));
-            await batch.commit();
-            setAdSlots(INITIAL_AD_SLOTS);
-          } else {
-            setAdSlots(adSlotsSnapshot.docs.map(doc => doc.data() as AdSlotConfig));
-          }
-        } catch (e) { console.error("Error seeding ad_slots:", e); setAdSlots(INITIAL_AD_SLOTS); }
+        if (adSlotsSnapshot.empty) {
+          const batch = writeBatch(db);
+          INITIAL_AD_SLOTS.forEach(item => batch.set(doc(db, "ad_slots", item.id), item));
+          await batch.commit();
+          setAdSlots(INITIAL_AD_SLOTS);
+        } else {
+          setAdSlots(adSlotsSnapshot.docs.map(doc => doc.data() as AdSlotConfig));
+        }
 
         if (articlesSnapshot.empty) {
           setArticles([]);
@@ -192,146 +191,126 @@ const App: React.FC = () => {
           setArticles(list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         }
         
-        try {
-          if (sponsorshipsSnapshot.empty) {
-            const batch = writeBatch(db);
-            INITIAL_SPONSORSHIPS.forEach(item => batch.set(doc(db, "sponsorships", item.id), item));
-            await batch.commit();
-            setSponsorships(INITIAL_SPONSORSHIPS);
-          } else {
-            setSponsorships(sponsorshipsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sponsorship)));
-          }
-        } catch (e) { console.error("Error seeding sponsorships:", e); setSponsorships(INITIAL_SPONSORSHIPS); }
+        if (sponsorshipsSnapshot.empty) {
+          const batch = writeBatch(db);
+          INITIAL_SPONSORSHIPS.forEach(item => batch.set(doc(db, "sponsorships", item.id), item));
+          await batch.commit();
+          setSponsorships(INITIAL_SPONSORSHIPS);
+        } else {
+          setSponsorships(sponsorshipsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sponsorship)));
+        }
 
-        try {
-          if (brandsSnapshot.empty) {
-            const batch = writeBatch(db);
-            INITIAL_BRANDS.forEach(item => batch.set(doc(db, "brands", item.id), item));
-            await batch.commit();
-            setBrands(INITIAL_BRANDS);
-          } else {
-            setBrands(brandsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Brand)));
-          }
-        } catch (e) { console.error("Error seeding brands:", e); setBrands(INITIAL_BRANDS); }
+        if (brandsSnapshot.empty) {
+          const batch = writeBatch(db);
+          INITIAL_BRANDS.forEach(item => batch.set(doc(db, "brands", item.id), item));
+          await batch.commit();
+          setBrands(INITIAL_BRANDS);
+        } else {
+          setBrands(brandsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Brand)));
+        }
 
-        try {
-          if (usersSnapshot.empty) {
-            const batch = writeBatch(db);
-            INITIAL_USERS.forEach(item => batch.set(doc(db, "users", item.id), item));
-            await batch.commit();
-            setUsers(INITIAL_USERS);
+        if (usersSnapshot.empty) {
+          const batch = writeBatch(db);
+          INITIAL_USERS.forEach(item => batch.set(doc(db, "users", item.id), item));
+          await batch.commit();
+          setUsers(INITIAL_USERS);
+        } else {
+          const fetchedUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+          
+          // MIGRATION: Ensure Estudio KM admin exists
+          const kmUser = INITIAL_USERS.find(u => u.email === 'holaestudiokm@gmail.com');
+          if (kmUser && !fetchedUsers.find(u => u.email === kmUser.email)) {
+              await setDoc(doc(db, "users", kmUser.id), kmUser);
+              setUsers([...fetchedUsers, kmUser]);
           } else {
-            const fetchedUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+              setUsers(fetchedUsers);
+          }
+        }
+
+        if (socialAccountsSnapshot.empty) {
+            const batch = writeBatch(db);
+            INITIAL_SOCIAL_ACCOUNTS.forEach(item => batch.set(doc(db, "social_accounts", item.id), item));
+            await batch.commit();
+            setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS);
+        } else {
+            const fetchedAccounts = socialAccountsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialAccount));
             
-            // MIGRATION: Ensure Estudio KM admin exists
-            const kmUser = INITIAL_USERS.find(u => u.email === 'holaestudiokm@gmail.com');
-            if (kmUser && !fetchedUsers.find(u => u.email === kmUser.email)) {
-                await setDoc(doc(db, "users", kmUser.id), kmUser);
-                setUsers([...fetchedUsers, kmUser]);
-            } else {
-                setUsers(fetchedUsers);
-            }
-          }
-        } catch (e) { console.error("Error seeding users:", e); setUsers(INITIAL_USERS); }
-
-        try {
-          if (socialAccountsSnapshot.empty) {
-              const batch = writeBatch(db);
-              INITIAL_SOCIAL_ACCOUNTS.forEach(item => batch.set(doc(db, "social_accounts", item.id), item));
-              await batch.commit();
-              setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS);
-          } else {
-              const fetchedAccounts = socialAccountsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialAccount));
-              
-              // MIGRATION: Ensure social accounts have prompts if they are missing
-              const batch = writeBatch(db);
-              let needsUpdate = false;
-              const updatedAccounts = fetchedAccounts.map(acc => {
-                  const initialAcc = INITIAL_SOCIAL_ACCOUNTS.find(ia => ia.id === acc.id);
-                  if (initialAcc && (!acc.systemPrompt || !acc.copyPrompt)) {
-                      const updatedAcc = { 
-                          ...acc, 
-                          systemPrompt: acc.systemPrompt || initialAcc.systemPrompt,
-                          copyPrompt: acc.copyPrompt || initialAcc.copyPrompt
-                      };
-                      batch.set(doc(db, "social_accounts", acc.id), updatedAcc, { merge: true });
-                      needsUpdate = true;
-                      return updatedAcc;
-                  }
-                  return acc;
-              });
-
-              if (needsUpdate) {
-                  await batch.commit();
-                  setSocialAccounts(updatedAccounts);
-              } else {
-                  setSocialAccounts(fetchedAccounts);
-              }
-          }
-        } catch (e) { console.error("Error seeding social_accounts:", e); setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS); }
-
-        try {
-          if (categoriesSnapshot.empty) {
+            // MIGRATION: Ensure social accounts have prompts if they are missing
             const batch = writeBatch(db);
-            INITIAL_CATEGORIES.forEach(item => batch.set(doc(db, "categories", item.id), item));
-            await batch.commit();
-            setCategories(INITIAL_CATEGORIES);
-          } else {
-            const fetchedCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CategoryConfig));
-            setCategories(fetchedCategories.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
-          }
-        } catch (e) { console.error("Error seeding categories:", e); setCategories(INITIAL_CATEGORIES); }
-
-        try {
-          if (rolesSnapshot.empty) {
-              const batch = writeBatch(db);
-              INITIAL_ROLES.forEach(item => batch.set(doc(db, "roles", item.id), item));
-              await batch.commit();
-              setRoles(INITIAL_ROLES);
-          } else {
-              const fetchedRoles = rolesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Role));
-              
-              // MIGRATION: Ensure system roles have the latest permissions from INITIAL_ROLES
-              const batch = writeBatch(db);
-              let needsUpdate = false;
-              
-              const updatedRoles = fetchedRoles.map(role => {
-                const initialRole = INITIAL_ROLES.find(r => r.id === role.id);
-                if (initialRole && initialRole.isSystemRole) {
-                  // Check if permissions are different
-                  const hasAllNewPermissions = initialRole.permissions.every(p => role.permissions.includes(p));
-                  if (!hasAllNewPermissions) {
-                    const updatedRole = { ...role, permissions: Array.from(new Set([...role.permissions, ...initialRole.permissions])) };
-                    batch.set(doc(db, "roles", role.id), updatedRole, { merge: true });
+            let needsUpdate = false;
+            const updatedAccounts = fetchedAccounts.map(acc => {
+                const initialAcc = INITIAL_SOCIAL_ACCOUNTS.find(ia => ia.id === acc.id);
+                if (initialAcc && (!acc.systemPrompt || !acc.copyPrompt)) {
+                    const updatedAcc = { 
+                        ...acc, 
+                        systemPrompt: acc.systemPrompt || initialAcc.systemPrompt,
+                        copyPrompt: acc.copyPrompt || initialAcc.copyPrompt
+                    };
+                    batch.set(doc(db, "social_accounts", acc.id), updatedAcc, { merge: true });
                     needsUpdate = true;
-                    return updatedRole;
-                  }
+                    return updatedAcc;
                 }
-                return role;
-              });
+                return acc;
+            });
 
-              if (needsUpdate) {
+            if (needsUpdate) {
                 await batch.commit();
-                setRoles(updatedRoles);
-              } else {
-                setRoles(fetchedRoles);
+                setSocialAccounts(updatedAccounts);
+            } else {
+                setSocialAccounts(fetchedAccounts);
+            }
+        }
+
+        if (categoriesSnapshot.empty) {
+          const batch = writeBatch(db);
+          INITIAL_CATEGORIES.forEach(item => batch.set(doc(db, "categories", item.id), item));
+          await batch.commit();
+          setCategories(INITIAL_CATEGORIES);
+        } else {
+          const fetchedCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CategoryConfig));
+          setCategories(fetchedCategories.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+        }
+
+        if (rolesSnapshot.empty) {
+            const batch = writeBatch(db);
+            INITIAL_ROLES.forEach(item => batch.set(doc(db, "roles", item.id), item));
+            await batch.commit();
+            setRoles(INITIAL_ROLES);
+        } else {
+            const fetchedRoles = rolesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Role));
+            
+            // MIGRATION: Ensure system roles have the latest permissions from INITIAL_ROLES
+            const batch = writeBatch(db);
+            let needsUpdate = false;
+            
+            const updatedRoles = fetchedRoles.map(role => {
+              const initialRole = INITIAL_ROLES.find(r => r.id === role.id);
+              if (initialRole && initialRole.isSystemRole) {
+                // Check if permissions are different
+                const hasAllNewPermissions = initialRole.permissions.every(p => role.permissions.includes(p));
+                if (!hasAllNewPermissions) {
+                  const updatedRole = { ...role, permissions: Array.from(new Set([...role.permissions, ...initialRole.permissions])) };
+                  batch.set(doc(db, "roles", role.id), updatedRole, { merge: true });
+                  needsUpdate = true;
+                  return updatedRole;
+                }
               }
-          }
-        } catch (e) { console.error("Error seeding roles:", e); setRoles(INITIAL_ROLES); }
+              return role;
+            });
+
+            if (needsUpdate) {
+              await batch.commit();
+              setRoles(updatedRoles);
+            } else {
+              setRoles(fetchedRoles);
+            }
+        }
 
         // Social posts are handled by onSnapshot
 
       } catch (error) {
         console.error("Error fetching data:", error);
-        setArticles([]);
-        setSponsorships(INITIAL_SPONSORSHIPS);
-        setBrands(INITIAL_BRANDS);
-        setUsers(INITIAL_USERS);
-        setSocialAccounts(INITIAL_SOCIAL_ACCOUNTS);
-        setCategories(INITIAL_CATEGORIES);
-        setRoles(INITIAL_ROLES);
-        setSocialPosts([]);
-        setAdSlots(INITIAL_AD_SLOTS);
+        setDataError("Hubo un error al cargar los datos. Por favor, recarga la página.");
       } finally {
         setIsLoading(false);
       }
@@ -985,13 +964,26 @@ const App: React.FC = () => {
         />
       )}
       
-      {!showMainContent && view === ViewMode.HOME && (
+      {!showMainContent && view === ViewMode.HOME && !dataError && (
         <div className="fixed inset-0 z-[1000] bg-black flex items-center justify-center">
             <A1ToqueLoader />
         </div>
       )}
 
-      {view === ViewMode.ADMIN && canAccessAdminPanel ? (
+      {dataError && (
+        <div className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center text-white p-6 text-center">
+            <h1 className="text-4xl font-black italic uppercase text-red-500 mb-4">Error de Conexión</h1>
+            <p className="text-gray-400 max-w-md">{dataError}</p>
+            <button 
+                onClick={() => window.location.reload()} 
+                className="mt-8 px-8 py-3 bg-neon text-black font-black uppercase italic tracking-widest rounded-none hover:bg-white transition-colors"
+            >
+                Reintentar
+            </button>
+        </div>
+      )}
+
+      {!dataError && view === ViewMode.ADMIN && canAccessAdminPanel ? (
         <AdminPanel 
           articles={articles}
           sponsorships={sponsorships}
@@ -1066,7 +1058,7 @@ const App: React.FC = () => {
           initialTab={adminTab as any}
           initialTargetId={adminTargetId}
         />
-      ) : (
+      ) : !dataError ? (
         <div className={`transition-opacity duration-700 flex flex-col min-h-screen ${showMainContent ? 'opacity-100' : 'opacity-0'}`}>
           {showPopup && <SponsorshipBanner sponsorship={popupAd} slotConfig={popupAdSlot} onClosePopup={handleClosePopup} onImpression={handleSponsorshipImpression} onClickEvent={handleSponsorshipClick} />}
           {selectedArticle && (
@@ -1358,7 +1350,7 @@ const App: React.FC = () => {
             </footer>
           )}
         </div>
-      )}
+      ) : null}
 
       {currentUser && (view === ViewMode.HOME || view === ViewMode.ADMIN) && (
         <GroupChat 

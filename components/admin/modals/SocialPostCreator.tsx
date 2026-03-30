@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Article, User, Brand, SocialAccount, SocialPost, Source, SiteConfig } from '../../../types';
 import { generateSocialMediaContentFast, generateSocialMediaContentFromTopic, improveSocialMediaCopy, refineSocialMediaContent } from '../../../services/geminiService';
-import { X, ArrowRight, Loader2, AlertTriangle, CheckCircle2, UploadCloud, Sparkles, AtSign, Building, Check, Crop, Send, Save, Edit2, AlertCircle, Calendar, ChevronLeft, ChevronRight, Clock, Trash2, Plus, RotateCcw } from 'lucide-react';
+import { X, ArrowRight, Loader2, AlertTriangle, CheckCircle2, UploadCloud, Sparkles, AtSign, Building, Check, Crop, Send, Save, Edit2, AlertCircle, Calendar, ChevronLeft, ChevronRight, Clock, Trash2, Plus, RotateCcw, Globe } from 'lucide-react';
 import { storage } from '../../../services/firebase';
 import { ref, uploadString, getDownloadURL, uploadBytes } from 'firebase/storage';
 import { ImageCropper } from './ImageCropper';
@@ -442,7 +442,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     setIsGenerating(true);
     
     try {
-      const content = await generateSocialMediaContentFromTopic(generationQuery, aiSystemPrompt, DEFAULT_SOCIAL_COPY_PROMPT);
+      const content = await generateSocialMediaContentFromTopic(generationQuery, aiSystemPrompt, DEFAULT_SOCIAL_COPY_PROMPT, siteConfig?.searchDomains || []);
       setShortTitle(content.shortTitle || '');
       setCopy(content.copy || '');
       
@@ -471,7 +471,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
     const copyPromptForAI = primaryAccount?.copyPrompt || DEFAULT_SOCIAL_COPY_PROMPT;
 
     try {
-      const content = await refineSocialMediaContent(shortTitle, copy, refinementQuery, systemPromptForAI, copyPromptForAI);
+      const content = await refineSocialMediaContent(shortTitle, copy, refinementQuery, systemPromptForAI, copyPromptForAI, siteConfig?.searchDomains || []);
       setShortTitle(content.shortTitle || '');
       setCopy(content.copy || '');
       if (content.sources && content.sources.length > 0) {
@@ -550,9 +550,31 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
         return imageUrls;
       };
 
+      const firstAccount = selectedAccountDetails[0] || {};
+
+      // Determine category from account name to override article category in Make.com
+      let category = article?.category || 'A1Toque';
+      if (firstAccount.name) {
+        const nameLower = firstAccount.name.toLowerCase();
+        if (nameLower.includes('unión') || nameLower.includes('union')) category = 'Unión';
+        else if (nameLower.includes('colón') || nameLower.includes('colon')) category = 'Colón';
+        else if (nameLower.includes('central')) category = 'Central';
+        else if (nameLower.includes('newell')) category = "Newell's";
+        else category = 'A1Toque';
+      }
+
       return {
         state,
         accounts: selectedAccountDetails,
+        // Add account details to root level for webhook compatibility
+        placidId: firstAccount.placidId,
+        primaryColor: firstAccount.primaryColor,
+        secondaryColor: firstAccount.secondaryColor,
+        instagramId: firstAccount.instagramId,
+        facebookId: firstAccount.facebookId,
+        accountName: firstAccount.name,
+        category: category,
+        club: category,
         author: authorName,
         publisher: currentUser.name,
         imageUrl: ((state === 'approved' || state === 'scheduled') && generatedImageUrl) ? generatedImageUrl : (imageUrls[0] || ''),
@@ -1137,7 +1159,7 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
            </div>
         )}
 
-       <div className="max-w-5xl w-full bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col h-[95vh] lg:h-[90vh] overflow-hidden relative">
+       <div className="max-w-4xl w-full bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-[0_0_100px_rgba(0,0,0,0.8)] flex flex-col h-[90vh] lg:h-[85vh] overflow-hidden relative">
           {/* Header */}
           <header className="h-12 border-b border-white/5 flex items-center justify-between px-6 bg-black/50 flex-shrink-0">
              <div className="flex items-center gap-6">
@@ -1270,14 +1292,14 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                           onChange={e => setShortTitle(e.target.value)} 
                           maxLength={26} 
                           rows={1}
-                          className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-white text-base font-oswald font-black uppercase italic outline-none resize-none leading-tight tracking-tighter focus:border-neon transition-all" 
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2 text-white text-sm font-oswald font-black uppercase italic outline-none resize-none leading-tight tracking-tighter focus:border-neon transition-all" 
                           placeholder="ESCRIBE EL TÍTULO AQUÍ..." 
                         />
                      </div>
                    )}
                    
                    <div 
-                      className="relative flex-1 min-h-[200px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#050505] group shadow-2xl flex flex-col"
+                      className="relative flex-1 min-h-[150px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#050505] group shadow-2xl flex flex-col"
                    >
                       {/* Image Controls Overlay */}
                       <div className="absolute top-3 right-3 z-30 flex gap-2 opacity-70 hover:opacity-100 transition-opacity duration-200">
@@ -1492,15 +1514,25 @@ export const SocialPostCreator: React.FC<SocialPostCreatorProps> = ({
                 <div className="col-span-1 lg:col-span-7 flex flex-col space-y-4 h-full overflow-y-auto custom-scrollbar pr-2 pb-4">
                    <div className="flex items-center justify-between">
                       <h2 className="text-[10px] font-black text-neon uppercase tracking-[0.4em]">02. NARRATIVA Y COPY</h2>
-                      <button 
-                         onClick={() => setIsRefinementVisible(true)}
-                         className="flex items-center gap-2 px-4 py-2 bg-neon text-black text-[9px] font-black uppercase tracking-widest rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(0,255,157,0.2)]"
-                      >
-                         <Sparkles size={12} /> REVISAR Y MEJORAR
-                      </button>
+                      <div className="flex items-center gap-2">
+                         {sources.length > 0 && (
+                            <button
+                               onClick={() => setIsRefinementVisible(true)}
+                               className="flex items-center gap-2 px-4 py-2 bg-white/5 text-gray-400 hover:text-white text-[9px] font-black uppercase tracking-widest rounded-full hover:bg-white/10 transition-all border border-white/10"
+                            >
+                               <Globe size={12} /> {sources.length} FUENTES
+                            </button>
+                         )}
+                         <button 
+                            onClick={() => setIsRefinementVisible(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-neon text-black text-[9px] font-black uppercase tracking-widest rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_10px_20px_rgba(0,255,157,0.2)]"
+                         >
+                            <Sparkles size={12} /> REVISAR Y MEJORAR
+                         </button>
+                      </div>
                    </div>
                    
-                   <div className="flex-1 relative min-h-[200px] flex flex-col">
+                   <div className="flex-1 relative min-h-[150px] flex flex-col">
                       <textarea 
                          value={copy} 
                          onChange={e => setCopy(e.target.value)} 

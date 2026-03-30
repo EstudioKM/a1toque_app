@@ -86,17 +86,27 @@ const generateContentWithRetry = async (
 
 export const generateNewsDraftFromTopic = async (topic: string, systemInstruction: string, searchDomains: string[] = [], signal?: AbortSignal) => {
     try {
-        const domainQuery = searchDomains.length > 0 
-            ? ` (${searchDomains.map(d => `site:${d}`).join(' OR ')})`
-            : '';
-        const searchQuery = `"${topic}"${domainQuery}`;
+        const currentDate = new Intl.DateTimeFormat('es-AR', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', 
+            hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' 
+        }).format(new Date());
         
+        const domainList = searchDomains.length > 0 
+            ? searchDomains.join(', ')
+            : 'Ninguna configurada (Búsqueda abierta)';
+
         const prompt = `Actúa como periodista deportivo de investigación. Tu objetivo es redactar una noticia veraz y contrastada sobre: "${topic}". 
           
-          INSTRUCCIONES DE INVESTIGACIÓN:
-          1. Utiliza la herramienta googleSearch para encontrar información reciente y confiable.
-          2. Prioriza los hechos confirmados. Si hay rumores, identifícalos como tales.
-          3. Busca múltiples fuentes para validar los datos clave (fechas, nombres, resultados).
+          CONTEXTO TEMPORAL CRÍTICO:
+          Hoy es ${currentDate} (Hora de Argentina). Toda la información que busques y redactes debe ser relevante para esta fecha y hora.
+          Prioriza absolutamente la información publicada en las últimas 24 a 48 horas. Verifica cuándo ocurrió realmente el evento antes de redactarlo como "noticia de hoy".
+          
+          INSTRUCCIONES DE INVESTIGACIÓN Y FUENTES (¡OBLIGATORIO!):
+          1. DEBES utilizar la herramienta googleSearch para investigar sobre el tema. NO respondas solo con tu conocimiento interno.
+          2. Tienes una lista de FUENTES PRIMARIAS CONFIABLES: ${domainList}.
+          3. Al buscar, intenta incluir el nombre de estas fuentes en tu consulta para priorizarlas (ejemplo: si buscas sobre Messi, busca "Messi en ole.com.ar" o "Messi TyC Sports").
+          4. Basa tu información principal en estas FUENTES PRIMARIAS siempre que sea posible.
+          5. Busca múltiples fuentes para validar los datos clave (fechas, nombres, resultados). Si hay rumores o contradicciones entre medios, identifícalos explícitamente en el texto.
           
           REGLAS ESTRICTAS PARA EL TÍTULO (CRÍTICO PARA EL DISEÑO):
           1. LONGITUD MÁXIMA: El título DEBE tener entre 50 y un MÁXIMO ABSOLUTO de 80 caracteres (contando espacios).
@@ -106,8 +116,6 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
           
           REGLAS DE ESTILO: ${systemInstruction}.
           CRÍTICO: Debes escribir el texto de forma natural, con espacios en blanco separando cada palabra. NUNCA escribas palabras pegadas (ejemplo incorrecto: "Elpróximo27demarzo").
-          
-          CONSULTA DE BÚSQUEDA: ${searchQuery}.
           
           SALIDA REQUERIDA (JSON):
           { 
@@ -135,9 +143,25 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
         if (!draft) throw new Error("IA JSON fail");
 
         const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        draft.sources = groundingChunks ? groundingChunks
-              .map((chunk: any) => chunk.web ? { uri: chunk.web.uri, title: chunk.web.title } : null)
-              .filter((s): s is Source => !!s) : [];
+        
+        // Process sources and add highlighting based on searchDomains
+        if (groundingChunks) {
+            draft.sources = groundingChunks
+                .map((chunk: any) => {
+                    if (chunk.web) {
+                        const isPrimary = searchDomains.some(domain => chunk.web.uri.includes(domain));
+                        const prefix = isPrimary ? '🟢 [FUENTE PRIMARIA] ' : '⚪ [Fuente Secundaria] ';
+                        return { 
+                            uri: chunk.web.uri, 
+                            title: `${prefix}${chunk.web.title}` 
+                        };
+                    }
+                    return null;
+                })
+                .filter((s): s is Source => !!s);
+        } else {
+            draft.sources = [];
+        }
         
         return draft;
     } catch (error) { 
@@ -203,17 +227,35 @@ export const generateSocialMediaContentFast = async (title: string, excerpt: str
   return data;
 };
 
-export const generateSocialMediaContentFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string) => {
+export const generateSocialMediaContentFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string, searchDomains: string[] = []) => {
+  const currentDate = new Intl.DateTimeFormat('es-AR', { 
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', 
+      hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' 
+  }).format(new Date());
+  
+  const domainList = searchDomains.length > 0 
+      ? searchDomains.join(', ')
+      : 'Ninguna configurada (Búsqueda abierta)';
+
   const prompt = `Actúa como un Community Manager experto y estratega de contenido. 
   Tu objetivo es crear un posteo de alto impacto para redes sociales sobre: "${topic}".
   
-  INSTRUCCIONES OBLIGATORIAS:
-  1. SIEMPRE utiliza la herramienta googleSearch para investigar el tema a fondo. Busca noticias de último minuto, resultados recientes y contexto relevante en internet.
-  2. Si el tema es una URL, investígala y busca información adicional relacionada para darle más valor al posteo.
-  3. Adapta el tono según estas reglas de personalidad: ${systemInstruction}.
-  4. Sigue estas directrices de redacción (copywriting): ${copyInstruction}.
-  5. Escribe de forma natural, con espacios correctos entre palabras.
-  6. El campo "shortTitle" NO PUEDE TENER MÁS DE 26 CARACTERES.
+  CONTEXTO TEMPORAL CRÍTICO:
+  Hoy es ${currentDate} (Hora de Argentina). Toda la información que busques y redactes debe ser relevante para esta fecha y hora.
+  Prioriza absolutamente la información publicada en las últimas 24 a 48 horas.
+  
+  INSTRUCCIONES DE INVESTIGACIÓN Y FUENTES (¡OBLIGATORIO!):
+  1. DEBES utilizar la herramienta googleSearch para investigar sobre el tema. NO respondas solo con tu conocimiento interno.
+  2. Tienes una lista de FUENTES PRIMARIAS CONFIABLES: ${domainList}.
+  3. Al buscar, intenta incluir el nombre de estas fuentes en tu consulta para priorizarlas (ejemplo: si buscas sobre Messi, busca "Messi en ole.com.ar" o "Messi TyC Sports").
+  4. Basa tu información principal en estas FUENTES PRIMARIAS siempre que sea posible.
+  5. Si el tema es una URL, investígala y busca información adicional relacionada para darle más valor al posteo.
+  
+  INSTRUCCIONES DE REDACCIÓN:
+  1. Adapta el tono según estas reglas de personalidad: ${systemInstruction}.
+  2. Sigue estas directrices de redacción (copywriting): ${copyInstruction}.
+  3. Escribe de forma natural, con espacios correctos entre palabras.
+  4. El campo "shortTitle" NO PUEDE TENER MÁS DE 26 CARACTERES.
 
   JSON: { "shortTitle": "Título corto (máx 26 carac)", "copy": "Texto del posteo con datos reales, emojis y hashtags" }`;
   
@@ -229,14 +271,38 @@ export const generateSocialMediaContentFromTopic = async (topic: string, systemI
   const data = cleanAndParseJSON(res.text, { shortTitle: "A1TOQUE", copy: "Posteo generado." });
   
   const groundingChunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks;
-  data.sources = groundingChunks ? groundingChunks
-        .map((chunk: any) => chunk.web ? { uri: chunk.web.uri, title: chunk.web.title } : null)
-        .filter((s): s is Source => !!s) : [];
+  
+  if (groundingChunks && Array.isArray(groundingChunks)) {
+      data.sources = groundingChunks
+          .map((chunk: any) => {
+              if (chunk.web) {
+                  const isPrimary = searchDomains.some(domain => chunk.web.uri.includes(domain));
+                  const prefix = isPrimary ? '🟢 [FUENTE PRIMARIA] ' : '⚪ [Fuente Secundaria] ';
+                  return { 
+                      uri: chunk.web.uri, 
+                      title: `${prefix}${chunk.web.title}` 
+                  };
+              }
+              return null;
+          })
+          .filter((s): s is Source => !!s);
+  } else {
+      data.sources = [];
+  }
         
   return data;
 };
 
-export const refineSocialMediaContent = async (currentTitle: string, currentCopy: string, instructions: string, systemInstruction: string, copyInstruction: string) => {
+export const refineSocialMediaContent = async (currentTitle: string, currentCopy: string, instructions: string, systemInstruction: string, copyInstruction: string, searchDomains: string[] = []) => {
+  const currentDate = new Intl.DateTimeFormat('es-AR', { 
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', 
+      hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' 
+  }).format(new Date());
+  
+  const domainList = searchDomains.length > 0 
+      ? searchDomains.join(', ')
+      : 'Ninguna configurada (Búsqueda abierta)';
+
   const prompt = `Actúa como un Community Manager experto.
   Tienes este posteo actual:
   Título: "${currentTitle}"
@@ -244,12 +310,22 @@ export const refineSocialMediaContent = async (currentTitle: string, currentCopy
   
   El usuario pide esta modificación: "${instructions}"
   
-  INSTRUCCIONES OBLIGATORIAS:
-  1. SIEMPRE utiliza googleSearch para validar datos, buscar información adicional solicitada por el usuario o encontrar noticias de último momento que mejoren la respuesta.
-  2. Reformula el título y el copy incorporando la petición del usuario y los datos reales encontrados.
-  3. Mantén el tono definido por: ${systemInstruction}.
-  4. Sigue las directrices de redacción: ${copyInstruction}.
-  5. CRÍTICO: El campo "shortTitle" NO PUEDE TENER MÁS DE 26 CARACTERES.
+  CONTEXTO TEMPORAL CRÍTICO:
+  Hoy es ${currentDate} (Hora de Argentina). Toda la información que busques y redactes debe ser relevante para esta fecha y hora.
+  Prioriza absolutamente la información publicada en las últimas 24 a 48 horas.
+  
+  INSTRUCCIONES DE INVESTIGACIÓN Y FUENTES (¡OBLIGATORIO!):
+  1. DEBES utilizar la herramienta googleSearch para investigar sobre el tema. NO respondas solo con tu conocimiento interno.
+  2. Tienes una lista de FUENTES PRIMARIAS CONFIABLES: ${domainList}.
+  3. Al buscar, intenta incluir el nombre de estas fuentes en tu consulta para priorizarlas (ejemplo: si buscas sobre Messi, busca "Messi en ole.com.ar" o "Messi TyC Sports").
+  4. Basa tu información principal en estas FUENTES PRIMARIAS siempre que sea posible.
+  5. Si el tema es una URL, investígala y busca información adicional relacionada para darle más valor al posteo.
+  
+  INSTRUCCIONES DE REDACCIÓN:
+  1. Reformula el título y el copy incorporando la petición del usuario y los datos reales encontrados.
+  2. Mantén el tono definido por: ${systemInstruction}.
+  3. Sigue las directrices de redacción: ${copyInstruction}.
+  4. CRÍTICO: El campo "shortTitle" NO PUEDE TENER MÁS DE 26 CARACTERES.
   
   JSON: { "shortTitle": "Título corto (máx 26 carac)", "copy": "Texto del posteo reformulado con datos actualizados" }`;
   
@@ -265,9 +341,24 @@ export const refineSocialMediaContent = async (currentTitle: string, currentCopy
   const data = cleanAndParseJSON(res.text, { shortTitle: currentTitle, copy: currentCopy });
   
   const groundingChunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks;
-  data.sources = groundingChunks ? groundingChunks
-        .map((chunk: any) => chunk.web ? { uri: chunk.web.uri, title: chunk.web.title } : null)
-        .filter((s): s is Source => !!s) : [];
+  
+  if (groundingChunks && Array.isArray(groundingChunks)) {
+      data.sources = groundingChunks
+          .map((chunk: any) => {
+              if (chunk.web) {
+                  const isPrimary = searchDomains.some(domain => chunk.web.uri.includes(domain));
+                  const prefix = isPrimary ? '🟢 [FUENTE PRIMARIA] ' : '⚪ [Fuente Secundaria] ';
+                  return { 
+                      uri: chunk.web.uri, 
+                      title: `${prefix}${chunk.web.title}` 
+                  };
+              }
+              return null;
+          })
+          .filter((s): s is Source => !!s);
+  } else {
+      data.sources = [];
+  }
         
   return data;
 };
