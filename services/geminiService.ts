@@ -98,15 +98,16 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
         const prompt = `Actúa como periodista deportivo de investigación. Tu objetivo es redactar una noticia veraz y contrastada sobre: "${topic}". 
           
           CONTEXTO TEMPORAL CRÍTICO:
-          Hoy es ${currentDate} (Hora de Argentina). Toda la información que busques y redactes debe ser relevante para esta fecha y hora.
-          Prioriza absolutamente la información publicada en las últimas 24 a 48 horas. Verifica cuándo ocurrió realmente el evento antes de redactarlo como "noticia de hoy".
+          Hoy es ${currentDate} (Hora de Argentina). 
+          1. DEBES realizar una búsqueda en Google AHORA MISMO para encontrar la información más reciente sobre este tema.
+          2. Prioriza absolutamente la información publicada en las últimas 24 a 48 horas. Verifica cuándo ocurrió realmente el evento antes de redactarlo como "noticia de hoy".
           
           INSTRUCCIONES DE INVESTIGACIÓN Y FUENTES (¡OBLIGATORIO!):
           1. DEBES utilizar la herramienta googleSearch para investigar sobre el tema. NO respondas solo con tu conocimiento interno.
           2. Tienes una lista de FUENTES PRIMARIAS CONFIABLES: ${domainList}.
-          3. Al buscar, intenta incluir el nombre de estas fuentes en tu consulta para priorizarlas (ejemplo: si buscas sobre Messi, busca "Messi en ole.com.ar" o "Messi TyC Sports").
+          3. Al buscar, incluye el nombre de estas fuentes en tu consulta para priorizarlas (ejemplo: si buscas sobre Messi, busca "Messi en ole.com.ar" o "Messi TyC Sports").
           4. Basa tu información principal en estas FUENTES PRIMARIAS siempre que sea posible.
-          5. Busca múltiples fuentes para validar los datos clave (fechas, nombres, resultados). Si hay rumores o contradicciones entre medios, identifícalos explícitamente en el texto.
+          5. Si el tema es una URL, DEBES buscarla en Google para leer su contenido. Busca múltiples fuentes para validar los datos clave (fechas, nombres, resultados). Si hay rumores o contradicciones entre medios, identifícalos explícitamente en el texto.
           
           REGLAS ESTRICTAS PARA EL TÍTULO (CRÍTICO PARA EL DISEÑO):
           1. LONGITUD MÁXIMA: El título DEBE tener entre 50 y un MÁXIMO ABSOLUTO de 80 caracteres (contando espacios).
@@ -134,8 +135,7 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
             model: POWERFUL_MODEL,
             contents: prompt,
             config: { 
-              tools: [{ googleSearch: {} }],
-              responseMimeType: "application/json"
+              tools: [{ googleSearch: {} }]
             }
         }, signal);
         
@@ -186,8 +186,7 @@ export const generateNewsFromUrl = async (url: string, systemInstruction: string
             model: POWERFUL_MODEL,
             contents: prompt,
             config: { 
-              tools: [{ googleSearch: {} }],
-              responseMimeType: "application/json"
+              tools: [{ googleSearch: {} }]
             }
         }, signal);
         const draft = cleanAndParseJSON(response.text, null);
@@ -227,7 +226,7 @@ export const generateSocialMediaContentFast = async (title: string, excerpt: str
   return data;
 };
 
-export const generateSocialMediaContentFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string, searchDomains: string[] = []) => {
+export const generateSocialMediaContentFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string, searchDomains: string[] = [], signal?: AbortSignal) => {
   const currentDate = new Intl.DateTimeFormat('es-AR', { 
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', 
       hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' 
@@ -241,15 +240,16 @@ export const generateSocialMediaContentFromTopic = async (topic: string, systemI
   Tu objetivo es crear un posteo de alto impacto para redes sociales sobre: "${topic}".
   
   CONTEXTO TEMPORAL CRÍTICO:
-  Hoy es ${currentDate} (Hora de Argentina). Toda la información que busques y redactes debe ser relevante para esta fecha y hora.
-  Prioriza absolutamente la información publicada en las últimas 24 a 48 horas.
+  Hoy es ${currentDate} (Hora de Argentina). 
+  1. DEBES realizar una búsqueda en Google AHORA MISMO para encontrar la información más reciente sobre este tema.
+  2. Prioriza absolutamente la información publicada en las últimas 24 a 48 horas.
   
   INSTRUCCIONES DE INVESTIGACIÓN Y FUENTES (¡OBLIGATORIO!):
   1. DEBES utilizar la herramienta googleSearch para investigar sobre el tema. NO respondas solo con tu conocimiento interno.
   2. Tienes una lista de FUENTES PRIMARIAS CONFIABLES: ${domainList}.
-  3. Al buscar, intenta incluir el nombre de estas fuentes en tu consulta para priorizarlas (ejemplo: si buscas sobre Messi, busca "Messi en ole.com.ar" o "Messi TyC Sports").
+  3. Al buscar, incluye el nombre de estas fuentes en tu consulta para priorizarlas (ejemplo: si buscas sobre Messi, busca "Messi en ole.com.ar" o "Messi TyC Sports").
   4. Basa tu información principal en estas FUENTES PRIMARIAS siempre que sea posible.
-  5. Si el tema es una URL, investígala y busca información adicional relacionada para darle más valor al posteo.
+  5. Si el tema es una URL, DEBES buscarla en Google para leer su contenido y buscar información adicional relacionada.
   
   INSTRUCCIONES DE REDACCIÓN:
   1. Adapta el tono según estas reglas de personalidad: ${systemInstruction}.
@@ -263,10 +263,9 @@ export const generateSocialMediaContentFromTopic = async (topic: string, systemI
     model: POWERFUL_MODEL, 
     contents: prompt, 
     config: { 
-      tools: [{ googleSearch: {} }],
-      responseMimeType: "application/json"
+      tools: [{ googleSearch: {} }]
     } 
-  });
+  }, signal);
   
   const data = cleanAndParseJSON(res.text, { shortTitle: "A1TOQUE", copy: "Posteo generado." });
   
@@ -311,15 +310,16 @@ export const refineSocialMediaContent = async (currentTitle: string, currentCopy
   El usuario pide esta modificación: "${instructions}"
   
   CONTEXTO TEMPORAL CRÍTICO:
-  Hoy es ${currentDate} (Hora de Argentina). Toda la información que busques y redactes debe ser relevante para esta fecha y hora.
-  Prioriza absolutamente la información publicada en las últimas 24 a 48 horas.
+  Hoy es ${currentDate} (Hora de Argentina). 
+  1. DEBES realizar una búsqueda en Google AHORA MISMO para encontrar la información más reciente sobre este tema.
+  2. Prioriza absolutamente la información publicada en las últimas 24 a 48 horas.
   
   INSTRUCCIONES DE INVESTIGACIÓN Y FUENTES (¡OBLIGATORIO!):
   1. DEBES utilizar la herramienta googleSearch para investigar sobre el tema. NO respondas solo con tu conocimiento interno.
   2. Tienes una lista de FUENTES PRIMARIAS CONFIABLES: ${domainList}.
-  3. Al buscar, intenta incluir el nombre de estas fuentes en tu consulta para priorizarlas (ejemplo: si buscas sobre Messi, busca "Messi en ole.com.ar" o "Messi TyC Sports").
+  3. Al buscar, incluye el nombre de estas fuentes en tu consulta para priorizarlas (ejemplo: si buscas sobre Messi, busca "Messi en ole.com.ar" o "Messi TyC Sports").
   4. Basa tu información principal en estas FUENTES PRIMARIAS siempre que sea posible.
-  5. Si el tema es una URL, investígala y busca información adicional relacionada para darle más valor al posteo.
+  5. Si el tema es una URL, DEBES buscarla en Google para leer su contenido y buscar información adicional relacionada.
   
   INSTRUCCIONES DE REDACCIÓN:
   1. Reformula el título y el copy incorporando la petición del usuario y los datos reales encontrados.
@@ -333,8 +333,7 @@ export const refineSocialMediaContent = async (currentTitle: string, currentCopy
     model: POWERFUL_MODEL, 
     contents: prompt,
     config: { 
-      tools: [{ googleSearch: {} }],
-      responseMimeType: "application/json" 
+      tools: [{ googleSearch: {} }]
     }
   });
   

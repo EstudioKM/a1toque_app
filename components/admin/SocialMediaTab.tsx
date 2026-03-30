@@ -24,7 +24,7 @@ interface SocialMediaTabProps {
   onOpenEditor: (post: SocialPost) => void;
   onRepublish: (post: SocialPost) => void;
   onDeletePost: (id: string) => void;
-  onGenerateSocialFromTopic: (topic: string, systemPrompt: string, copyPrompt: string, accountId?: string) => void;
+  onGenerateSocialFromTopic: (topic: string, systemPrompt: string, copyPrompt: string, accountId?: string, existingTaskId?: string) => void;
   onLoadSocialDraft: (task: SocialGenerationTask) => void;
   onRemoveSocialTask: (id: string) => void;
 }
@@ -496,10 +496,18 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                                     
                                     {task.status === 'failed' && (
                                         <button 
-                                            onClick={() => onGenerateSocialFromTopic(task.prompt, aiSystemPrompt, DEFAULT_SOCIAL_COPY_PROMPT, task.accountId)}
+                                            onClick={() => onGenerateSocialFromTopic(task.prompt, aiSystemPrompt, DEFAULT_SOCIAL_COPY_PROMPT, task.accountId, task.id)}
                                             className="mt-2 md:mt-3 text-[8px] md:text-[9px] font-black uppercase italic tracking-widest text-neon hover:text-white transition-colors flex items-center gap-1.5"
                                         >
                                             <Sparkles size={10} /> REGENERAR
+                                        </button>
+                                    )}
+                                    {task.status === 'researching' && (
+                                        <button 
+                                            onClick={() => onGenerateSocialFromTopic(task.prompt, aiSystemPrompt, DEFAULT_SOCIAL_COPY_PROMPT, task.accountId, task.id)}
+                                            className="mt-2 md:mt-3 text-[8px] md:text-[9px] font-black uppercase italic tracking-widest text-blue-400 hover:text-white transition-colors flex items-center gap-1.5"
+                                        >
+                                            <Sparkles size={10} /> FORZAR REINTENTO
                                         </button>
                                     )}
                                 </div>

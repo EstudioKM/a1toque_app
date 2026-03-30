@@ -293,17 +293,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     setNewsTaskBeingEdited(null);
   };
 
-  const handleGenerateSocialFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string, accountId?: string) => {
+  const handleGenerateSocialFromTopic = async (topic: string, systemInstruction: string, copyInstruction: string, accountId?: string, existingTaskId?: string) => {
     const controller = new AbortController();
-    const taskId = await props.onAddAiSocialTask({ 
-        userId: props.currentUser.id, 
-        prompt: topic, 
-        status: 'researching',
-        accountId
-    });
+    let taskId = existingTaskId;
+    
+    if (taskId) {
+        await props.onUpdateAiSocialTask(taskId, {
+            status: 'researching',
+            error: null,
+            controller
+        });
+    } else {
+        taskId = await props.onAddAiSocialTask({ 
+            userId: props.currentUser.id, 
+            prompt: topic, 
+            status: 'researching',
+            accountId,
+            controller
+        });
+    }
     
     try {
-        const result = await generateSocialMediaContentFromTopic(topic, systemInstruction, copyInstruction, props.siteConfig.searchDomains || []);
+        const result = await generateSocialMediaContentFromTopic(topic, systemInstruction, copyInstruction, props.siteConfig.searchDomains || [], controller.signal);
         await props.onUpdateAiSocialTask(taskId, { 
             status: result ? 'completed' : 'failed', 
             result: result || undefined, 
