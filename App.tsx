@@ -478,13 +478,9 @@ const App: React.FC = () => {
     setView(ViewMode.HOME);
   };
 
-  // Heartbeat and Online Status Tracking
+  const currentSectionRef = useRef<string>('Navegando');
+
   useEffect(() => {
-    if (!currentUser) return;
-
-    let lastActivityTime = Date.now();
-    let isCurrentlyIdle = false;
-
     const getCurrentSectionName = () => {
       if (view === ViewMode.HOME) return 'Inicio';
       if (view === ViewMode.ARTICLE) return 'Leyendo Artículo';
@@ -505,15 +501,33 @@ const App: React.FC = () => {
       return 'Navegando';
     };
 
+    const newSection = getCurrentSectionName();
+    currentSectionRef.current = newSection;
+
+    if (currentUser) {
+      const userRef = doc(db, 'users', currentUser.id);
+      updateDoc(userRef, { currentSection: newSection }).catch(() => {
+        setDoc(userRef, { currentSection: newSection }, { merge: true }).catch(console.error);
+      });
+    }
+  }, [view, adminTab, currentUser?.id]);
+
+  // Heartbeat and Online Status Tracking
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let lastActivityTime = Date.now();
+    let isCurrentlyIdle = false;
+
     const updateStatus = async (online: boolean) => {
       try {
         const userRef = doc(db, 'users', currentUser.id);
-        const currentSection = online ? getCurrentSectionName() : undefined;
+        const currentSection = online ? currentSectionRef.current : null;
         
         await updateDoc(userRef, {
           isOnline: online,
           lastConnection: new Date().toISOString(),
-          ...(currentSection ? { currentSection } : {})
+          currentSection: currentSection
         });
         console.log(`User ${currentUser.name} status updated to ${online ? 'online' : 'offline'} in ${currentSection}`);
       } catch (error) {
@@ -521,11 +535,11 @@ const App: React.FC = () => {
         // If updateDoc fails (e.g. fields don't exist), try setDoc with merge
         try {
           const userRef = doc(db, 'users', currentUser.id);
-          const currentSection = online ? getCurrentSectionName() : undefined;
+          const currentSection = online ? currentSectionRef.current : null;
           await setDoc(userRef, {
             isOnline: online,
             lastConnection: new Date().toISOString(),
-            ...(currentSection ? { currentSection } : {})
+            currentSection: currentSection
           }, { merge: true });
         } catch (innerError) {
           console.error("Error updating user status with setDoc:", innerError);
@@ -577,7 +591,7 @@ const App: React.FC = () => {
     const handleBeforeUnload = () => {
       // Try to set offline before leaving
       const userRef = doc(db, 'users', currentUser.id);
-      setDoc(userRef, { isOnline: false, lastConnection: new Date().toISOString() }, { merge: true });
+      setDoc(userRef, { isOnline: false, lastConnection: new Date().toISOString(), currentSection: null }, { merge: true });
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -594,7 +608,7 @@ const App: React.FC = () => {
       // Set offline on cleanup (logout or component unmount)
       updateStatus(false);
     };
-  }, [currentUser?.id, view, adminTab]);
+  }, [currentUser?.id]);
 
   const removeUndefinedFields = (obj: any): any => {
     if (Array.isArray(obj)) {
