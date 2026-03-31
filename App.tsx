@@ -482,6 +482,9 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!currentUser) return;
 
+    let lastActivityTime = Date.now();
+    let isCurrentlyIdle = false;
+
     const updateStatus = async (online: boolean) => {
       try {
         const userRef = doc(db, 'users', currentUser.id);
@@ -505,16 +508,45 @@ const App: React.FC = () => {
       }
     };
 
+    const handleActivity = () => {
+      lastActivityTime = Date.now();
+      if (isCurrentlyIdle) {
+        isCurrentlyIdle = false;
+        updateStatus(true);
+      }
+    };
+
+    // Listen for user interactions
+    window.addEventListener('mousemove', handleActivity, { passive: true });
+    window.addEventListener('keydown', handleActivity, { passive: true });
+    window.addEventListener('click', handleActivity, { passive: true });
+    window.addEventListener('scroll', handleActivity, { passive: true });
+
     // Initial online status
     updateStatus(true);
 
     // Heartbeat every 30 seconds for better responsiveness
     const heartbeatInterval = setInterval(() => {
-      updateStatus(true);
+      const timeSinceLastActivity = Date.now() - lastActivityTime;
+      const isIdle = timeSinceLastActivity > 60000; // 1 minute idle threshold
+
+      if (document.visibilityState === 'visible') {
+        if (!isIdle) {
+          updateStatus(true);
+        } else if (!isCurrentlyIdle) {
+          isCurrentlyIdle = true;
+          updateStatus(false);
+        }
+      }
     }, 30000);
 
     const handleVisibilityChange = () => {
-      updateStatus(document.visibilityState === 'visible');
+      if (document.visibilityState === 'visible') {
+        handleActivity();
+      } else {
+        isCurrentlyIdle = true;
+        updateStatus(false);
+      }
     };
 
     const handleBeforeUnload = () => {
@@ -530,6 +562,10 @@ const App: React.FC = () => {
       clearInterval(heartbeatInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
       // Set offline on cleanup (logout or component unmount)
       updateStatus(false);
     };
