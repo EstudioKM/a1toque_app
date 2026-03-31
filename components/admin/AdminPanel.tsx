@@ -108,6 +108,7 @@ interface AdminPanelProps {
   onExit: () => void;
   initialTab?: AdminTab;
   initialTargetId?: string;
+  onTabChange?: (tab: string) => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
@@ -134,6 +135,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     if (props.initialTab) return props.initialTab;
     return 'home';
   });
+
+  const handleTabChange = (tab: AdminTab) => {
+    setActiveTab(tab);
+    props.onTabChange?.(tab);
+  };
 
   useEffect(() => {
     if (props.initialTab) {
@@ -346,7 +352,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     }
   };
 
-  const handleNavClick = (tab: AdminTab) => { setActiveTab(tab); setIsSidebarOpen(false); };
+  const handleNavClick = (tab: AdminTab) => { handleTabChange(tab); setIsSidebarOpen(false); };
   const NavButton: React.FC<{ tab: AdminTab, icon: React.ElementType, label: string }> = ({ tab, icon: Icon, label }) => {
     const hasNotification = (tab === 'chat' && (props.chatMessages.some(m => m.receiverId === props.currentUser.id && !m.isRead) || (props.unreadGroupMessagesCount || 0) > 0)) ||
                            (tab === 'tasks' && props.tasks.some(t => t.assignedUserIds.includes(props.currentUser.id) && t.status === 'pending' && !(t.viewedByUserIds || []).includes(props.currentUser.id)));
@@ -383,7 +389,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               tasks={props.tasks}
               users={props.users}
               onOpenAdminTab={(tab, targetId) => {
-                setActiveTab(tab as AdminTab);
+                handleTabChange(tab as AdminTab);
                 if (targetId) {
                   // We need to pass this down somehow if we want to highlight
                   // For now, we just switch the tab. 
@@ -408,7 +414,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               tasks={props.tasks}
               users={props.users}
               onOpenAdminTab={(tab, targetId) => {
-                setActiveTab(tab as AdminTab);
+                handleTabChange(tab as AdminTab);
                 // Note: initialTargetId is handled via props in AdminPanel, 
                 // but here we are already mounted. 
                 // We might need to manually trigger the highlight logic in tabs.
@@ -432,7 +438,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               </div>
               {isUserMenuOpen && (
                 <div className="absolute top-full right-0 mt-3 w-56 bg-[#111] border border-white/10 rounded-xl shadow-2xl z-[100] animate-in fade-in zoom-in duration-200">
-                  <button onClick={() => { setActiveTab('profile'); setIsUserMenuOpen(false); }} className="w-full text-left px-5 py-4 text-xs font-black uppercase text-white hover:bg-white/5 flex items-center gap-3 transition-colors rounded-t-xl">
+                  <button onClick={() => { handleTabChange('profile'); setIsUserMenuOpen(false); }} className="w-full text-left px-5 py-4 text-xs font-black uppercase text-white hover:bg-white/5 flex items-center gap-3 transition-colors rounded-t-xl">
                     <UserIcon size={16} /> Mi Perfil
                   </button>
                   <button onClick={() => { props.onExit(); setIsUserMenuOpen(false); }} className="w-full text-left px-5 py-4 text-xs font-black uppercase text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors rounded-b-xl">
@@ -463,9 +469,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               tasks={props.tasks}
               chatMessages={props.chatMessages}
               users={props.users}
-              onOpenTasks={() => setActiveTab('tasks')}
+              onOpenTasks={() => handleTabChange('tasks')}
               onUpdateUser={props.onUpdateUser}
-              onOpenAdminTab={(tab) => setActiveTab(tab as AdminTab)}
+              onOpenAdminTab={(tab) => handleTabChange(tab as AdminTab)}
             />
           )}
           {activeTab === 'news' && (

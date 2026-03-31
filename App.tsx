@@ -487,14 +487,16 @@ const App: React.FC = () => {
       if (view === ViewMode.LANDING) return 'Landing Page';
       if (view === ViewMode.ADMIN) {
         switch (adminTab) {
-          case 'tasks': return 'Gestión de Tareas';
-          case 'my-work': return 'Mi Trabajo';
-          case 'news': return 'Noticias';
-          case 'social': return 'Redes Sociales';
-          case 'metrics': return 'Métricas';
-          case 'users': return 'Usuarios';
-          case 'config': return 'Configuración';
-          case 'chat': return 'Chat Interno';
+          case 'home': return 'Panel de Control / Inicio';
+          case 'admin_tasks': return 'Panel de Control / Gestión de Tareas';
+          case 'tasks': return 'Panel de Control / Mi Trabajo';
+          case 'news': return 'Panel de Control / Noticias';
+          case 'social': return 'Panel de Control / Redes Sociales';
+          case 'metrics': return 'Panel de Control / Métricas';
+          case 'users': return 'Panel de Control / Usuarios';
+          case 'config': return 'Panel de Control / Configuración';
+          case 'chat': return 'Panel de Control / Chat Interno';
+          case 'profile': return 'Panel de Control / Mi Perfil';
           default: return 'Panel de Control';
         }
       }
@@ -1132,6 +1134,7 @@ const App: React.FC = () => {
           }}
           initialTab={adminTab as any}
           initialTargetId={adminTargetId}
+          onTabChange={setAdminTab}
         />
       ) : !dataError ? (
         <div className={`transition-opacity duration-700 flex flex-col min-h-screen ${showMainContent ? 'opacity-100' : 'opacity-0'}`}>
