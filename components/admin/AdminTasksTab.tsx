@@ -773,9 +773,16 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                         <td className="p-4 text-center">
                           <div className="flex flex-col items-center gap-1">
                             {isActuallyOnline ? (
-                              <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-neon/10 text-neon uppercase tracking-widest">
-                                En Línea
-                              </span>
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-neon/10 text-neon uppercase tracking-widest">
+                                  En Línea
+                                </span>
+                                {user.currentSection && (
+                                  <span className="text-[8px] font-black px-2 py-0.5 rounded-md bg-white/5 text-gray-400 uppercase tracking-widest border border-white/10">
+                                    {user.currentSection}
+                                  </span>
+                                )}
+                              </div>
                             ) : (
                               <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-white/5 text-gray-500 uppercase tracking-widest">
                                 Desconectado

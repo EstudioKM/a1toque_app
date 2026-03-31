@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AdSlotConfig, AdSlotBehavior } from '../../../types';
 import { X, Save, Settings, RotateCw, Layers, ArrowDownUp } from 'lucide-react';
 

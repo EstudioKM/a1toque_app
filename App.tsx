@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { ViewMode, Article, Sponsorship, Category, User, Brand, SponsorshipType, SocialAccount, SocialPost, CategoryConfig, Role, SiteConfig, AdSlotConfig, INITIAL_AD_SLOTS, WorkLog, Task, ChatMessage, GenerationTask, SocialGenerationTask } from './types';
 import { INITIAL_SPONSORSHIPS, INITIAL_USERS, DEFAULT_AI_PROMPT, INITIAL_BRANDS, INITIAL_SOCIAL_ACCOUNTS, INITIAL_CATEGORIES, INITIAL_ROLES } from './constants';
 import { Toaster } from 'sonner';
@@ -485,22 +485,47 @@ const App: React.FC = () => {
     let lastActivityTime = Date.now();
     let isCurrentlyIdle = false;
 
+    const getCurrentSectionName = () => {
+      if (view === ViewMode.HOME) return 'Inicio';
+      if (view === ViewMode.ARTICLE) return 'Leyendo Artículo';
+      if (view === ViewMode.LANDING) return 'Landing Page';
+      if (view === ViewMode.ADMIN) {
+        switch (adminTab) {
+          case 'tasks': return 'Gestión de Tareas';
+          case 'my-work': return 'Mi Trabajo';
+          case 'news': return 'Noticias';
+          case 'social': return 'Redes Sociales';
+          case 'metrics': return 'Métricas';
+          case 'users': return 'Usuarios';
+          case 'config': return 'Configuración';
+          case 'chat': return 'Chat Interno';
+          default: return 'Panel de Control';
+        }
+      }
+      return 'Navegando';
+    };
+
     const updateStatus = async (online: boolean) => {
       try {
         const userRef = doc(db, 'users', currentUser.id);
+        const currentSection = online ? getCurrentSectionName() : undefined;
+        
         await updateDoc(userRef, {
           isOnline: online,
-          lastConnection: new Date().toISOString()
+          lastConnection: new Date().toISOString(),
+          ...(currentSection ? { currentSection } : {})
         });
-        console.log(`User ${currentUser.name} status updated to ${online ? 'online' : 'offline'}`);
+        console.log(`User ${currentUser.name} status updated to ${online ? 'online' : 'offline'} in ${currentSection}`);
       } catch (error) {
         console.error("Error updating user status:", error);
         // If updateDoc fails (e.g. fields don't exist), try setDoc with merge
         try {
           const userRef = doc(db, 'users', currentUser.id);
+          const currentSection = online ? getCurrentSectionName() : undefined;
           await setDoc(userRef, {
             isOnline: online,
-            lastConnection: new Date().toISOString()
+            lastConnection: new Date().toISOString(),
+            ...(currentSection ? { currentSection } : {})
           }, { merge: true });
         } catch (innerError) {
           console.error("Error updating user status with setDoc:", innerError);
@@ -569,7 +594,7 @@ const App: React.FC = () => {
       // Set offline on cleanup (logout or component unmount)
       updateStatus(false);
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, view, adminTab]);
 
   const removeUndefinedFields = (obj: any): any => {
     if (Array.isArray(obj)) {

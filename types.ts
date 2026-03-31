@@ -180,6 +180,7 @@ export interface User {
   alertMessages?: UserAlert[];
   lastConnection?: string;
   isOnline?: boolean;
+  currentSection?: string; // Tracks the current section the user is viewing
 }
 
 // --- NUEVOS TIPOS PARA GESTIÓN DE TIEMPO Y TAREAS ---
