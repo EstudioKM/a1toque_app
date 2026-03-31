@@ -486,7 +486,8 @@ const App: React.FC = () => {
       if (view === ViewMode.ARTICLE) return 'Leyendo Artículo';
       if (view === ViewMode.LANDING) return 'Landing Page';
       if (view === ViewMode.ADMIN) {
-        switch (adminTab) {
+        const currentTab = adminTab || 'home';
+        switch (currentTab) {
           case 'home': return 'Panel de Control / Inicio';
           case 'admin_tasks': return 'Panel de Control / Gestión de Tareas';
           case 'tasks': return 'Panel de Control / Mi Trabajo';
