@@ -96,11 +96,12 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   const scheduledPostsByDate = useMemo(() => {
     const map = new Map<string, SocialPost[]>();
     filteredPosts
-      .filter(p => p.status === 'scheduled')
+      .filter(p => p.status === 'scheduled' || p.status === 'success')
       .filter(p => !scheduledAccountFilter || p.postedToAccounts.includes(scheduledAccountFilter))
       .forEach(post => {
-      if (post.scheduledAt) {
-        const date = new Date(post.scheduledAt);
+      const dateSource = post.scheduledAt || post.postedAt;
+      if (dateSource) {
+        const date = new Date(dateSource);
         const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         if (!map.has(dateStr)) {
           map.set(dateStr, []);
@@ -181,9 +182,9 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
   );
   const scheduledPosts = useMemo(() => 
     filteredPosts
-      .filter(p => p.status === 'scheduled')
+      .filter(p => p.status === 'scheduled' || p.status === 'success')
       .filter(p => !scheduledAccountFilter || p.postedToAccounts.includes(scheduledAccountFilter))
-      .sort((a, b) => new Date(a.scheduledAt || 0).getTime() - new Date(b.scheduledAt || 0).getTime()),
+      .sort((a, b) => new Date(a.scheduledAt || a.postedAt || 0).getTime() - new Date(b.scheduledAt || b.postedAt || 0).getTime()),
     [filteredPosts, scheduledAccountFilter]
   );
   const publishedPosts = useMemo(() => 
@@ -197,13 +198,14 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
     const author = users.find(u => u.id === post.postedBy);
     const isDraft = post.status === 'draft';
     const isScheduled = post.status === 'scheduled';
+    const isPublished = post.status === 'success';
     const isEditable = isDraft || isScheduled;
     
     return (
       <div 
         key={post.id} 
         onClick={!isEditable ? () => onOpenDetail(post) : undefined}
-        className={`group relative rounded-2xl overflow-hidden border transition-all duration-300 ${!isEditable ? 'bg-[#0f0f0f] border-white/5 hover:border-white/10 cursor-pointer' : isScheduled ? 'bg-blue-500/5 border-blue-500/20' : 'bg-neon/[0.03] border-neon/20'}`}
+        className={`group relative rounded-2xl overflow-hidden border transition-all duration-300 ${!isEditable ? 'bg-[#0f0f0f] border-white/5 hover:border-white/10 cursor-pointer' : isScheduled ? 'bg-blue-500/5 border-blue-500/20' : 'bg-neon/[0.03] border-neon/20'} ${isPublished ? 'opacity-60 hover:opacity-100 grayscale hover:grayscale-0' : ''}`}
       >
         <div className="p-4 md:p-6">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
@@ -543,9 +545,9 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 md:mb-8">
             <div>
               <h3 className="text-lg md:text-xl font-oswald font-black italic uppercase text-white tracking-tight flex items-center gap-2">
-                <Clock className="text-blue-500 w-5 h-5 md:w-6 md:h-6" /> POSTEOS PROGRAMADOS
+                <Clock className="text-blue-500 w-5 h-5 md:w-6 md:h-6" /> CALENDARIO DE PUBLICACIONES
               </h3>
-              <p className="text-gray-500 text-[8px] md:text-[9px] font-bold uppercase tracking-widest mt-0.5 md:mt-1">Contenido pendiente de publicación</p>
+              <p className="text-gray-500 text-[8px] md:text-[9px] font-bold uppercase tracking-widest mt-0.5 md:mt-1">Contenido programado y publicado</p>
             </div>
             <div className="flex items-center justify-between md:justify-end gap-3 md:gap-4 w-full md:w-auto flex-wrap">
               {/* Filtro por cuenta */}
@@ -641,11 +643,13 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                             {date.getDate()}
                           </div>
                           <div className="flex flex-col gap-1 md:gap-1.5">
-                            {dayPosts.map(post => (
+                            {dayPosts.map(post => {
+                              const isPublished = post.status === 'success';
+                              return (
                               <div 
                                 key={post.id} 
                                 onClick={() => onOpenEditor(post)}
-                                className="bg-black/40 hover:bg-white/10 p-1 md:p-1.5 rounded-md md:rounded-lg border border-white/5 cursor-pointer transition-all flex flex-col gap-1 group"
+                                className={`p-1 md:p-1.5 rounded-md md:rounded-lg border cursor-pointer transition-all flex flex-col gap-1 group ${isPublished ? 'bg-white/[0.02] border-white/5 opacity-50 hover:opacity-100 grayscale hover:grayscale-0' : 'bg-black/40 hover:bg-white/10 border-white/5'}`}
                                 title={post.titleOverlay}
                               >
                                 <div className="flex items-center gap-1 md:gap-2">
@@ -657,17 +661,18 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                                       ) : null;
                                     })}
                                   </div>
-                                  <span className="text-[7px] md:text-[9px] font-bold text-gray-300 group-hover:text-white truncate">
+                                  <span className={`text-[7px] md:text-[9px] font-bold truncate ${isPublished ? 'text-gray-500 group-hover:text-gray-300' : 'text-gray-300 group-hover:text-white'}`}>
                                     {post.titleOverlay}
                                   </span>
                                 </div>
-                                {post.scheduledAt && (
-                                  <div className="text-[6px] md:text-[8px] font-mono text-gray-500 pl-1">
-                                    {new Date(post.scheduledAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                {(post.scheduledAt || post.postedAt) && (
+                                  <div className={`text-[6px] md:text-[8px] font-mono pl-1 ${isPublished ? 'text-gray-600' : 'text-gray-500'}`}>
+                                    {new Date(post.scheduledAt || post.postedAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                    {isPublished && ' (Pub)'}
                                   </div>
                                 )}
                               </div>
-                            ))}
+                            )})}
                           </div>
                         </div>
                       );
@@ -733,11 +738,13 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                       return (
                         <div key={dateStr} className={`bg-white/[0.02] rounded-xl min-h-[300px] p-2 border transition-all ${isToday ? 'border-neon/30 bg-neon/5' : 'border-white/5 hover:border-white/10'}`}>
                           <div className="flex flex-col gap-2">
-                            {dayPosts.map(post => (
+                            {dayPosts.map(post => {
+                              const isPublished = post.status === 'success';
+                              return (
                               <div 
                                 key={post.id} 
                                 onClick={() => onOpenEditor(post)}
-                                className="bg-black/60 hover:bg-white/10 p-2 rounded-lg border border-white/5 cursor-pointer transition-all flex flex-col gap-2 group"
+                                className={`p-2 rounded-lg border cursor-pointer transition-all flex flex-col gap-2 group ${isPublished ? 'bg-white/[0.02] border-white/5 opacity-50 hover:opacity-100 grayscale hover:grayscale-0' : 'bg-black/60 hover:bg-white/10 border-white/5'}`}
                               >
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex -space-x-1 flex-shrink-0">
@@ -748,23 +755,23 @@ export const SocialMediaTab: React.FC<SocialMediaTabProps> = ({
                                       ) : null;
                                     })}
                                   </div>
-                                  {post.scheduledAt && (
-                                    <div className="text-[9px] font-mono text-neon font-bold flex items-center gap-1 bg-neon/10 px-1.5 py-0.5 rounded">
-                                      <Clock size={10} />
-                                      {new Date(post.scheduledAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                  {(post.scheduledAt || post.postedAt) && (
+                                    <div className={`text-[9px] font-mono font-bold flex items-center gap-1 px-1.5 py-0.5 rounded ${isPublished ? 'text-gray-500 bg-white/5' : 'text-neon bg-neon/10'}`}>
+                                      {isPublished ? <CheckCircle2 size={10} /> : <Clock size={10} />}
+                                      {new Date(post.scheduledAt || post.postedAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                   )}
                                 </div>
                                 {post.imageUrl && (
                                   <div className="w-full h-24 rounded-md overflow-hidden relative">
-                                    <img src={post.imageUrl} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                    <img src={post.imageUrl} alt="" className={`w-full h-full object-cover transition-opacity ${isPublished ? 'opacity-60 group-hover:opacity-100' : 'opacity-80 group-hover:opacity-100'}`} />
                                   </div>
                                 )}
-                                <span className="text-[10px] font-bold text-gray-300 group-hover:text-white line-clamp-3 leading-tight">
+                                <span className={`text-[10px] font-bold line-clamp-3 leading-tight ${isPublished ? 'text-gray-500 group-hover:text-gray-300' : 'text-gray-300 group-hover:text-white'}`}>
                                   {post.titleOverlay || post.copy}
                                 </span>
                               </div>
-                            ))}
+                            )})}
                           </div>
                         </div>
                       );
