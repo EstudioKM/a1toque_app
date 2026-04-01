@@ -730,7 +730,9 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                     <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Estado</th>
                     <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Tareas Pendientes</th>
                     <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Tareas Completadas</th>
-                    <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Horas Totales</th>
+                    <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Horas (Tareas)</th>
+                    <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Actividad (Hoy)</th>
+                    <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Actividad (Total)</th>
                     <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Alertas Activas</th>
                     <th className="p-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Acciones</th>
                   </tr>
@@ -777,11 +779,9 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                                 <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-neon/10 text-neon uppercase tracking-widest">
                                   En Línea
                                 </span>
-                                {user.currentSection && (
-                                  <span className="text-[8px] font-black px-2 py-0.5 rounded-md bg-white/5 text-gray-400 uppercase tracking-widest border border-white/10">
-                                    {user.currentSection}
-                                  </span>
-                                )}
+                                <span className="text-[8px] font-black px-2 py-0.5 rounded-md bg-white/5 text-gray-400 uppercase tracking-widest border border-white/10 text-center">
+                                  {user.currentSection || 'Navegando'}
+                                </span>
                               </div>
                             ) : (
                               <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-white/5 text-gray-500 uppercase tracking-widest">
@@ -807,6 +807,18 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                         </td>
                         <td className="p-4 text-center">
                           <span className="text-[11px] font-black text-white">{user.totalHours.toFixed(1)}h</span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className="text-[11px] font-black text-neon">
+                            {user.dailyActiveTime?.[new Date().toISOString().split('T')[0]] 
+                              ? `${(user.dailyActiveTime[new Date().toISOString().split('T')[0]] / 3600).toFixed(1)}h` 
+                              : '0.0h'}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className="text-[11px] font-black text-white">
+                            {user.totalActiveTime ? `${(user.totalActiveTime / 3600).toFixed(1)}h` : '0.0h'}
+                          </span>
                         </td>
                         <td className="p-4">
                           {activeAlertsCount > 0 ? (

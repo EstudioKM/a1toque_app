@@ -15,7 +15,7 @@ import { WelcomeModal } from './components/WelcomeModal';
 import { PersonalNotificationsModal } from './components/PersonalNotificationsModal';
 import { GroupChat } from './components/GroupChat';
 import { db } from './services/firebase';
-import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, writeBatch, getDoc, onSnapshot, updateDoc, increment } from 'firebase/firestore';
 import { A1ToqueLoader } from './components/A1ToqueLoader';
 import { Youtube, Instagram, Twitter, Facebook, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -575,6 +575,15 @@ const App: React.FC = () => {
       if (document.visibilityState === 'visible') {
         if (!isIdle) {
           updateStatus(true);
+          // Increment active time
+          if (currentUser) {
+            const today = new Date().toISOString().split('T')[0];
+            const userRef = doc(db, 'users', currentUser.id);
+            updateDoc(userRef, {
+              totalActiveTime: increment(30),
+              [`dailyActiveTime.${today}`]: increment(30)
+            }).catch(console.error);
+          }
         } else if (!isCurrentlyIdle) {
           isCurrentlyIdle = true;
           updateStatus(false);

@@ -181,6 +181,8 @@ export interface User {
   lastConnection?: string;
   isOnline?: boolean;
   currentSection?: string; // Tracks the current section the user is viewing
+  totalActiveTime?: number; // Total active time in seconds
+  dailyActiveTime?: Record<string, number>; // Active time per day (YYYY-MM-DD) in seconds
 }
 
 // --- NUEVOS TIPOS PARA GESTIÓN DE TIEMPO Y TAREAS ---
