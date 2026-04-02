@@ -233,7 +233,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     });
     
     try {
-        const draft = await generateNewsFromUrl(url, systemInstruction, controller.signal);
+        const categoryNames = props.categories.map(c => c.name);
+        const draft = await generateNewsFromUrl(url, systemInstruction, categoryNames, controller.signal);
         await props.onUpdateAiNewsTask(taskId, { 
             status: draft ? 'completed' : 'failed', 
             result: draft || undefined, 
@@ -257,7 +258,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     });
     
     try {
-        const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], controller.signal);
+        const categoryNames = props.categories.map(c => c.name);
+        const draft = await generateNewsDraftFromTopic(topic, systemInstruction, props.siteConfig.searchDomains || [], categoryNames, controller.signal);
         await props.onUpdateAiNewsTask(taskId, { 
             status: draft ? 'completed' : 'failed', 
             result: draft || undefined, 

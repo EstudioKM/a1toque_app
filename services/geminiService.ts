@@ -84,7 +84,7 @@ const generateContentWithRetry = async (
   throw new Error("API Fatal Error");
 };
 
-export const generateNewsDraftFromTopic = async (topic: string, systemInstruction: string, searchDomains: string[] = [], signal?: AbortSignal) => {
+export const generateNewsDraftFromTopic = async (topic: string, systemInstruction: string, searchDomains: string[] = [], categories: string[] = [], signal?: AbortSignal) => {
     try {
         const currentDate = new Intl.DateTimeFormat('es-AR', { 
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', 
@@ -94,6 +94,10 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
         const domainList = searchDomains.length > 0 
             ? searchDomains.join(', ')
             : 'Ninguna configurada (Búsqueda abierta)';
+
+        const categoriesList = categories.length > 0
+            ? categories.join(', ')
+            : 'General';
 
         const prompt = `Actúa como periodista deportivo de investigación. Tu objetivo es redactar una noticia veraz y contrastada sobre: "${topic}". 
           
@@ -115,6 +119,11 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
           3. IMPACTO VISUAL: Debe ser un título "punchy", con gancho, pero sin caer en el clickbait barato.
           4. FORMATO: No incluyas punto final. No uses comillas en los títulos bajo ninguna circunstancia.
           
+          REGLAS PARA LA CATEGORÍA (CRÍTICO):
+          1. DEBES seleccionar UNA ÚNICA categoría de la siguiente lista exacta: [${categoriesList}].
+          2. NO PUEDES inventar categorías nuevas bajo ninguna circunstancia.
+          3. Si ninguna categoría parece encajar perfectamente, selecciona la más cercana o general de la lista proporcionada.
+
           REGLAS DE ESTILO: ${systemInstruction}.
           CRÍTICO: Debes escribir el texto de forma natural, con espacios en blanco separando cada palabra. NUNCA escribas palabras pegadas (ejemplo incorrecto: "Elpróximo27demarzo").
           
@@ -122,7 +131,7 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
           { 
             "title": "Título impactante (50-80 caracteres)", 
             "excerpt": "Resumen breve", 
-            "category": "Categoría adecuada", 
+            "category": "Categoría exacta de la lista", 
             "imageUrl": "Palabra clave para imagen", 
             "blocks": [
               {"type": "heading", "content": "Subtítulo con espacios normales"},
@@ -170,8 +179,12 @@ export const generateNewsDraftFromTopic = async (topic: string, systemInstructio
     }
 };
 
-export const generateNewsFromUrl = async (url: string, systemInstruction: string, signal?: AbortSignal) => {
+export const generateNewsFromUrl = async (url: string, systemInstruction: string, categories: string[] = [], signal?: AbortSignal) => {
     try {
+        const categoriesList = categories.length > 0
+            ? categories.join(', ')
+            : 'General';
+
         const prompt = `Reversiona esta noticia: ${url}. Estilo: ${systemInstruction}. 
         
         REGLAS ESTRICTAS PARA EL TÍTULO (CRÍTICO PARA EL DISEÑO):
@@ -180,8 +193,13 @@ export const generateNewsFromUrl = async (url: string, systemInstruction: string
         3. IMPACTO VISUAL: Debe ser un título "punchy", con gancho, pero sin caer en el clickbait barato.
         4. FORMATO: No incluyas punto final. No uses comillas en los títulos bajo ninguna circunstancia.
         
+        REGLAS PARA LA CATEGORÍA (CRÍTICO):
+        1. DEBES seleccionar UNA ÚNICA categoría de la siguiente lista exacta: [${categoriesList}].
+        2. NO PUEDES inventar categorías nuevas bajo ninguna circunstancia.
+        3. Si ninguna categoría parece encajar perfectamente, selecciona la más cercana o general de la lista proporcionada.
+
         CRÍTICO: Escribe el texto de forma natural, con espacios en blanco separando cada palabra. NUNCA escribas palabras pegadas.
-        Salida: JSON { "title": "Título (50-80 caracteres)", "excerpt": "Resumen", "category": "Categoría", "imageUrl": "Palabra clave", "blocks": [...] }`;
+        Salida: JSON { "title": "Título (50-80 caracteres)", "excerpt": "Resumen", "category": "Categoría exacta de la lista", "imageUrl": "Palabra clave", "blocks": [...] }`;
         const response = await generateContentWithRetry({
             model: POWERFUL_MODEL,
             contents: prompt,

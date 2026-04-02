@@ -466,12 +466,15 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ article, users, ro
                       <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em] block">CATEGORÍA *</label>
                       <div className="relative group">
                           <select 
-                            value={metaData.category || ''} 
+                            value={categories.find(c => c.name.toLowerCase() === metaData.category?.toLowerCase())?.name || metaData.category || ''} 
                             onChange={e => setMetaData(p => ({ ...p, category: e.target.value as string }))} 
                             className={`w-full bg-black/50 border-2 rounded-xl p-3 text-xs font-bold text-white focus:border-neon outline-none appearance-none cursor-pointer hover:border-white/40 transition-colors ${!metaData.category && errors.length > 0 ? 'border-red-500/50' : 'border-white/20'}`}
                           >
                               <option value="" disabled className="text-gray-600 italic">-- Seleccionar Categoría --</option>
                               {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                              {metaData.category && !categories.some(c => c.name.toLowerCase() === metaData.category?.toLowerCase()) && (
+                                <option value={metaData.category}>{metaData.category} (No encontrada)</option>
+                              )}
                           </select>
                           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neon/40 group-hover:text-neon transition-colors">▼</div>
                       </div>

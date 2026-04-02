@@ -811,13 +811,27 @@ export const AdminTasksTab: React.FC<AdminTasksTabProps> = ({ tasks, users, soci
                         <td className="p-4 text-center">
                           <span className="text-[11px] font-black text-neon">
                             {user.dailyActiveTime?.[new Date().toISOString().split('T')[0]] 
-                              ? `${(user.dailyActiveTime[new Date().toISOString().split('T')[0]] / 3600).toFixed(1)}h` 
-                              : '0.0h'}
+                              ? (() => {
+                                  const hours = user.dailyActiveTime[new Date().toISOString().split('T')[0]] / 3600;
+                                  const h = Math.floor(hours);
+                                  const m = Math.round((hours - h) * 60);
+                                  if (h > 0 && m > 0) return `${h}h ${m}m`;
+                                  if (h > 0) return `${h}h`;
+                                  return `${m}m`;
+                                })()
+                              : '0m'}
                           </span>
                         </td>
                         <td className="p-4 text-center">
                           <span className="text-[11px] font-black text-white">
-                            {user.totalActiveTime ? `${(user.totalActiveTime / 3600).toFixed(1)}h` : '0.0h'}
+                            {user.totalActiveTime ? (() => {
+                                  const hours = user.totalActiveTime / 3600;
+                                  const h = Math.floor(hours);
+                                  const m = Math.round((hours - h) * 60);
+                                  if (h > 0 && m > 0) return `${h}h ${m}m`;
+                                  if (h > 0) return `${h}h`;
+                                  return `${m}m`;
+                                })() : '0m'}
                           </span>
                         </td>
                         <td className="p-4">

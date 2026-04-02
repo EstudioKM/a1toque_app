@@ -1,8 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Article, Sponsorship, User, SocialPost, Brand, SocialAccount, AdSlotConfig } from '../../types';
+import { Article, Sponsorship, User, SocialPost, Brand, SocialAccount, AdSlotConfig, Task } from '../../types';
 import { formatArgentinaTimestamp, parseArgentinaDate } from '../../services/dateUtils';
-import { Newspaper, Users, MousePointerClick, Eye, Percent, ExternalLink, Send, Star, AtSign, Calendar, Filter, RotateCcw, ShoppingBag, BarChart3 } from 'lucide-react';
+import { Newspaper, Users, MousePointerClick, Eye, Percent, ExternalLink, Send, Star, AtSign, Calendar, Filter, RotateCcw, ShoppingBag, BarChart3, Timer } from 'lucide-react';
 import { AdsTab } from './AdsTab';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { format, eachDayOfInterval, isSameDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface MetricsTabProps {
   articles: Article[];
@@ -13,6 +16,7 @@ interface MetricsTabProps {
   brandMap: Map<string, Brand>;
   socialAccountMap: Map<string, SocialAccount>;
   adSlots: AdSlotConfig[];
+  tasks: Task[];
   onOpenDetail: (post: SocialPost) => void;
   onOpenBrandEditor: (brand?: Brand) => void;
   onOpenSponsorshipEditor: (sponsorship?: Partial<Sponsorship>) => void;
@@ -22,7 +26,7 @@ interface MetricsTabProps {
   onToggleSponsorshipStatus: (id: string) => void;
 }
 
-type MetricsView = 'sponsorships' | 'posts' | 'ads';
+type MetricsView = 'sponsorships' | 'posts' | 'ads' | 'hours';
 const DATE_PRESETS = [
     { label: '7D', days: 7 },
     { label: '14D', days: 14 },
@@ -44,6 +48,7 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
   brandMap,
   socialAccountMap,
   adSlots,
+  tasks,
   onOpenDetail,
   onOpenBrandEditor,
   onOpenSponsorshipEditor,
@@ -99,6 +104,60 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
       return true;
     });
   }, [socialPosts, dateRange, selectedSponsor, selectedAuthor, selectedAccount]);
+
+  const hoursAnalytics = useMemo(() => {
+    if (!users || users.length === 0) return { dailyData: [], usersWithHours: [] };
+
+    // Find min and max dates from all users' dailyActiveTime
+    let minDate = new Date();
+    let maxDate = new Date();
+    let hasDates = false;
+
+    users.forEach(u => {
+      if (u.dailyActiveTime) {
+        Object.keys(u.dailyActiveTime).forEach(dateStr => {
+          const d = parseArgentinaDate(dateStr);
+          if (!isNaN(d.getTime())) {
+            if (!hasDates || d < minDate) minDate = d;
+            if (!hasDates || d > maxDate) maxDate = d;
+            hasDates = true;
+          }
+        });
+      }
+    });
+
+    const start = dateRange.start ? parseArgentinaDate(dateRange.start) : minDate;
+    const end = dateRange.end ? parseArgentinaDate(dateRange.end) : maxDate;
+    
+    const safeStart = start > end ? end : start;
+    const safeEnd = end < start ? start : end;
+
+    const days = eachDayOfInterval({ start: safeStart, end: safeEnd });
+
+    const usersWithHoursSet = new Set<string>();
+
+    const dailyData = days.map(day => {
+      const dayData: any = { date: format(day, 'dd/MM', { locale: es }) };
+      const dateStr = format(day, 'yyyy-MM-dd');
+      
+      users.forEach(u => {
+        if (u.dailyActiveTime && u.dailyActiveTime[dateStr]) {
+          const hours = u.dailyActiveTime[dateStr] / 3600;
+          if (hours > 0) {
+            usersWithHoursSet.add(u.name);
+            dayData[u.name] = hours;
+          }
+        }
+      });
+      
+      return dayData;
+    });
+
+    return {
+      dailyData,
+      usersWithHours: Array.from(usersWithHoursSet)
+    };
+  }, [dateRange, users]);
 
   const dashboardMetrics = useMemo(() => {
     const totalPosts = filteredPosts.length;
@@ -200,6 +259,98 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
   
   const NoDataMessage = () => <div className="w-full h-full flex items-center justify-center text-center text-gray-500 text-sm font-bold">No hay datos<br/>para el período seleccionado.</div>;
 
+  const formatFriendlyTime = (hours: number) => {
+    if (!hours || isNaN(hours)) return '0 min';
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    
+    if (h > 0 && m > 0) {
+      return `${h} hora${h !== 1 ? 's' : ''} ${m} min`;
+    } else if (h > 0) {
+      return `${h} hora${h !== 1 ? 's' : ''}`;
+    } else {
+      return `${m} min`;
+    }
+  };
+
+  const renderHoursView = () => {
+    const COLORS = ['#00FF9D', '#FF0055', '#00E5FF', '#FFB800', '#B000FF', '#FF5500', '#00FF00', '#0055FF'];
+    
+    return (
+      <>
+        <div className="bg-white/5 p-4 rounded-xl border border-white/10 mb-8 flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-gray-400 font-bold">
+            <Calendar size={16}/><span>Rango:</span>
+          </div>
+          <div className="flex items-center bg-black/50 border border-white/10 rounded-lg p-1">
+            {DATE_PRESETS.map(p => (
+              <button 
+                key={p.label} 
+                onClick={() => handleSetDatePreset(p.days)} 
+                className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition ${activePreset === p.days ? 'bg-neon text-black' : 'text-gray-400 hover:bg-white/10'}`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <input 
+            type="date" 
+            value={dateRange.start} 
+            onChange={e => { setDateRange(p => ({...p, start: e.target.value})); setActivePreset(null); }} 
+            className="bg-black border border-white/10 rounded-lg p-2 text-xs text-white"
+          />
+          <input 
+            type="date" 
+            value={dateRange.end} 
+            onChange={e => { setDateRange(p => ({...p, end: e.target.value})); setActivePreset(null); }} 
+            className="bg-black border border-white/10 rounded-lg p-2 text-xs text-white"
+          />
+        </div>
+
+        <div className="bg-white/5 border border-white/10 p-6 rounded-2xl">
+          <h3 className="text-white font-oswald font-black italic uppercase text-lg mb-6 flex items-center gap-3">
+            <Timer size={20} className="text-neon" /> Horas trabajadas por usuario
+          </h3>
+          <div className="h-[400px] w-full">
+            {hoursAnalytics.dailyData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={hoursAnalytics.dailyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="date" stroke="#4B5563" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis 
+                    stroke="#4B5563" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    tickFormatter={(val) => `${val}h`}
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                    labelStyle={{ color: '#9CA3AF', marginBottom: '8px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                    formatter={(value: number, name: string) => [formatFriendlyTime(value), name]}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                  {hoursAnalytics.usersWithHours.map((user, index) => (
+                    <Bar 
+                      key={user} 
+                      dataKey={user} 
+                      stackId="a" 
+                      fill={COLORS[index % COLORS.length]} 
+                      radius={index === hoursAnalytics.usersWithHours.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                    />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <NoDataMessage />
+            )}
+          </div>
+        </div>
+      </>
+    );
+  };
+
   const renderPostsView = () => (
     <><div className="bg-white/5 p-4 rounded-xl border border-white/10 mb-8 flex flex-wrap items-center gap-4"><div className="flex items-center gap-2 text-sm text-gray-400 font-bold"><Calendar size={16}/><span>Rango:</span></div><div className="flex items-center bg-black/50 border border-white/10 rounded-lg p-1">{DATE_PRESETS.map(p => (<button key={p.label} onClick={() => handleSetDatePreset(p.days)} className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition ${activePreset === p.days ? 'bg-neon text-black' : 'text-gray-400 hover:bg-white/10'}`}>{p.label}</button>))}</div><input type="date" value={dateRange.start} onChange={e => { setDateRange(p => ({...p, start: e.target.value})); setActivePreset(null); }} className="bg-black border border-white/10 rounded-lg p-2 text-xs text-white"/><input type="date" value={dateRange.end} onChange={e => { setDateRange(p => ({...p, end: e.target.value})); setActivePreset(null); }} className="bg-black border border-white/10 rounded-lg p-2 text-xs text-white"/><div className="h-6 w-px bg-white/10 mx-2"></div><div className="flex items-center gap-2 text-sm text-gray-400 font-bold"><Filter size={16}/><span>Filtros:</span></div><select value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)} className="bg-black border border-white/10 rounded-lg p-2 text-xs text-white"><option value="all">Todas las Cuentas</option>{Array.from(socialAccountMap.values()).map((acc: SocialAccount) => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select><select value={selectedSponsor} onChange={e => setSelectedSponsor(e.target.value)} className="bg-black border border-white/10 rounded-lg p-2 text-xs text-white"><option value="all">Todos los Sponsors</option>{brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}</select><select value={selectedAuthor} onChange={e => setSelectedAuthor(e.target.value)} className="bg-black border border-white/10 rounded-lg p-2 text-xs text-white"><option value="all">Todos los Autores</option>{users.filter(u => ['admin', 'editor', 'cm'].includes(u.roleId)).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}</select><button onClick={handleResetFilters} className="p-2 bg-white/10 rounded-lg text-gray-400 hover:text-white"><RotateCcw size={14}/></button></div>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"><div className="bg-white/5 p-6 rounded-xl border border-white/10"><div className="flex items-center gap-4 text-gray-400 mb-4"><Send size={20} /><h4 className="text-sm font-bold uppercase tracking-widest">Redes Sociales</h4></div><p className="text-4xl font-black text-white">{dashboardMetrics.totalPosts}</p></div><div className="bg-white/5 p-6 rounded-xl border border-white/10"><div className="flex items-center gap-4 text-gray-400 mb-4"><Users size={20} /><h4 className="text-sm font-bold uppercase tracking-widest">Autor Principal</h4></div><p className="text-3xl font-black text-white truncate">{dashboardMetrics.mostActiveAuthor}</p></div><div className="bg-white/5 p-6 rounded-xl border border-white/10"><div className="flex items-center gap-4 text-gray-400 mb-4"><AtSign size={20} /><h4 className="text-sm font-bold uppercase tracking-widest">Cuenta Principal</h4></div><p className="text-3xl font-black text-neon truncate">{dashboardMetrics.mostUsedAccount}</p></div><div className="bg-white/5 p-6 rounded-xl border border-white/10"><div className="flex items-center gap-4 text-gray-400 mb-4"><Star size={20} /><h4 className="text-sm font-bold uppercase tracking-widest">Sponsor Principal</h4></div><p className="text-3xl font-black text-neon truncate">{dashboardMetrics.mostFeaturedSponsor}</p></div></div>
@@ -252,11 +403,17 @@ export const MetricsTab: React.FC<MetricsTabProps> = ({
           >
             ADS
           </button>
+          <button 
+            onClick={() => setView('hours')} 
+            className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-1.5 md:py-2.5 rounded-md md:rounded-xl text-[8px] md:text-[10px] font-black uppercase italic tracking-widest transition-all whitespace-nowrap ${view === 'hours' ? 'bg-neon text-black shadow-[0_0_20px_rgba(0,255,157,0.2)]' : 'text-gray-500 hover:text-white'}`}
+          >
+            HORAS
+          </button>
         </div>
       </div>
 
       <div className="pt-14 md:pt-18 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {view === 'sponsorships' ? renderSponsorshipsView() : view === 'posts' ? renderPostsView() : <AdsTab brands={brands} sponsorships={sponsorships} adSlots={adSlots} brandMap={brandMap} onOpenBrandEditor={onOpenBrandEditor} onOpenSponsorshipEditor={onOpenSponsorshipEditor} onOpenAdSlotEditor={onOpenAdSlotEditor} onDeleteBrand={onDeleteBrand} onDeleteSponsorship={onDeleteSponsorship} onToggleSponsorshipStatus={onToggleSponsorshipStatus} />}
+        {view === 'sponsorships' ? renderSponsorshipsView() : view === 'posts' ? renderPostsView() : view === 'hours' ? renderHoursView() : <AdsTab brands={brands} sponsorships={sponsorships} adSlots={adSlots} brandMap={brandMap} onOpenBrandEditor={onOpenBrandEditor} onOpenSponsorshipEditor={onOpenSponsorshipEditor} onOpenAdSlotEditor={onOpenAdSlotEditor} onDeleteBrand={onDeleteBrand} onDeleteSponsorship={onDeleteSponsorship} onToggleSponsorshipStatus={onToggleSponsorshipStatus} />}
       </div>
     </div>
   );
